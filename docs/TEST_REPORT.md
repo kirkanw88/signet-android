@@ -8,6 +8,8 @@ Xray/libXray v26.11.9, Kotlin/Compose, native Android VpnService TUN. Это у�
 
 Причина: в `gradle/verification-metadata.xml` полностью отсутствовала запись `guava-parent-33.2.1-jre.pom`. Записи других версий Guava и checksum для JAR/module самой Guava не распространяются на parent POM. Это отсутствие checksum, а не несовпадение существующей суммы. `MavenRepo` соответствует `mavenCentral()` из settings.gradle.kts; признаков неожиданного репозитория в этом сбое нет. Репозитории остались google()/mavenCentral() и Gradle Plugin Portal для плагинов, с FAIL_ON_PROJECT_REPOS.
 
+Путь зависимости подтверждён Gradle metadata/POM: `kapt(androidx.room:room-compiler:2.7.1)` → `androidx.room:room-compiler-processing:2.7.1` → `com.google.guava:guava:33.2.1-jre` → parent `com.google.guava:guava-parent:33.2.1-jre`. Локальный прогон с исходным XML и новым dependency cache воспроизвёл ошибку, HTML-отчёт явно указал `Checksums are missing from verification metadata`; извлечённая таблица сохранена в `tests/evidence/dependency-verification-before.txt`. Фактически скачанный Gradle POM совпал с проверенным Central SHA-256.
+
 POM получен по HTTPS с `repo.maven.apache.org/maven2` и `repo1.maven.org/maven2`: 19431 байт, содержимое совпадает. Вычисленный SHA-256: `9095f6d8ee3765950207510785830cc2280e781067915fa99cfe1740d4865c14`. Дополнительно проверено совпадение с опубликованным Central SHA-1 `fc55955fab23e86fad230acc81bf570deb5660bd`. Sidecar `.sha256` для этого POM возвращает 404, поэтому SHA-256 вычислен из подтверждённых HTTPS-байтов, а не назван опубликованным Central SHA-256. Источники и значения: `tests/evidence/central-metadata.json`. Повторяемая проверка без изменения доверия: `python scripts/verify-central-metadata.py com.google.guava:guava-parent:33.2.1-jre guava-parent-33.2.1-jre.pom`.
 
 Дополнительно найдена отсутствующая Linux-вариация закреплённого AAPT2 `com.android.tools.build:aapt2:8.10.1-12782657`, необходимая Ubuntu runner; ранее XML содержал только Windows JAR. Linux JAR получен с официального Google Maven, повторно через maven.google.com с переходом на dl.google.com; байты и опубликованный SHA-1 совпали. SHA-256 `52f864b7fd20a9ff09fc3db96162537a63c5b38ecc1c2549db4b491c6a517ff0`. Источники: `tests/evidence/google-metadata.json`. Это конкретный OS-артефакт, а не разрешение всем зависимостям Google Maven.
@@ -16,7 +18,24 @@ POM получен по HTTPS с `repo.maven.apache.org/maven2` и `repo1.maven.
 
 Workflow теперь явно запускает strict verification, `:core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease`, использует отдельный `${{ github.workspace }}/.gradle/ci-user-home` без восстановления старого кэша и сохраняет диагностические отчёты при сбое. Локальная проверка использует новый `.gradle/ci-verification-home`; старый dependency cache не копируется. Установленный Gradle 8.13 используется как инструмент, независимо от нового dependency cache. Сетевой прокси задан только в локальном окружении процесса, в репозиторий его настройки не включены.
 
-Результаты нового полного прогона будут дополнены после завершения локальной сборки и Actions; исторические результаты ниже не заменяют этот прогон.
+Проверка чистого окружения завершена 18.11.2026 (Europe/Moscow): [Actions run 44174008896 — SUCCESS](https://github.com/kirkanw88/signet-android/actions/runs/44174008896), commit `62e9190aa78a0f628aa06b42263541945805a385`. Gradle: `BUILD SUCCESSFUL in 8m 49s`. В логе подтверждён новый `GRADLE_USER_HOME=/home/runner/work/signet-android/signet-android/.gradle/ci-user-home`, без restore dependency cache.
+
+| Проверка в новом Ubuntu 24.04 runner | Результат |
+|---|---|
+| Dependency Verification, strict | PASS, включая проблемную javaPreCompileDebug/KAPT configuration |
+| `:core:test` | 10 tests, 0 failures/errors/skipped; XML: `tests/evidence/ci-dependency-unit-tests.xml` |
+| `:app:testDebugUnitTest` | NO-SOURCE; дополнительных JVM-тестов в app нет |
+| `:app:lintDebug` | PASS, 0 errors, 29 warnings |
+| `:app:assembleDebug` | PASS, APK всех настроенных ABI созданы |
+| `:app:assembleRelease` | PASS, R8 + resource shrinking, APK созданы |
+
+[APK из этого прогона](https://github.com/kirkanw88/signet-android/actions/runs/44174008896/artifacts/14369252538) и [исходные отчёты тестов/Lint](https://github.com/kirkanw88/signet-android/actions/runs/44174008896/artifacts/14368519352) загружены Actions. Фильтрованный журнал шага сборки: `tests/evidence/ci-dependency-build.txt`. Все 1063 прежние записи артефактов сохранены; добавлены ровно две записи, описанные выше. Других отсутствующих checksum в полном Ubuntu-прогоне не выявлено.
+
+Локальный полный прогон Windows завершился `BUILD SUCCESSFUL in 11m 30s`, 110 tasks (108 executed, 2 up-to-date). Использованы `clean`, `--no-build-cache`, отдельный новый dependency cache и те же strict-задачи. Начальный прогон для воспроизведения заполнил этот новый кэш; старый Gradle dependency cache не копировался. Unit: 10 tests, 0 failures/errors/skipped. Lint: 0 errors, 29 warnings. Debug и Release успешно собраны, в сумме 8 APK (три ABI + universal для каждого build type). Журнал задач: `tests/evidence/local-dependency-build.txt`, размеры/SHA-256 APK: `tests/evidence/local-dependency-apks.json`. ARM64 Release: `app/build/outputs/apk/release/app-arm64-v8a-release.apk`, 41052886 байт, SHA-256 `c71e6481f455a20571fefa5b2cdb4049a4b87f6b0d4164fed043fc244f546d3a`; apksigner verification и `zipalign -c -P 16 4` прошли. Подпись остаётся development/debug, как в исходной конфигурации. Установка/инструментальные проверки в этом исправлении CI не выполнялись.
+
+Для старого установленного JDK 17.0.1 используется существующий ASCII junction `C:\Android\signet-build`, проверенно указывающий на этот же репозиторий; файлов проекта вне запрошенного репозитория не создавалось. Чистое разрешение зависимостей и сборка через wrapper на Ubuntu независимо подтверждены run выше.
+
+Первый промежуточный push был отклонён валидатором Actions до создания job из-за `runner.temp` в job-level env. Это исправлено на разрешённый там `github.workspace`; успешный run выше включает исправление. Ошибок сборки после добавления двух подтверждённых checksum в Ubuntu не осталось. Исторические проверки приложения ниже не означают повторного запуска UI/инструментальных тестов в рамках этого исправления CI.
 
 ## Подтверждено
 

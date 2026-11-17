@@ -1,0 +1,182 @@
+GitHub Actions run 44174008896, commit 62e9190aa78a0f628aa06b42263541945805a385
+Build-step excerpt from job log.
+2026-11-17T20:53:38.4314946Z ##[group]Run chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease
+2026-11-17T20:53:38.4315900Z chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease
+2026-11-17T20:53:38.4333929Z shell: /usr/bin/bash -e {0}
+2026-11-17T20:53:38.4334163Z env:
+2026-11-17T20:53:38.4334459Z   GRADLE_USER_HOME: /home/runner/work/signet-android/signet-android/.gradle/ci-user-home
+2026-11-17T20:53:38.4334889Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64
+2026-11-17T20:53:38.4335270Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64
+2026-11-17T20:53:38.4335567Z ##[endgroup]
+2026-11-17T20:53:38.5646793Z Downloading https://services.gradle.org/distributions/gradle-8.13-bin.zip
+2026-11-17T20:53:40.1122015Z .............10%.............20%.............30%.............40%.............50%.............60%.............70%.............80%.............90%.............100%
+2026-11-17T20:53:41.6298384Z 
+2026-11-17T20:53:41.6311206Z Welcome to Gradle 8.13!
+2026-11-17T20:53:41.6311857Z 
+2026-11-17T20:53:41.6312002Z Here are the highlights of this release:
+2026-11-17T20:53:41.6312294Z  - Daemon JVM auto-provisioning
+2026-11-17T20:53:41.6312573Z  - Enhancements for Scala plugin and JUnit testing
+2026-11-17T20:53:41.6312898Z  - Improvements for build authors and plugin developers
+2026-11-17T20:53:41.6313081Z 
+2026-11-17T20:53:41.6313260Z For more details see https://docs.gradle.org/8.13/release-notes.html
+2026-11-17T20:53:41.6313497Z 
+2026-11-17T20:53:41.7310156Z To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.13/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+2026-11-17T20:53:43.3309071Z Daemon will be stopped at the end of the build 
+2026-11-17T20:54:46.3312382Z 
+2026-11-17T20:54:46.3341303Z > Configure project :app
+2026-11-17T20:54:46.3341889Z WARNING: The option setting 'android.overridePathCheck=true' is experimental.
+2026-11-17T20:54:46.3361088Z The current default is 'false'.
+2026-11-17T20:55:00.4301105Z 
+2026-11-17T20:55:00.4321478Z > Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-11-17T20:55:06.0300440Z > Task :core:processResources NO-SOURCE
+2026-11-17T20:55:06.0320822Z > Task :core:processTestResources NO-SOURCE
+2026-11-17T20:55:06.0361533Z > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-11-17T20:55:06.0391329Z > Task :app:preBuild UP-TO-DATE
+2026-11-17T20:55:06.0428997Z > Task :app:preDebugBuild UP-TO-DATE
+2026-11-17T20:55:06.1301524Z > Task :app:generateDebugBuildConfig
+2026-11-17T20:55:15.3301660Z > Task :core:compileKotlin
+2026-11-17T20:55:27.4342694Z > Task :app:checkDebugAarMetadata
+2026-11-17T20:55:27.4386887Z > Task :core:compileJava NO-SOURCE
+2026-11-17T20:55:27.4441526Z > Task :core:classes UP-TO-DATE
+2026-11-17T20:55:27.4481376Z > Task :core:jar
+2026-11-17T20:55:30.4318647Z > Task :app:generateDebugResValues
+2026-11-17T20:55:30.5298902Z > Task :core:compileTestKotlin
+2026-11-17T20:55:30.7321426Z > Task :app:mapDebugSourceSetPaths
+2026-11-17T20:55:30.7341231Z > Task :core:compileTestJava NO-SOURCE
+2026-11-17T20:55:30.7361131Z > Task :core:testClasses UP-TO-DATE
+2026-11-17T20:55:31.9292789Z > Task :core:test
+2026-11-17T20:55:31.9321303Z > Task :app:generateDebugResources
+2026-11-17T20:55:33.1334736Z > Task :app:createDebugCompatibleScreenManifests
+2026-11-17T20:55:33.1394067Z > Task :app:extractDeepLinksDebug
+2026-11-17T20:55:34.3293705Z > Task :app:mergeDebugResources
+2026-11-17T20:55:34.6302463Z > Task :app:processDebugMainManifest
+2026-11-17T20:55:34.6315561Z > Task :app:packageDebugResources
+2026-11-17T20:55:35.8301767Z > Task :app:parseDebugLocalResources
+2026-11-17T20:55:35.8302541Z > Task :app:processDebugManifest
+2026-11-17T20:55:38.7296079Z > Task :app:processDebugManifestForPackage
+2026-11-17T20:55:38.7310274Z > Task :app:javaPreCompileDebug
+2026-11-17T20:55:39.8301494Z > Task :app:preDebugUnitTestBuild UP-TO-DATE
+2026-11-17T20:55:39.9311219Z > Task :app:javaPreCompileDebugUnitTest
+2026-11-17T20:55:39.9311811Z > Task :app:preDebugAndroidTestBuild SKIPPED
+2026-11-17T20:55:39.9351049Z > Task :app:generateDebugAndroidTestResValues
+2026-11-17T20:55:39.9370945Z > Task :app:extractProguardFiles
+2026-11-17T20:55:39.9427565Z > Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+2026-11-17T20:55:40.0303518Z > Task :app:mergeDebugShaders
+2026-11-17T20:55:40.0308861Z > Task :app:compileDebugShaders NO-SOURCE
+2026-11-17T20:55:40.0331128Z > Task :app:generateDebugAssets UP-TO-DATE
+2026-11-17T20:55:40.3311671Z > Task :app:mergeDebugAssets
+2026-11-17T20:55:41.1291833Z > Task :app:compressDebugAssets
+2026-11-17T20:55:41.2304932Z > Task :app:processDebugResources
+2026-11-17T20:55:43.4292571Z > Task :app:desugarDebugFileDependencies
+2026-11-17T20:55:53.6311740Z > Task :app:checkDebugDuplicateClasses
+2026-11-17T20:56:11.2301578Z > Task :app:kaptGenerateStubsDebugKotlin
+2026-11-17T20:56:23.7292412Z > Task :app:mergeExtDexDebug
+2026-11-17T20:57:55.8301413Z > Task :app:mergeLibDexDebug
+2026-11-17T20:57:55.9321656Z > Task :app:mergeDebugJniLibFolders
+2026-11-17T20:57:57.0318525Z > Task :app:mergeDebugNativeLibs
+2026-11-17T20:57:57.5296484Z 
+2026-11-17T20:57:57.5304761Z > Task :app:stripDebugDebugSymbols
+2026-11-17T20:57:57.5325410Z Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so, libgojni.so. Run with --info option to learn more.
+2026-11-17T20:57:58.6294861Z 
+2026-11-17T20:57:58.6311511Z > Task :app:validateSigningDebug
+2026-11-17T20:57:58.6321147Z > Task :app:writeDebugAppMetadata
+2026-11-17T20:57:58.6361239Z > Task :app:writeDebugSigningConfigVersions
+2026-11-17T20:57:58.6401127Z > Task :app:preReleaseBuild UP-TO-DATE
+2026-11-17T20:57:58.6406784Z > Task :app:mergeReleaseJniLibFolders
+2026-11-17T20:57:59.6294818Z > Task :app:mergeReleaseNativeLibs
+2026-11-17T20:57:59.6297760Z > Task :app:kaptDebugKotlin
+2026-11-17T20:58:00.3301359Z 
+2026-11-17T20:58:00.3341598Z > Task :app:stripReleaseDebugSymbols
+2026-11-17T20:58:00.3362045Z Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so, libgojni.so. Run with --info option to learn more.
+2026-11-17T20:58:00.4361043Z 
+2026-11-17T20:58:00.4382324Z > Task :app:extractReleaseNativeSymbolTables
+2026-11-17T20:58:00.4401171Z > Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+2026-11-17T20:58:00.5291996Z > Task :app:buildKotlinToolingMetadata
+2026-11-17T20:58:00.6361784Z > Task :app:checkReleaseDuplicateClasses
+2026-11-17T20:58:00.6411526Z > Task :app:generateReleaseBuildConfig
+2026-11-17T20:58:00.7294149Z > Task :app:checkReleaseAarMetadata
+2026-11-17T20:58:00.7311406Z > Task :app:generateReleaseResValues
+2026-11-17T20:58:00.7331188Z > Task :app:mapReleaseSourceSetPaths
+2026-11-17T20:58:00.8292334Z > Task :app:generateReleaseResources
+2026-11-17T20:58:06.1293841Z > Task :app:mergeReleaseResources
+2026-11-17T20:58:06.2312463Z > Task :app:packageReleaseResources
+2026-11-17T20:58:06.2313702Z > Task :app:parseReleaseLocalResources
+2026-11-17T20:58:06.3304738Z > Task :app:createReleaseCompatibleScreenManifests
+2026-11-17T20:58:06.3321388Z > Task :app:extractDeepLinksRelease
+2026-11-17T20:58:06.5294307Z > Task :app:processReleaseMainManifest
+2026-11-17T20:58:06.6294336Z > Task :app:processReleaseManifest
+2026-11-17T20:58:06.7291962Z > Task :app:processReleaseManifestForPackage
+2026-11-17T20:58:11.0342456Z > Task :app:processReleaseResources
+2026-11-17T20:58:22.6311501Z > Task :app:kaptGenerateStubsReleaseKotlin
+2026-11-17T20:58:24.9291865Z > Task :app:compileDebugKotlin
+2026-11-17T20:58:25.9301573Z > Task :app:kaptReleaseKotlin
+2026-11-17T20:58:36.2303148Z > Task :app:compileDebugJavaWithJavac
+2026-11-17T20:58:36.2311038Z > Task :app:bundleDebugClassesToRuntimeJar
+2026-11-17T20:58:36.2335386Z > Task :app:bundleDebugClassesToCompileJar
+2026-11-17T20:58:36.3321698Z > Task :app:processDebugJavaRes
+2026-11-17T20:58:36.5292582Z > Task :app:kaptGenerateStubsDebugUnitTestKotlin
+2026-11-17T20:58:36.8296010Z > Task :app:kaptDebugUnitTestKotlin
+2026-11-17T20:58:41.2292784Z > Task :app:generateDebugAndroidTestLintModel
+2026-11-17T20:58:41.2311170Z > Task :app:compileDebugUnitTestKotlin NO-SOURCE
+2026-11-17T20:58:41.2331087Z > Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+2026-11-17T20:58:41.2350919Z > Task :app:processDebugUnitTestJavaRes NO-SOURCE
+2026-11-17T20:58:41.2351560Z > Task :app:testDebugUnitTest NO-SOURCE
+2026-11-17T20:58:41.5291585Z > Task :app:generateDebugLintReportModel
+2026-11-17T20:58:41.5292208Z > Task :app:generateDebugUnitTestLintModel
+2026-11-17T20:59:06.4294131Z > Task :app:lintAnalyzeDebugAndroidTest
+2026-11-17T20:59:07.8314976Z > Task :app:lintAnalyzeDebugUnitTest
+2026-11-17T20:59:11.2301674Z > Task :app:dexBuilderDebug
+2026-11-17T20:59:11.5311741Z > Task :app:lintAnalyzeDebug
+2026-11-17T20:59:11.6307387Z > Task :app:mergeDebugGlobalSynthetics
+2026-11-17T20:59:16.1296842Z > Task :app:mergeDebugJavaResource
+2026-11-17T20:59:16.2306734Z > Task :app:mergeProjectDexDebug
+2026-11-17T20:59:25.0305393Z > Task :app:packageDebug
+2026-11-17T20:59:25.0351087Z > Task :app:createDebugApkListingFileRedirect
+2026-11-17T20:59:25.0394548Z > Task :app:assembleDebug
+2026-11-17T20:59:43.9292305Z > Task :app:compileReleaseKotlin
+2026-11-17T20:59:44.0293948Z > Task :app:javaPreCompileRelease
+2026-11-17T20:59:44.8303403Z > Task :app:compileReleaseJavaWithJavac
+2026-11-17T20:59:45.2295422Z > Task :app:mergeReleaseArtProfile
+2026-11-17T20:59:48.1291867Z > Task :app:expandReleaseArtProfileWildcards
+2026-11-17T20:59:48.1321215Z > Task :app:mergeReleaseGeneratedProguardFiles
+2026-11-17T20:59:48.1351329Z > Task :app:processReleaseJavaRes
+2026-11-17T20:59:49.9312025Z > Task :app:mergeReleaseJavaResource
+2026-11-17T20:59:50.0291694Z > Task :app:mergeReleaseStartupProfile
+2026-11-17T20:59:56.9294042Z 
+2026-11-17T20:59:56.9321447Z > Task :app:lintReportDebug
+2026-11-17T20:59:56.9341488Z Wrote HTML report to file:///home/runner/work/signet-android/signet-android/app/build/reports/lint-results-debug.html
+2026-11-17T20:59:56.9370848Z 
+2026-11-17T20:59:56.9398673Z > Task :app:lintDebug
+2026-11-17T20:59:56.9420952Z > Task :app:mergeReleaseShaders
+2026-11-17T20:59:56.9441060Z > Task :app:compileReleaseShaders NO-SOURCE
+2026-11-17T20:59:56.9452469Z > Task :app:generateReleaseAssets UP-TO-DATE
+2026-11-17T20:59:56.9467791Z > Task :app:mergeReleaseAssets
+2026-11-17T20:59:57.9316569Z > Task :app:compressReleaseAssets
+2026-11-17T20:59:58.3303705Z > Task :app:extractReleaseVersionControlInfo
+2026-11-17T20:59:58.4291843Z > Task :app:generateReleaseLintVitalReportModel
+2026-11-17T21:00:13.6321900Z > Task :app:lintVitalAnalyzeRelease
+2026-11-17T21:00:13.7291494Z > Task :app:lintVitalReportRelease
+2026-11-17T21:00:13.7292005Z > Task :app:lintVitalRelease
+2026-11-17T21:00:14.9298525Z > Task :app:collectReleaseDependencies
+2026-11-17T21:00:15.1301704Z > Task :app:sdkReleaseDependencyData
+2026-11-17T21:00:15.1321211Z > Task :app:validateSigningRelease
+2026-11-17T21:00:15.1321645Z > Task :app:writeReleaseAppMetadata
+2026-11-17T21:00:15.1322041Z > Task :app:writeReleaseSigningConfigVersions
+2026-11-17T21:00:20.0311728Z > Task :app:minifyReleaseWithR8
+2026-11-17T21:02:26.1301948Z > Task :app:convertShrunkResourcesToBinaryRelease
+2026-11-17T21:02:26.4311864Z > Task :app:compileReleaseArtProfile
+2026-11-17T21:02:26.4331216Z > Task :app:optimizeReleaseResources
+2026-11-17T21:02:28.2295668Z > Task :app:packageRelease
+2026-11-17T21:02:28.2319619Z > Task :app:createReleaseApkListingFileRedirect
+2026-11-17T21:02:28.2335466Z > Task :app:assembleRelease
+2026-11-17T21:02:28.2350985Z 
+2026-11-17T21:02:28.2370950Z [Incubating] Problems report is available at: file:///home/runner/work/signet-android/signet-android/build/reports/problems/problems-report.html
+2026-11-17T21:02:28.2381482Z 
+2026-11-17T21:02:28.2382366Z Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+2026-11-17T21:02:28.2383044Z 
+2026-11-17T21:02:28.2383792Z You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+2026-11-17T21:02:28.2384594Z 
+2026-11-17T21:02:28.2385386Z For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+2026-11-17T21:02:28.2386264Z 
+2026-11-17T21:02:28.2386558Z BUILD SUCCESSFUL in 8m 49s
+2026-11-17T21:02:28.2387024Z 108 actionable tasks: 108 executed

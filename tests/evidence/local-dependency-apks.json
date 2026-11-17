@@ -1,0 +1,42 @@
+[
+  {
+    "path": "app/build/outputs/apk/debug/app-arm64-v8a-debug.apk",
+    "bytes": 60587799,
+    "sha256": "e4bfd1d4d4c93996943a4749a589d7b10b2f130fc9da014dabad1c3395cb80e7"
+  },
+  {
+    "path": "app/build/outputs/apk/debug/app-armeabi-v7a-debug.apk",
+    "bytes": 59863805,
+    "sha256": "3e81c048cfe9804784483365e2f14f046d9cc1f362bf22acb9f4f5cf42fffa9c"
+  },
+  {
+    "path": "app/build/outputs/apk/debug/app-universal-debug.apk",
+    "bytes": 164595693,
+    "sha256": "933621c2be21ea3fa84bd3d3dfbf56e4fa52b49322bd934f2302615c672ab42e"
+  },
+  {
+    "path": "app/build/outputs/apk/debug/app-x86_64-debug.apk",
+    "bytes": 62965006,
+    "sha256": "4a84c61953441595d7eaecd8d8283cd055e2b2bb48703c4813c66fe3fb3bd606"
+  },
+  {
+    "path": "app/build/outputs/apk/release/app-arm64-v8a-release.apk",
+    "bytes": 41052886,
+    "sha256": "c71e6481f455a20571fefa5b2cdb4049a4b87f6b0d4164fed043fc244f546d3a"
+  },
+  {
+    "path": "app/build/outputs/apk/release/app-armeabi-v7a-release.apk",
+    "bytes": 40328892,
+    "sha256": "c2b48f8e44c2d68c6a59a4479dcb98952b320848478f17a8ad7a013ab068a1c1"
+  },
+  {
+    "path": "app/build/outputs/apk/release/app-universal-release.apk",
+    "bytes": 145060780,
+    "sha256": "95cc000f31b9a0dd416f8b76023a540851930ece0a4eb68bbd09efd18a1c09ea"
+  },
+  {
+    "path": "app/build/outputs/apk/release/app-x86_64-release.apk",
+    "bytes": 43430093,
+    "sha256": "7aead566334017cf6dd85d2b22a21c7b225c01f5b16d76e3d82d5d31a3e3d38e"
+  }
+]

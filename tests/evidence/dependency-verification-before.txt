@@ -1,0 +1,4 @@
+Fresh dependency cache, Gradle 8.13, strict verification, original metadata loaded before editing.
+Task: :app:javaPreCompileDebug
+Report table extracted from Gradle HTML:
+ Module Artifact Problem(s) com.google.guava:guava-parent:33.2.1-jre guava-parent-33.2.1-jre.pom Checksums are missing from verification metadata 
