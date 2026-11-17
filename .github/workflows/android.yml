@@ -3,6 +3,9 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-24.04
+    env:
+      # Resolve and verify dependencies without a previous runner's Gradle cache.
+      GRADLE_USER_HOME: ${{ runner.temp }}/signet-gradle
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -20,8 +23,20 @@ jobs:
             "platforms;android-36" \
             "build-tools;36.0.0"
       - run: python3 scripts/fetch-native.py
-      - run: chmod +x gradlew && ./gradlew :core:test :app:lintDebug :app:assembleRelease
+      - name: Verify dependencies, test, lint and build APKs
+        run: chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signet-build-reports
+          path: |
+            build/reports/dependency-verification/
+            core/build/reports/tests/
+            core/build/test-results/
+            app/build/reports/
       - uses: actions/upload-artifact@v4
         with:
           name: signet-apks
-          path: app/build/outputs/apk/release/*.apk
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk

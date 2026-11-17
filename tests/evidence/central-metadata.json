@@ -1,0 +1,14 @@
+[
+  {
+    "coordinate": "com.google.guava:guava-parent:33.2.1-jre",
+    "artifact": "guava-parent-33.2.1-jre.pom",
+    "bytes": 19431,
+    "sha256": "9095f6d8ee3765950207510785830cc2280e781067915fa99cfe1740d4865c14",
+    "publishedSha1": "fc55955fab23e86fad230acc81bf570deb5660bd",
+    "sources": [
+      "https://repo.maven.apache.org/maven2/com/google/guava/guava-parent/33.2.1-jre/guava-parent-33.2.1-jre.pom",
+      "https://repo1.maven.org/maven2/com/google/guava/guava-parent/33.2.1-jre/guava-parent-33.2.1-jre.pom"
+    ],
+    "sidecar": "https://repo.maven.apache.org/maven2/com/google/guava/guava-parent/33.2.1-jre/guava-parent-33.2.1-jre.pom.sha1"
+  }
+]

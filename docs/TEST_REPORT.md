@@ -2,6 +2,22 @@
 
 Xray/libXray v26.11.9, Kotlin/Compose, native Android VpnService TUN. Это устанавливаемая первая development release с локальной подписью разработки. Полная приёмка исходного ТЗ ещё не завершена.
 
+## Исправление GitHub Actions / Dependency Verification
+
+Исходный сбой подтверждён логом [Actions run 44171366263](https://github.com/kirkanw88/signet-android/actions/runs/44171366263), commit `143e04d41c3808916ea9193dcbe60bfaea820374`: `:app:javaPreCompileDebug`, конфигурация `:app:_agp_internal_javaPreCompileDebug_kaptClasspath`, артефакт `com.google.guava:guava-parent:33.2.1-jre`, репозиторий `MavenRepo`.
+
+Причина: в `gradle/verification-metadata.xml` полностью отсутствовала запись `guava-parent-33.2.1-jre.pom`. Записи других версий Guava и checksum для JAR/module самой Guava не распространяются на parent POM. Это отсутствие checksum, а не несовпадение существующей суммы. `MavenRepo` соответствует `mavenCentral()` из settings.gradle.kts; признаков неожиданного репозитория в этом сбое нет. Репозитории остались google()/mavenCentral() и Gradle Plugin Portal для плагинов, с FAIL_ON_PROJECT_REPOS.
+
+POM получен по HTTPS с `repo.maven.apache.org/maven2` и `repo1.maven.org/maven2`: 19431 байт, содержимое совпадает. Вычисленный SHA-256: `9095f6d8ee3765950207510785830cc2280e781067915fa99cfe1740d4865c14`. Дополнительно проверено совпадение с опубликованным Central SHA-1 `fc55955fab23e86fad230acc81bf570deb5660bd`. Sidecar `.sha256` для этого POM возвращает 404, поэтому SHA-256 вычислен из подтверждённых HTTPS-байтов, а не назван опубликованным Central SHA-256. Источники и значения: `tests/evidence/central-metadata.json`. Повторяемая проверка без изменения доверия: `python scripts/verify-central-metadata.py com.google.guava:guava-parent:33.2.1-jre guava-parent-33.2.1-jre.pom`.
+
+Дополнительно найдена отсутствующая Linux-вариация закреплённого AAPT2 `com.android.tools.build:aapt2:8.10.1-12782657`, необходимая Ubuntu runner; ранее XML содержал только Windows JAR. Linux JAR получен с официального Google Maven, повторно через maven.google.com с переходом на dl.google.com; байты и опубликованный SHA-1 совпали. SHA-256 `52f864b7fd20a9ff09fc3db96162537a63c5b38ecc1c2549db4b491c6a517ff0`. Источники: `tests/evidence/google-metadata.json`. Это конкретный OS-артефакт, а не разрешение всем зависимостям Google Maven.
+
+Добавлены только эти подтверждённые записи. `verify-metadata=true` сохранён, существующие суммы не заменены, trusted-artifacts / глобальные исключения не добавлены. Автоматическое дописывание checksum через `--write-verification-metadata` и отключение verification не применяются.
+
+Workflow теперь явно запускает strict verification, `:core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease`, использует отдельный `${{ runner.temp }}/signet-gradle` без восстановления старого кэша и сохраняет диагностические отчёты при сбое. Локальная проверка использует новый `.gradle/ci-verification-home`; старый dependency cache не копируется. Установленный Gradle 8.13 используется как инструмент, независимо от нового dependency cache. Сетевой прокси задан только в локальном окружении процесса, в репозиторий его настройки не включены.
+
+Результаты нового полного прогона будут дополнены после завершения локальной сборки и Actions; исторические результаты ниже не заменяют этот прогон.
+
 ## Подтверждено
 
 | Проверка | Результат | Доказательство |

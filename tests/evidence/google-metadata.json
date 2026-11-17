@@ -1,0 +1,20 @@
+[
+  {
+    "coordinate": "com.android.tools.build:aapt2:8.10.1-12782657",
+    "artifact": "aapt2-8.10.1-12782657-linux.jar",
+    "bytes": 2315715,
+    "sha256": "52f864b7fd20a9ff09fc3db96162537a63c5b38ecc1c2549db4b491c6a517ff0",
+    "publishedSha1": "226487577a2993b0d68b1be6c8bb6d6729418745",
+    "sources": [
+      {
+        "requested": "https://dl.google.com/dl/android/maven2/com/android/tools/build/aapt2/8.10.1-12782657/aapt2-8.10.1-12782657-linux.jar",
+        "effective": "https://dl.google.com/dl/android/maven2/com/android/tools/build/aapt2/8.10.1-12782657/aapt2-8.10.1-12782657-linux.jar"
+      },
+      {
+        "requested": "https://maven.google.com/com/android/tools/build/aapt2/8.10.1-12782657/aapt2-8.10.1-12782657-linux.jar",
+        "effective": "https://dl.google.com/dl/android/maven2/com/android/tools/build/aapt2/8.10.1-12782657/aapt2-8.10.1-12782657-linux.jar"
+      }
+    ],
+    "sidecar": "https://dl.google.com/dl/android/maven2/com/android/tools/build/aapt2/8.10.1-12782657/aapt2-8.10.1-12782657-linux.jar.sha1"
+  }
+]
