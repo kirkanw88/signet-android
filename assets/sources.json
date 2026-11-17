@@ -1,0 +1,12 @@
+{
+  "countries.json": {
+    "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson",
+    "sourceSha256": "6866c877d39cba9c357620878839b336d569f8c662d3cfab4cb1dbe2d39c977f",
+    "sha256": "9ad664b90cc9d7658481ac40fe2d7795fd1a27a908a93a6419a08e93b535558b"
+  },
+  "earth.jpg": {
+    "url": "https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_4k.jpg",
+    "sourceSha256": "61cd3d27489d80ed025d7954539a6d90b50d4433bbdd27e8c1af8a6f15f71e86",
+    "sha256": "61cd3d27489d80ed025d7954539a6d90b50d4433bbdd27e8c1af8a6f15f71e86"
+  }
+}

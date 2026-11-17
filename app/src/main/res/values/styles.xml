@@ -1,0 +1,12 @@
+<resources>
+    <style name="Theme.Signet" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#050816</item>
+        <item name="android:navigationBarColor">#050816</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">#050816</item>
+        <item name="android:colorAccent">#39C8FF</item>
+    </style>
+    <color name="icon_background">#050816</color>
+</resources>

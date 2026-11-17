@@ -1,0 +1,10 @@
+2026-11-17, local Android API 36 x86_64 emulator.
+Earlier development run: ClientIntegrationTest 5 tests PASS, including VLESS,
+REALITY/Vision and XHTTP REALITY, encrypted storage and native URI parsing.
+Earlier UI run: navigation PASS; import cancellation assertion FAIL.
+UI test synchronization and return assertion have subsequently been corrected.
+Final rerun: BLOCKED before instrumentation, Android emulator did not boot,
+ADB offline. Seven-test PASS is NOT claimed.
+The final release build, signature, zip alignment and 10 JVM tests passed.
+Final R8 release installation and RAM/layout matrix remain unverified.
+This is a human-readable execution summary, not raw instrument runner output.

@@ -1,0 +1,9 @@
+{
+  "log":{"loglevel":"debug"},
+  "inbounds":[{"listen":"127.0.0.1","port":10900,"protocol":"socks","settings":{"udp":true}}],
+  "outbounds":[{
+    "protocol":"vless",
+    "settings":{"address":"127.0.0.1","port":10889,"id":"00000000-0000-4000-8000-000000000001","encryption":"none","flow":"xtls-rprx-vision"},
+    "streamSettings":{"network":"raw","security":"reality","realitySettings":{"serverName":"www.microsoft.com","fingerprint":"chrome","password":"6fJ8ZrtKPl03dmX4FA6WG61MIGgCm_sJKfZ0G4onWw0","shortId":"0123456789abcdef"}}
+  }]
+}

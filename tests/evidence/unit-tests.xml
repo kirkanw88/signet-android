@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.signet.core.ProfilesTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-11-17T13:52:28.738Z" hostname="DESKTOP-N7K5PQ3" time="0.098">
+  <properties/>
+  <testcase name="subscriptionBase64AndBom" classname="com.signet.core.ProfilesTest" time="0.028"/>
+  <testcase name="sphereCoordinatesAndAntimeridian" classname="com.signet.core.ProfilesTest" time="0.022"/>
+  <testcase name="runtimeNeverMutatesOriginal" classname="com.signet.core.ProfilesTest" time="0.025"/>
+  <testcase name="explicitMetadataOverridesFlag" classname="com.signet.core.ProfilesTest" time="0.004"/>
+  <testcase name="autoTieBreakIsDeterministic" classname="com.signet.core.ProfilesTest" time="0.006"/>
+  <testcase name="geographyDoesNotInventCity" classname="com.signet.core.ProfilesTest" time="0.001"/>
+  <testcase name="headerParsingIgnoresInvalidValues" classname="com.signet.core.ProfilesTest" time="0.008"/>
+  <testcase name="autoRejectsUnavailableAndStale" classname="com.signet.core.ProfilesTest" time="0.002"/>
+  <testcase name="malformedConfigRejected" classname="com.signet.core.ProfilesTest" time="0.0"/>
+  <testcase name="fullJsonPreservesOpaqueTransportAndRouting" classname="com.signet.core.ProfilesTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

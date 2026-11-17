@@ -1,0 +1,2 @@
+-keep class libXray.** { *; }
+-keep class go.** { *; }

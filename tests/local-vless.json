@@ -1,0 +1,17 @@
+{
+  "log": {"loglevel":"debug"},
+  "inbounds": [{
+    "listen":"127.0.0.1", "port":10888, "protocol":"vless",
+    "settings":{"clients":[{"id":"00000000-0000-4000-8000-000000000001"}],"decryption":"none"},
+    "streamSettings":{"network":"tcp","security":"none"}
+  },{
+    "listen":"127.0.0.1", "port":10889, "protocol":"vless",
+    "settings":{"clients":[{"id":"00000000-0000-4000-8000-000000000001","flow":"xtls-rprx-vision"}],"decryption":"none"},
+    "streamSettings":{"network":"tcp","security":"reality","realitySettings":{"show":false,"target":"www.microsoft.com:443","serverNames":["www.microsoft.com"],"privateKey":"4BQvwZVnV6UTS8QsF_JT-9e8pmLW5cXAQTe7Jj9z4Us","shortIds":["0123456789abcdef"]}}
+  },{
+    "listen":"127.0.0.1", "port":10890, "protocol":"vless",
+    "settings":{"clients":[{"id":"00000000-0000-4000-8000-000000000001"}],"decryption":"none"},
+    "streamSettings":{"network":"xhttp","xhttpSettings":{"path":"/signet-local","mode":"auto"},"security":"reality","realitySettings":{"show":false,"target":"www.microsoft.com:443","serverNames":["www.microsoft.com"],"privateKey":"4BQvwZVnV6UTS8QsF_JT-9e8pmLW5cXAQTe7Jj9z4Us","shortIds":["0123456789abcdef"]}}
+  }],
+  "outbounds":[{"protocol":"freedom","tag":"direct"}]
+}
