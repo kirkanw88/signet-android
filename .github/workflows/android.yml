@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       # Resolve and verify dependencies without a previous runner's Gradle cache.
-      GRADLE_USER_HOME: ${{ runner.temp }}/signet-gradle
+      GRADLE_USER_HOME: ${{ github.workspace }}/.gradle/ci-user-home
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

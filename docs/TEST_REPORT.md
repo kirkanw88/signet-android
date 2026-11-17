@@ -14,7 +14,7 @@ POM получен по HTTPS с `repo.maven.apache.org/maven2` и `repo1.maven.
 
 Добавлены только эти подтверждённые записи. `verify-metadata=true` сохранён, существующие суммы не заменены, trusted-artifacts / глобальные исключения не добавлены. Автоматическое дописывание checksum через `--write-verification-metadata` и отключение verification не применяются.
 
-Workflow теперь явно запускает strict verification, `:core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease`, использует отдельный `${{ runner.temp }}/signet-gradle` без восстановления старого кэша и сохраняет диагностические отчёты при сбое. Локальная проверка использует новый `.gradle/ci-verification-home`; старый dependency cache не копируется. Установленный Gradle 8.13 используется как инструмент, независимо от нового dependency cache. Сетевой прокси задан только в локальном окружении процесса, в репозиторий его настройки не включены.
+Workflow теперь явно запускает strict verification, `:core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease`, использует отдельный `${{ github.workspace }}/.gradle/ci-user-home` без восстановления старого кэша и сохраняет диагностические отчёты при сбое. Локальная проверка использует новый `.gradle/ci-verification-home`; старый dependency cache не копируется. Установленный Gradle 8.13 используется как инструмент, независимо от нового dependency cache. Сетевой прокси задан только в локальном окружении процесса, в репозиторий его настройки не включены.
 
 Результаты нового полного прогона будут дополнены после завершения локальной сборки и Actions; исторические результаты ниже не заменяют этот прогон.
 
