@@ -50,7 +50,9 @@ private val Error=Color(0xFFFF657A)
     val state by model.state.collectAsStateWithLifecycle()
     val vpn by model.vpn.collectAsStateWithLifecycle()
     val probing by model.probing.collectAsStateWithLifecycle()
+    val update by model.updates.state.collectAsStateWithLifecycle()
     var page by rememberSaveable { mutableIntStateOf(0) }
+    var showAccount by rememberSaveable{mutableStateOf(false)}
     var add by rememberSaveable { mutableStateOf(false) }
     var input by remember { mutableStateOf("") }
     var ageKey by remember { mutableStateOf("") }
@@ -69,6 +71,7 @@ private val Error=Color(0xFFFF657A)
     val pending=MainActivity.pendingImport.value
     LaunchedEffect(pending) { if(pending != null) { input=pending; add=true; MainActivity.pendingImport.value=null } }
     LaunchedEffect(state.message) { state.message?.let { snackbar.showSnackbar(it); model.repository.clearMessage() } }
+    LaunchedEffect(state.ready,state.settings.automaticUpdates){if(state.ready&&state.settings.automaticUpdates)model.checkUpdates(automatic=true)}
     LaunchedEffect(state.ready) { if(state.ready && state.settings.autoConnect && state.server != null && vpn.phase==VpnPhase.DISCONNECTED) connect() }
     val file=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if(uri != null) scope.launch(Dispatchers.IO) {
@@ -101,14 +104,16 @@ private val Error=Color(0xFFFF657A)
                     Text("VPN / ANDROID",color=Muted,fontSize=10.sp,letterSpacing=2.sp)
                     IconButton(onClick={page=3}) { Icon(Icons.Outlined.Settings,"Настройки",tint=Muted) }
                 }
+                update.available?.takeIf{it.version.toString()!=update.dismissed}?.let{UpdateBanner(it,model)}
                 when(page) {
                     0 -> Home(state,vpn,model,connect,{page=2;add=true})
                     1 -> LocationList(state,vpn,probing,model::select,model::favorite,{model.measure()},model::refresh,Modifier.fillMaxSize().padding(horizontal=16.dp))
-                    2 -> Subscriptions(state,{input="";add=true},{file.launch(arrayOf("text/*","application/json","application/octet-stream"))},{qr.launch(Intent(context,QrScannerActivity::class.java))},{qrImage.launch("image/*")},model::remove,model::refresh)
+                    2 -> Subscriptions(state,{input="";add=true},{file.launch(arrayOf("text/*","application/json","application/octet-stream"))},{qr.launch(Intent(context,QrScannerActivity::class.java))},{qrImage.launch("image/*")},model::remove,model::refresh,{showAccount=true})
                     3 -> Preferences(state,model)
                 }
             }
         }
+        if(showAccount)AccountScreen(model){showAccount=false}
         if(add) AlertDialog(onDismissRequest={add=false},title={Text("Добавить подписку")},text={
             Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
                 Text("HTTPS ссылка, VLESS / Hysteria2 или полный Xray JSON. Ссылки подписки содержат ваш ключ доступа.",color=Muted)
@@ -159,7 +164,7 @@ private val Error=Color(0xFFFF657A)
     AndroidView(factory={view},modifier=modifier,update={it.update(server,phase,settings.graphics,settings.reduceMotion)})
 }
 
-@Composable private fun Subscriptions(state:AppState,add:()->Unit,file:()->Unit,qr:()->Unit,image:()->Unit,remove:(String)->Unit,refresh:()->Unit){
+@Composable private fun Subscriptions(state:AppState,add:()->Unit,file:()->Unit,qr:()->Unit,image:()->Unit,remove:(String)->Unit,refresh:()->Unit,account:()->Unit){
     val context=LocalContext.current
     Column(Modifier.fillMaxSize().padding(horizontal=22.dp)){
         Title("Подписки","Ваш доступ к Signet")
@@ -194,6 +199,8 @@ private val Error=Color(0xFFFF657A)
     var showApps by rememberSaveable{mutableStateOf(false)}
     var showProbeSettings by rememberSaveable{mutableStateOf(false)}
     var showTemplate by rememberSaveable{mutableStateOf(false)}
+    var showAccount by rememberSaveable{mutableStateOf(false)}
+    val update by model.updates.state.collectAsStateWithLifecycle()
     val probing by model.probing.collectAsStateWithLifecycle()
     var routeText by remember{mutableStateOf("")};var routeDialog by remember{mutableStateOf(false)}
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")){uri->if(uri!=null)scope.launch(Dispatchers.IO){runCatching{context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use{it.write(report)}}}}
@@ -229,6 +236,7 @@ private val Error=Color(0xFFFF657A)
     if(showApps)ApplicationsScreen(model){showApps=false}
     if(showProbeSettings)ProbePreferences(model){showProbeSettings=false}
     if(showTemplate)state.server?.let{TemplateScreen(it){showTemplate=false}}
+    if(showAccount)AccountScreen(model){showAccount=false}
     if(routeDialog)AlertDialog(onDismissRequest={routeDialog=false},title={Text("Конфигурация Xray")},text={Column{Text("Конфигурация содержит секретные ключи. Не публикуйте её. Изменения заменяются при обновлении подписки.",color=Warning,fontSize=12.sp);OutlinedTextField(routeText,{if(it.length<=512*1024)routeText=it},modifier=Modifier.fillMaxWidth().heightIn(max=300.dp),maxLines=12)}},confirmButton={TextButton(onClick={scope.launch(Dispatchers.IO){if(VpnState.status.value.phase!=VpnPhase.DISCONNECTED)model.repository.notify("Для проверки остановите VPN")else runCatching{NativeCore.call("testXray",org.json.JSONObject().put("xrayJson",routeText));state.server?.id?.let{model.repository.edit(it,routeText)};model.repository.notify("Проверено ядром и сохранено");withContext(Dispatchers.Main){routeDialog=false}}.onFailure{model.repository.notify("Конфигурация не прошла проверку")}}}){Text("Проверить и сохранить")}},dismissButton={TextButton(onClick={routeDialog=false}){Text("Закрыть")}})
 }
 

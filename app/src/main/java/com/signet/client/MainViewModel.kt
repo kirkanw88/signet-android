@@ -14,6 +14,11 @@ import okhttp3.*
 import java.util.concurrent.TimeUnit
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
+    val updates=AppUpdates(app)
+    init { viewModelScope.launch(Dispatchers.IO){runCatching{updates.restore()}} }
+    fun checkUpdates(automatic:Boolean=false){viewModelScope.launch(Dispatchers.IO){try{val result=updates.check(automatic);if(!automatic&&result.isNotBlank())repository.notify(result)}catch(e:CancellationException){throw e}catch(e:Exception){if(!automatic)repository.notify("?? ??????? ????????? ??????????")}}}
+    fun dismissUpdate(){viewModelScope.launch(Dispatchers.IO){updates.dismiss()}}
+    override fun onCleared(){updates.close();super.onCleared()}
     val repository: Repository = get(Repository::class.java)
     val state = repository.state
     val vpn = VpnState.status.asStateFlow()
@@ -36,6 +41,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun cancelAutoProbes(){if(automaticProbe)probeJob?.cancel()}
     fun measure(onlySelected: Boolean = false,automatic:Boolean=false) {
         if (_probing.value) { probeJob?.cancel(); return }
+        _probing.value=true
         automaticProbe=automatic
         probeJob = viewModelScope.launch(Dispatchers.IO) {
             _probing.value = true

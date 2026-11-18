@@ -27,3 +27,11 @@ Strict verification, 26 core tests, app JVM NO-SOURCE, Lint 0 errors / 39 warnin
 Добавлены разбор официальных headers (announce, profile-web-page-url, support-url, profile-update-interval, refill-date), meta.serverDescription и безопасный текст/HTTPS links; сообщения над списком, формат JSON/URI, ошибки обновления без удаления старой подписки. HWID не передаётся на иной host при redirect. Периодическое обновление учитывает интервал, ручное — всегда. Изменения сначала записываются в encrypted vault и затем публикуются в StateFlow, ошибка загрузки vault запрещает его перезапись.
 
 Проверка шаблона — статические refs/tags + isolated native validation. Приём metadata ядром и реальная маршрутизация различаются. Подробный аудит и ограничения — REMNAWAVE_TEMPLATE_COMPATIBILITY.md. Unit проверили сохранение DNS/routing/outbounds/balancers и правильную адаптацию TUN при первом DNS-inbound. Конкретные production-шаблоны Signet пока не предоставлены: NOT RUN.
+
+## F — аккаунт / платежи и обновления
+
+Strict verification, 31 core tests, app JVM NO-SOURCE, Lint 0 errors / 40 warnings, Debug/Release: PASS, 2m 31s. Журнал stage-F-updates.log.
+
+Ручная проверка обновлений, foreground auto-check не чаще 24 ч, ETag/304, bounded metadata/cache, числовой SemVer, выбор ABI и баннер с отложенным показом. Только официальный GitHub repository, HTTPS, без токенов/cookies/HWID и фоновой загрузки APK. Unit проверяют версии, ABI, unsafe URLs, draft/prerelease. Для работы реальных обновлений необходим публичный Release; текущий private repository не открывался и токен в APK не добавлялся.
+
+Публичный OpenAPI кабинета проверен GET-запросом. Настроены реальные browser OAuth Google/Яндекс, кабинет покупки/продления, поддержка и официальный бот. Native session API/schema отсутствуют: native login/registration/session refresh/device billing endpoints не имитируются и не объявляются готовыми. API_CONTRACTS.md содержит найденные поверхности и явно отделённый проект недостающего backend-контракта. Серверные изменения/входы/реальные платежи не выполнялись.
