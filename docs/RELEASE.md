@@ -1,6 +1,6 @@
 # Выпуск APK
 
-Версия Signet 0.1.0, libXray/Xray v26.11.9. Gradle 8.13, AGP 8.10.1, Kotlin 2.1.21; JDK 17, compile/target SDK 36, min SDK 26. Версии зависимостей закреплены в Gradle, native archive проверяется по ожидаемому SHA-256. Wrapper checksum фиксируется в gradle-wrapper.properties.
+Версия Signet 0.2.0, libXray/Xray v26.11.9. Gradle 8.13, AGP 8.10.1, Kotlin 2.1.21; JDK 17, compile/target SDK 36, min SDK 26. Версии зависимостей закреплены в Gradle, native archive проверяется по ожидаемому SHA-256. Wrapper checksum фиксируется в gradle-wrapper.properties. Границы текущего выпуска — RELEASE_0_2_0.md.
 
 `assembleRelease` включает R8 и resource shrinking. ABI APK содержат ровно одну архитектуру; universal создан для диагностики, но не рекомендуется при известной архитектуре из-за размера. Итоговые пользовательские файлы копируются в `release/` со своим SHA256SUMS.txt.
 

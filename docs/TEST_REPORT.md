@@ -18,6 +18,8 @@
 
 Чистый Ubuntu build job [44267311710](https://github.com/kirkanw88/signet-android/actions/runs/44267311710) для 280c5f4: SUCCESS, без restore Gradle cache; APK/report artifacts сохранены. В этом commit было 40 core tests; последующие default/locale tests дают 42 локально. Runtime того же run не исполнял тесты: emulator не нашёл AVD. Исправлен явный путь AVD, повтор выполняется отдельно. Предыдущая попытка 44265924197 остановилась на отсутствующем adb PATH. Ни один из этих инфраструктурных сбоев не выдаётся за тест приложения.
 
+Текущий код 23a65fb также прошёл чистый Linux build job [44269709962](https://github.com/kirkanw88/signet-android/actions/runs/44269709962): 42 tests/0 failures/errors/skipped, Lint 0 errors/39 warnings, Debug/Release/R8 и APK checks SUCCESS. Проверены выгруженные XML/JSON artifacts, сводка — `tests/evidence/0.2.0/ci-build.json`. Runtime этого run загрузил emulator; его отдельный результат ожидается. После этого изменены только instrumentation/workflow/docs, устанавливаемое приложение не менялось.
+
 Размеры APK: arm64-v8a 41,907,511 bytes; armeabi-v7a 41,183,517; x86_64 44,284,718. Устанавливаемые development releases с debug certificate; production key не задан. Хеши — `tests/evidence/0.2.0/apk-verification.json`.
 
 По выбору пользователя проверены типовые Remnawave templates, без production-подписки. AUTO/balancer и split GeoIP/geosite прошли host TCP/HTTPS/UDP-DNS/domain-DNS/block проверки. Исправлено отсутствие переноса ingress sniffing в TUN/probe, добавлен unit-тест. IPIfNonMatch + catch-all диагностируется без изменения политики.

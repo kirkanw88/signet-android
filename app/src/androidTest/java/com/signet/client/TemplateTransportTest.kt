@@ -28,6 +28,7 @@ class TemplateTransportTest {
     @Test fun masqueHttp3ConnectIp()=verify("masque-h3")
     @Test fun remnawaveAutoBalancer()=verify("remnawave-auto")
     @Test fun remnawaveSplitRules()=verify("remnawave-split")
+    @Test fun remnawaveDefaultRenderedTemplate()=verify("remnawave-default")
 
     private fun verify(name:String)=runBlocking {
         Assume.assumeTrue(InstrumentationRegistry.getArguments().getString("localVpn")=="true")
@@ -62,7 +63,7 @@ class TemplateTransportTest {
                 val response=DatagramPacket(ByteArray(4096),4096);socket.receive(response)
                 assertEquals(0x12,response.data[0].toInt());assertEquals(0x34,response.data[1].toInt())
             }
-            if(name.startsWith("remnawave-"))assertFalse("Sniffed domain must be blocked",runCatching{http("blocked.signet.test").contains("signet-local-lab")}.getOrDefault(false))
+            if(name in setOf("remnawave-auto","remnawave-split"))assertFalse("Sniffed domain must be blocked",runCatching{http("blocked.signet.test").contains("signet-local-lab")}.getOrDefault(false))
             assertTrue("Validation while TUN is active",Probes.validate(context,server));delay(700)
             assertEquals("Probes must preserve the policy",original,repository.state.value.server!!.config)
             assertTrue("TUN still works after isolated probe",http("allowed.signet.test").contains("signet-local-lab"))
