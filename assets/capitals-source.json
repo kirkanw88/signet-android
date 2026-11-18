@@ -1,0 +1,7 @@
+{
+  "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_populated_places_simple.geojson",
+  "sourceSha256": "0dbd25c9ad8bd797ddf164b067f563be5c16be2c002254eb594862377963f9dc",
+  "license": "Natural Earth public domain",
+  "selection": "adm0cap=1, iso_a2, English nameascii; offline reference locations",
+  "count": 193
+}

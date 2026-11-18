@@ -1,0 +1,48 @@
+{
+  "version": "0.2.3",
+  "versionCode": 5,
+  "dependencyVerification": "STRICT; no dependency or metadata changes",
+  "tests": [
+    {
+      "name": "com.signet.core.AndroidDnsTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.signet.core.GlobeGeometryTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.signet.core.SubscriptionRequestTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "totalTests": 11,
+  "nativeDnsBridge": "UDP/TCP PASS; loopback Xray, fixture from production adapter",
+  "build": {
+    "Debug": "PASS",
+    "Release": "PASS",
+    "instrumentationCompilation": "PASS",
+    "instrumentationExecution": "NOT RUN",
+    "initial": "1m 58s",
+    "final": "1m 20s"
+  },
+  "lint": {
+    "Error": 0,
+    "Fatal": 0,
+    "Warning": 39
+  },
+  "cleanCache": "NOT REPEATED; no new dependencies, previous cold CI evidence belongs to 0.2.1",
+  "physicalPhone": "NOT RUN",
+  "exactUserSubscription": "NOT RUN",
+  "strictAndroidPrivateDns": "NOT RUN",
+  "signingCertificateSha256": "8158ed1e88c0d5e485abed87d63209f295021a482fc6c51d108e44fdce0448b1"
+}

@@ -31,7 +31,7 @@ import com.signet.core.*
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
             Text("Серверы",Modifier.weight(1f),fontWeight=FontWeight.SemiBold,fontSize=24.sp)
             IconButton(onClick=ping,modifier=Modifier.testTag("server-ping"),enabled=state.servers.isNotEmpty()&&vpn.phase !in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.DISCONNECTING)) {
-                Icon(if(probing)Icons.Outlined.StopCircle else Icons.Outlined.NetworkPing,if(probing)"Остановить измерение"else"Проверить задержку",tint=Color(0xFF8FDCFF))
+                Icon(if(probing)Icons.Outlined.StopCircle else Icons.Outlined.Speed,if(probing)"Остановить измерение"else"Проверить задержку",tint=Color(0xFF8FDCFF))
             }
             IconButton(onClick=refresh,modifier=Modifier.testTag("server-refresh"),enabled=!state.busy){if(state.busy)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Refresh,"Обновить подписки",tint=Color(0xFF8FDCFF))}
         }
@@ -51,7 +51,7 @@ import com.signet.core.*
     val active=vpn.serverId==server.id&&vpn.phase==VpnPhase.CONNECTED
     val selected=state.selected==server.id
     val color=if(active)Color(0xFF32E6A1)else Color(0xFF39C8FF)
-    Row(Modifier.fillMaxWidth().background(if(selected)Color(0xFF101F32)else Color.Transparent,RoundedCornerShape(14.dp)).clickable(enabled=server.enabled){select(server.id)}.padding(start=10.dp,top=10.dp,bottom=10.dp),verticalAlignment=Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(vertical=4.dp).border(if(selected)1.5.dp else 1.dp,if(selected)color else Color.White.copy(alpha=.07f),RoundedCornerShape(16.dp)).background(if(selected)Color(0x44101F32)else Color.Transparent,RoundedCornerShape(16.dp)).clickable(enabled=server.enabled){select(server.id)}.padding(start=10.dp,top=12.dp,bottom=12.dp),verticalAlignment=Alignment.CenterVertically) {
         CountryFlag(display.country,display.isAuto)
         Column(Modifier.weight(1f).padding(horizontal=12.dp)) {
             Text(display.title,color=if(server.enabled)Color.White else Color(0xFF9BAAC2),fontWeight=if(selected)FontWeight.SemiBold else FontWeight.Normal,maxLines=2,overflow=TextOverflow.Ellipsis,fontSize=14.sp)
@@ -61,7 +61,7 @@ import com.signet.core.*
         Column(horizontalAlignment=Alignment.End) {
             if(probing)CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp)
             Text(when {server.probeMessage=="CONSENT_REQUIRED"->"Нужно согласие";server.probeMessage=="UNSUPPORTED"->"—";server.latencyMs!=null->"${server.latencyMs} ms";server.available==false->"Нет ответа";else->"—"},color=if(server.available==false)Color(0xFFFFC857)else Color(0xFF9BAAC2),fontSize=11.sp)
-            Text(if(active)"Подключён"else if(!server.enabled)"Отключён"else if(selected)"Выбран"else server.probeMode.orEmpty(),color=if(selected||active)color else Color(0xFF73859F),fontSize=10.sp)
+            Text(if(active)"Подключён"else if(!server.enabled)"Отключён"else server.probeMode.orEmpty(),color=if(selected||active)color else Color(0xFF73859F),fontSize=10.sp)
         }
         IconButton(onClick={favorite(server.id)},modifier=Modifier.size(40.dp)){Icon(if(server.favorite)Icons.Outlined.Star else Icons.Outlined.StarOutline,"Избранное",Modifier.size(18.dp),tint=if(server.favorite)Color(0xFFFFC857)else Color(0xFF73859F))}
     }

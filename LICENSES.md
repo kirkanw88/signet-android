@@ -17,3 +17,5 @@ flag-icons, MIT, copyright Lipis и contributors. Исходный commit `ac7e0
 
 NASA Black Marble 2016 night lights: NASA Earth Observatory / Black Marble team, Suomi NPP VIIRS. Official source/credit/checksums: assets/night-source.json. Reduced locally to 2048×1024; NASA imagery terms https://www.nasa.gov/nasa-brand-center/images-and-media/. No NASA endorsement is implied.
 
+
+Capital locations and English names: Natural Earth populated places, public domain. Offline selection and source checksum: assets/capitals-source.json; derived data: app/src/main/assets/capitals.json. Marker represents the geographic capital, not a measured server location.

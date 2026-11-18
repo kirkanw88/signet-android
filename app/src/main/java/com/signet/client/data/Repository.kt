@@ -68,7 +68,7 @@ class Repository(private val context: Context, private val vault: Vault, private
         require(state.value.servers.any { it.id == id && it.enabled }) { "Профиль недоступен" }
         commit(state.value.copy(selected=id))
     }
-    suspend fun settings(s: Settings) = mutex.withLock { settingsStore.save(s);ConnectionLog.configure(s.logging); _state.update { it.copy(settings = s) } }
+    suspend fun settings(s: Settings) = mutex.withLock { val fixed=s.copy(cabinet=SignetLinks.CABINET,hwid=true);settingsStore.save(fixed);ConnectionLog.configure(fixed.logging); _state.update { it.copy(settings = fixed) } }
     suspend fun favorite(id: String) = updateServers { if (it.id == id) it.copy(favorite = !it.favorite) else it }
     suspend fun success(id: String) = updateServers { if (it.id == id) it.copy(successes = it.successes + 1) else it }
     suspend fun edit(id: String, text: String) {
@@ -95,7 +95,8 @@ class Repository(private val context: Context, private val vault: Vault, private
             if (text.startsWith("https://")) {
                 require(SubscriptionMetadata.safeLink(text)!=null) { "Неверная HTTPS ссылка" }
                 url = text
-                var next = text
+                var next = SubscriptionRequest.jsonUrl(text)
+                var fallbackAvailable=next!=text
                 var fetched = false
                 repeat(6) {
                     if (fetched) return@repeat
@@ -105,7 +106,9 @@ class Repository(private val context: Context, private val vault: Vault, private
                         request.header("X-Hwid", installId).header("X-Device-Os", "Android").header("X-Ver-Os", Build.VERSION.RELEASE).header("X-Device-Model", Build.MODEL)
                     }
                     client.newCall(request.build()).awaitResponse().use { response ->
-                        if (response.code in 300..399) {
+                        if(response.code in listOf(404,405)&&fallbackAvailable){
+                            next=url!!;fallbackAvailable=false;ConnectionLog.add("SUBSCRIPTION","JSON_PATH_UNAVAILABLE")
+                        } else if (response.code in 300..399) {
                             next = response.request.url.resolve(response.header("Location") ?: error("Нет адреса перенаправления"))?.toString() ?: error("Неверный адрес")
                         } else {
                             require(response.isSuccessful) { when(response.code){401->"Нужна действующая подписка или новая ссылка доступа";403->"Доступ запрещён. Проверьте статус подписки и лимит устройств";429->"Слишком много запросов. Повторите позже";else->"Не удалось получить подписку: HTTP ${response.code}"} }
@@ -129,6 +132,7 @@ class Repository(private val context: Context, private val vault: Vault, private
                 text=Profiles.decode(NativeCore.call("decodeSubscriptionText",JSONObject().put("text",text).put("age",JSONObject().put("secretKey",secret))).getString("text"))
             }
             val isJson=text.startsWith("{")||text.startsWith("[")
+            ConnectionLog.add("SUBSCRIPTION","FORMAT",if(isJson)"JSON"else"URI")
             val parsed = if (isJson) Profiles.parseJson(text) else {
                 val nodes = NativeCore.call("convertShareLinksToXrayJson", JSONObject().put("text", text)).getJSONArray("outbounds")
                 (0 until nodes.length()).flatMap { Profiles.parseJson(JSONObject().put("outbounds", JSONArray().put(nodes.getJSONObject(it))).toString()) }

@@ -1,3 +1,35 @@
+# Signet Android 0.2.3 — проверка 18.11.2026
+
+Изменения: [RELEASE_0_2_3](RELEASE_0_2_3.md). Работа выполнена в `feature/android-0.2.0`; main и производственная инфраструктура не изменялись. Проверки ограничены изменёнными сценариями по просьбе пользователя; долгие эмуляторные/CI прогоны и cold-cache сборка не повторялись. Новых зависимостей нет, verification-metadata не менялся, Gradle Dependency Verification STRICT.
+
+| Проверка | Итог 0.2.3 |
+|---|---|
+| AndroidDnsTest | 5/5 PASS: узкий перехват DNS, исходный JSON, DoH/hosts, правила, reuse/tag collision, AUTO/observatory members, TCP fallback/IPv6 |
+| SubscriptionRequestTest | 3/3 PASS: явный /json, сохранение raw query/token, готовые JSON URL, запрет небезопасных URL |
+| GlobeGeometryTest | 3/3 PASS: усиленное приближение без входа внутрь сферы, dateline, сферическая заливка |
+| Настоящий Xray DNS | PASS UDP и TCP: runtime fixture с production adapter, виртуальный 172.19.0.2 → builtin hosts ответ 198.18.0.1; upstream намеренно недоступен |
+| GLSL ES compile/link | PASS WebGL1; не тест Android GPU/FPS |
+| Debug / Release | PASS, strict verification, R8/resource shrinking для Release |
+| Android test compilation | PASS; выполнение НЕ заявляется |
+| Android Lint | 0 errors / 39 warnings; lintVitalRelease PASS |
+| APK identity/signature/alignment | PASS, 0.2.3/code 5, три ABI, v2 signature, zip/ELF 16 KB |
+| Чистый cache / emulator / physical phone | NOT RUN в 0.2.3 |
+| Пользовательская подписка / strict Android Private DNS | NOT RUN |
+
+Первый успешный проход: целевые тесты + Release + компиляция Android tests + Lint, 1m 58s. После исправления цвета текста в полноэкранных панелях выполнена финальная сборка Debug/Release, Lint и компиляция Android tests, 1m 20s. Предшествующий unit assertion ожидал буквальное разворачивание selector, даже когда служебный tag уже не подходил под prefix; assertion исправлен на проверку фактического состава. Итог 11/11, failures/errors/skipped=0. Проверки безопасности не отключались.
+
+Фактические дефекты: (1) запрос исходной ссылки с Accept не выбирал XRAY_JSON в Remnawave; явный `/:shortUuid/json` выбирает формат без подмены User-Agent под Happ/INCY; (2) числовой DNS/резервный DNS в VpnService не был связан со встроенным DNS Xray и DoH/hosts JSON. Новый узкий runtime adapter доставляет DNS пакеты Android встроенному модулю; защищённый bootstrap ядра привязан к физической сети. HTTPS health приложения остаётся через TUN и проверяет настоящий TLS. Это подтверждённые дефекты кода и локального контракта; точная работа пользовательского сервера на телефоне ещё не подтверждена.
+
+Основные изменённые файлы: `Repository.kt`, `Settings.kt`, `SignetVpnService.kt`, `NativeCore.kt`, `AndroidDns.kt`, `SignetLinks.kt`, `Profile.kt`; UI `SignetScreen.kt`, `Preferences.kt`, `RoutingAndProbeScreens.kt`, `SpaceBackdrop.kt`, `ClipboardTransfers.kt`, `LocationList.kt`, `GlassButton.kt`; `GlobeView.kt`, `GlobeGeometry.kt`, offline `capitals.json` и provenance; целевые тесты, `scripts/check-dns-bridge.py`, документация и version 0.2.3.
+
+Новый фон использует существующий RGB565 bitmap фиксированного размера на экран, без коллекции накопленных изображений. Маркер обновляет одно состояние, столицы — offline reference 193 записей. Журнал по-прежнему ограничен 200 RAM строками. Длительный memory/soak тест не выполнялся.
+
+APK подписан тем же локальным development-сертификатом, что опубликованные 0.2.1/0.2.2: SHA-256 `8158ed1e88c0d5e485abed87d63209f295021a482fc6c51d108e44fdce0448b1`. Это не production signing и не подтверждение отсутствия предупреждения Play Protect.
+
+[Результаты](../tests/evidence/0.2.3/checks.json), [native DNS](../tests/evidence/0.2.3/dns-bridge.json), [APK](../tests/evidence/0.2.3/apk-verification.json), [шейдеры](../tests/evidence/0.2.3/glsl-check.json). После обновления APK обновите подписку в шторке серверов для замены старого URI-формата фактическим JSON.
+
+---
+
 # Signet Android 0.2.2 — проверка 18.11.2026
 
 Изменения: [RELEASE_0_2_2](RELEASE_0_2_2.md). Репозиторий сделан публичным по прямому запросу пользователя. Код остаётся в `feature/android-0.2.0`, main и производственная инфраструктура не изменялись.

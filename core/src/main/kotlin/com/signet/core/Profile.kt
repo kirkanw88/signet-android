@@ -80,6 +80,13 @@ object Profiles {
     /** AUTO is a delivered profile. No generated AUTO, scoring, fallback, or local balancing. */
     fun auto(servers: List<Server>): Server? = servers.firstOrNull { it.isAuto && it.enabled }
 
+    fun androidRuntime(server:Server,fd:Int,metricsPort:Int,assets:String,dns:String):JSONObject {
+        val config=runtime(server,fd,metricsPort,assets,dns)
+        // runtime() supplies a legacy default; Android uses TCP DNS for profiles without a DNS section.
+        if(!JSONObject(server.config).has("dns"))config.remove("dns")
+        return AndroidDns.adapt(config,dns)
+    }
+
     fun runtime(server: Server, fd: Int, metricsPort: Int, assets: String, dns: String): JSONObject {
         val config = JSONObject(server.config)
         val env = config.optJSONObject("env") ?: JSONObject()

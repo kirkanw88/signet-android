@@ -6,6 +6,9 @@ import android.provider.Settings as AndroidSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -101,22 +104,30 @@ private val Error=Color(0xFFFF657A)
             .onFailure { model.repository.notify("На изображении не найден поддерживаемый QR-код") } }
     }
     MaterialTheme(colorScheme=darkColorScheme(primary=Primary, secondary=Color(0xFF62F4E8), background=Background, surface=Surface, onSurface=Color.White, error=Error)) {
-        Scaffold(containerColor=Background,snackbarHost={}) { insets ->
+        SpaceBackdrop(Modifier.fillMaxSize()) {
+        Scaffold(containerColor=Color.Transparent,contentColor=Color.White,snackbarHost={}) { insets ->
             Column(Modifier.fillMaxSize().padding(insets)) {
                 Row(Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
                     if(page==0)Image(painterResource(R.drawable.signet_logo),"Signet VPN",Modifier.width(80.dp).height(48.dp))
                     else IconButton(onClick={page=if(page==2)3 else 0}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=Color.White)}
-                    Text(when(page){3->"Настройки";2->"Подписки";else->"VPN / ANDROID"},color=if(page==0)Muted else Color.White,fontSize=if(page==0)11.sp else 20.sp,fontWeight=FontWeight.Medium)
-                    IconButton(onClick={page=if(page==3)0 else 3}) { Icon(if(page==3)Icons.Outlined.Close else Icons.Outlined.Settings,if(page==3)"Закрыть настройки"else"Настройки",tint=Color(0xFFCFDBEB)) }
+                    if(page!=0)Text(if(page==3)"Настройки"else"Подписки",color=Color.White,fontSize=20.sp,fontWeight=FontWeight.Medium)
+                    Row {
+                        IconButton(onClick={openHttps(context,com.signet.core.SignetLinks.SUPPORT)}){Icon(Icons.Outlined.SupportAgent,"Техническая поддержка",tint=Color(0xFFCFDBEB))}
+                        IconButton(onClick={page=if(page==3)0 else 3}) { Icon(if(page==3)Icons.Outlined.Close else Icons.Outlined.Settings,if(page==3)"Закрыть настройки"else"Настройки",tint=Color(0xFFCFDBEB)) }
+                    }
                 }
                 SnackbarHost(snackbar,Modifier.fillMaxWidth()){data->Snackbar(data,containerColor=Surface,contentColor=Color.White,shape=RoundedCornerShape(16.dp),modifier=Modifier.padding(horizontal=16.dp))}
                 update.available?.takeIf{it.version.toString()!=update.dismissed}?.let{UpdateBanner(it,model)}
                 when(page) {
                     0 -> Home(state,vpn,model,connect,{page=2;add=true},{showServers=true})
-                    2 -> Subscriptions(state,{input="";add=true},{file.launch(arrayOf("text/*","application/json","application/octet-stream"))},{qr.launch(Intent(context,QrScannerActivity::class.java))},{qrImage.launch("image/*")},model::remove,model::refresh,{showAccount=true})
+                    2 -> Subscriptions(state,{input="";add=true},{file.launch(arrayOf("text/*","application/json","application/octet-stream"))},{qr.launch(Intent(context,QrScannerActivity::class.java))},{qrImage.launch("image/*")},model::remove,model::refresh,{showAccount=true},{
+                        runCatching{ClipboardTransfers.read(context,16*1024).also{require(com.signet.core.SubscriptionMetadata.safeLink(it)!=null)}}
+                            .onSuccess{input=it;ageKey="";oauthConsent=false;add=true}.onFailure{model.repository.notify("В буфере нет корректной HTTPS ссылки подписки")}
+                    })
                     3 -> Preferences(state,model,{page=2},{showServers=true},openDiagnostics,{openDiagnostics=false})
                 }
             }
+        }
         }
         if(showServers){
             val sheet=rememberModalBottomSheetState(skipPartiallyExpanded=true)
@@ -153,6 +164,7 @@ private val Error=Color(0xFFFF657A)
             Text(display?.title?:"Выбрать сервер",Modifier.weight(1f).padding(horizontal=12.dp),fontSize=16.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
             Icon(Icons.Outlined.ChevronRight,"Список серверов",tint=Primary)
         }
+        state.subscriptions.firstOrNull{sub->sub.servers.any{it.id==server?.id}}?.let{SubscriptionUsage(it)}
         vpn.error?.let{Text(it,color=Warning,fontSize=14.sp,lineHeight=20.sp,maxLines=3,overflow=TextOverflow.Ellipsis)}
         GlassButton(onClick={if(active)model.stop()else if(server==null)add()else connect()},enabled=phase!=VpnPhase.DISCONNECTING,modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=58.dp)) {
             if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Primary)else Icon(Icons.Outlined.PowerSettingsNew,null)
@@ -178,15 +190,31 @@ private val Error=Color(0xFFFF657A)
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer);view.onPause() }
     }
-    AndroidView(factory={view},modifier=modifier.testTag("home-globe"),update={it.update(server,phase,settings.graphics,settings.reduceMotion)})
+    val marker by view.globe.capitalMarker.collectAsStateWithLifecycle()
+    var labelSize by remember{mutableStateOf(IntSize.Zero)}
+    var area by remember{mutableStateOf(IntSize.Zero)}
+    Box(modifier.testTag("home-globe").onSizeChanged{area=it}) {
+        AndroidView(factory={view},modifier=Modifier.fillMaxSize(),update={it.update(server,phase,settings.graphics,settings.reduceMotion)})
+        AnimatedVisibility(marker.visible,enter=fadeIn(tween(350)),exit=fadeOut(tween(150)),modifier=Modifier.offset{
+            IntOffset((marker.x-labelSize.width/2).coerceIn(0,(area.width-labelSize.width).coerceAtLeast(0)),(marker.y-labelSize.height).coerceAtLeast(0))
+        }) {
+            Column(Modifier.onSizeChanged{labelSize=it},horizontalAlignment=Alignment.CenterHorizontally){
+                Text(marker.name,color=Color.White,fontWeight=FontWeight.SemiBold,fontSize=15.sp,modifier=Modifier.background(Color(0xDC0D1728),RoundedCornerShape(10.dp)).padding(horizontal=10.dp,vertical=5.dp))
+                Icon(Icons.Outlined.LocationOn,null,tint=Primary,modifier=Modifier.size(28.dp))
+            }
+        }
+    }
 }
 
-@Composable private fun Subscriptions(state:AppState,add:()->Unit,file:()->Unit,qr:()->Unit,image:()->Unit,remove:(String)->Unit,refresh:()->Unit,account:()->Unit){
+@Composable private fun Subscriptions(state:AppState,add:()->Unit,file:()->Unit,qr:()->Unit,image:()->Unit,remove:(String)->Unit,refresh:()->Unit,account:()->Unit,paste:()->Unit){
     val context=LocalContext.current
     Column(Modifier.fillMaxSize().padding(horizontal=22.dp)){
         Title("Подписки","Ваш доступ к Signet")
         Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){GlassButton(onClick=add){Icon(Icons.Outlined.Add,null);Text("Добавить")};GlassButton(onClick=qr){Icon(Icons.Outlined.QrCodeScanner,"QR-код")};GlassButton(onClick=file){Icon(Icons.Outlined.FileOpen,"Из файла")}}
-        TextButton(onClick=image){Text("QR из изображения")}
+        Row(verticalAlignment=Alignment.CenterVertically){
+            TextButton(onClick=image){Text("QR из изображения")}
+            IconButton(onClick=paste){Icon(Icons.Outlined.ContentPaste,"Добавить ссылку из буфера")}
+        }
         TextButton(onClick=account){Text("Аккаунт Signet · подписки и оплата")}
         IconButton(onClick=refresh,enabled=!state.busy){if(state.busy)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Refresh,"Обновить подписки")}
         if(state.busy)LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -194,19 +222,34 @@ private val Error=Color(0xFFFF657A)
             if(state.subscriptions.isEmpty())item{Empty("Добро пожаловать","Добавьте ссылку из личного кабинета Signet или импортируйте конфигурацию. Данные хранятся на устройстве в зашифрованном виде.")}
             items(state.subscriptions,key={it.id}){s->Card(colors=CardDefaults.cardColors(containerColor=Surface)){
                 Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
-                    Row(verticalAlignment=Alignment.CenterVertically){Text(com.signet.core.SubscriptionMetadata.text(s.title,200),Modifier.weight(1f),fontWeight=FontWeight.SemiBold);IconButton(onClick={remove(s.id)}){Icon(Icons.Outlined.DeleteOutline,"Удалить подписку",tint=Muted)}}
+                    Row(verticalAlignment=Alignment.CenterVertically){Text(com.signet.core.SubscriptionMetadata.text(s.title,200),Modifier.weight(1f),fontWeight=FontWeight.SemiBold);s.url?.let{url->IconButton(onClick={ClipboardTransfers.copy(context,"Signet subscription",url);android.widget.Toast.makeText(context,"Ссылка скопирована",android.widget.Toast.LENGTH_SHORT).show()}){Icon(Icons.Outlined.ContentCopy,"Копировать ссылку подписки",tint=Muted)}};IconButton(onClick={remove(s.id)}){Icon(Icons.Outlined.DeleteOutline,"Удалить подписку",tint=Muted)}}
                     Text("${s.servers.size} серверов · ${if(s.url!=null)"Автообновление" else "Локальный профиль"}",color=Muted,fontSize=12.sp)
                     Text(if(s.format=="XRAY_JSON")"Xray JSON · DNS и маршрутизация сохранены"else"URI-подписка · исходного Xray JSON-шаблона в ней нет",color=Muted,fontSize=12.sp)
                     if(s.metadata.announcement.isNotBlank())Text(s.metadata.announcement,color=Primary,fontSize=13.sp)
                     s.error?.let{Text(it,color=Warning,fontSize=12.sp)}
                     s.metadata.webPage?.let{url->TextButton(onClick={openHttps(context,url)}){Text("Страница подписки")}}
                     s.metadata.support?.let{url->TextButton(onClick={openHttps(context,url)}){Text("Поддержка подписки")}}
-                    val expire=s.info["expire"]?.takeIf{it>0};val total=s.info["total"]?:0;val used=(s.info["upload"]?:0)+(s.info["download"]?:0)
-                    if(expire!=null){val remaining=expire*1000-System.currentTimeMillis();val days=remaining/86_400_000;Text(if(remaining<0)"Подписка истекла" else "До ${DateFormat.getDateInstance().format(Date(expire*1000))}",color=if(days<3)Warning else Muted)}
-                    if(total>0){LinearProgressIndicator(progress={(used.toFloat()/total).coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth());Text("${bytes(used)} из ${bytes(total)}",color=if(used>=total)Warning else Muted,fontSize=12.sp)}
+                    SubscriptionUsage(s)
                     if(state.settings.cabinet.startsWith("https://"))TextButton(onClick={context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(state.settings.cabinet)))}){Text("Продлить в кабинете")}
                 }
             }}
+        }
+    }
+}
+
+@Composable private fun SubscriptionUsage(subscription:Subscription){
+    val info=subscription.info
+    if(info.isEmpty())return
+    val total=info["total"]?.coerceAtLeast(0)
+    val used=((info["upload"]?:0).coerceAtLeast(0).toDouble()+(info["download"]?:0).coerceAtLeast(0)).coerceAtMost(Long.MAX_VALUE.toDouble()).toLong()
+    Column(Modifier.fillMaxWidth().padding(vertical=6.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
+        if(total!=null){
+            if(total>0)LinearProgressIndicator(progress={(used.toDouble()/total).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth(),color=if(used>=total)Warning else Primary,trackColor=Color.White.copy(alpha=.15f))
+            Text(if(total>0)"${bytes(used)} из ${bytes(total)}"else"${bytes(used)} · Безлимитный трафик",color=if(total!=null&&total>0&&used>=total)Warning else Muted,fontSize=12.sp)
+        }
+        info["expire"]?.let{expiry->
+            if(expiry>0&&expiry<=Long.MAX_VALUE/1000){val end=expiry*1000;Text("${if(end<=System.currentTimeMillis())"Истекла"else"Действует до"} ${DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(end))}",color=if(end<=System.currentTimeMillis())Warning else Muted,fontSize=12.sp)}
+            else if(expiry==0L)Text("Без ограничения срока",color=Muted,fontSize=12.sp)
         }
     }
 }

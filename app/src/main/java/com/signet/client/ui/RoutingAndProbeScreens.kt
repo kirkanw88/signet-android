@@ -7,6 +7,9 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -26,11 +29,13 @@ import kotlinx.coroutines.*
 
 @Composable fun FullScreenPanel(title:String,close:()->Unit,content:@Composable ColumnScope.()->Unit) {
     Dialog(onDismissRequest=close,properties=DialogProperties(usePlatformDefaultWidth=false)) {
-        Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) {
+        Surface(Modifier.fillMaxSize(),color=Color.Transparent,contentColor=Color.White) {
+        SpaceBackdrop(Modifier.fillMaxSize()) {
             Column(Modifier.safeDrawingPadding().padding(horizontal=16.dp)) {
                 Row(Modifier.fillMaxWidth().padding(vertical=8.dp),verticalAlignment=Alignment.CenterVertically){Text(title,Modifier.weight(1f),style=MaterialTheme.typography.titleLarge);TextButton(onClick=close){Text("Закрыть")}}
                 content()
             }
+        }
         }
     }
 }
@@ -84,7 +89,12 @@ private data class VisibleApp(val info:ApplicationInfo,val name:String,val syste
         OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),label={Text("Название или package name")},singleLine=true)
         Row(verticalAlignment=Alignment.CenterVertically){Checkbox(systems,{systems=it});Text("Системные приложения");Spacer(Modifier.weight(1f));Text("${selected.size} выбрано")}
         Row{TextButton(onClick={selected=selected+filtered.map{it.info.packageName}}){Text("Выбрать все")};TextButton(onClick={selected=emptySet()}){Text("Снять выбор")}}
-        Row{TextButton(onClick={export.launch("signet-routing-v1.json")}){Text("Экспорт JSON")};TextButton(onClick={import.launch(arrayOf("application/json","text/*"))}){Text("Импорт JSON")}}
+        Row(verticalAlignment=Alignment.CenterVertically){
+            IconButton(onClick={export.launch("signet-routing-v1.json")}){Icon(Icons.Outlined.SaveAlt,"Экспорт в файл")}
+            IconButton(onClick={import.launch(arrayOf("application/json","text/*"))}){Icon(Icons.Outlined.FileOpen,"Импорт из файла")}
+            IconButton(onClick={ClipboardTransfers.copy(context,"Signet apps",AppRouting(mode,selected).json());model.repository.notify("Список приложений скопирован")}){Icon(Icons.Outlined.ContentCopy,"Копировать список приложений")}
+            IconButton(onClick={runCatching{AppRouting.parse(ClipboardTransfers.read(context,256*1024))}.onSuccess{preview=it;error=null}.onFailure{error="В буфере нет корректного списка приложений Signet"}}){Icon(Icons.Outlined.ContentPaste,"Импортировать список из буфера")}
+        }
         Text("Доступны приложения текущего профиля, которые разрешает показывать Android. Для рабочего профиля используйте Signet внутри него.",style=MaterialTheme.typography.bodySmall)
         error?.let{Text(it,color=MaterialTheme.colorScheme.error)}
         if(!loaded)LinearProgressIndicator(Modifier.fillMaxWidth())

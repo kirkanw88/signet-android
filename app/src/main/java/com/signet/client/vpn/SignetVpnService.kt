@@ -11,6 +11,7 @@ import com.signet.client.data.*
 import com.signet.core.Profiles
 import com.signet.core.Server
 import com.signet.core.TemplateCompatibility
+import com.signet.core.AndroidDns
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
@@ -85,19 +86,23 @@ class SignetVpnService : VpnService() {
         var startupStage="настройка TUN"
         try {
             val settings = repository.state.value.settings
-            val dnsSetting=TemplateCompatibility.deviceDns(selected,settings.dns)
-            require(TemplateCompatibility.numericAddress(dnsSetting)) { "Укажите IP DNS-сервера" }
-            val dns = InetAddress.getByName(dnsSetting).hostAddress ?: error("DNS")
+            require(TemplateCompatibility.numericAddress(settings.dns)) { "Укажите IP DNS-сервера" }
+            val physical=physicalNetwork()?:error("Нет доступной сети")
+            val linkDns=connectivity.getLinkProperties(physical)?.dnsServers.orEmpty()
+            val bootstrap=linkDns.firstOrNull{it is Inet4Address}?:linkDns.firstOrNull()
+            val dns=bootstrap?.hostAddress?:settings.dns
+            ConnectionLog.add("DNS","BOOTSTRAP",if(bootstrap!=null)"NETWORK"else"FALLBACK")
             val assetDir = File(filesDir, "geo").apply { mkdirs() }
             for (asset in listOf("geoip.dat", "geosite.dat")) {
                 val target = File(assetDir, asset)
                 if (!target.exists()) runCatching { assets.open(asset).use { input -> target.outputStream().use(input::copyTo) } }
             }
-            NativeCore.attach(this,if(dns.contains(':'))"[$dns]:53"else"$dns:53")
+            NativeCore.attach(this,if(dns.contains(':'))"[$dns]:53"else"$dns:53",physical)
             val builder = Builder().setSession("Signet VPN").setMtu(1500).addAddress("172.19.0.1", 30).addRoute("0.0.0.0", 0)
-                .addAddress("fdfe:dcba:9876::1", 126).addRoute("::", 0).addDnsServer(dns)
+                .addAddress("fdfe:dcba:9876::1", 126).addRoute("::", 0).addDnsServer(AndroidDns.ADDRESS)
                 .setConfigureIntent(PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE))
             if (Build.VERSION.SDK_INT >= 29) builder.setMetered(false)
+            builder.setUnderlyingNetworks(arrayOf(physical))
             when (settings.appMode) {
                 "include" -> {
                     require(settings.packages.isNotEmpty()) { "Выберите приложения для VPN" }
@@ -115,7 +120,8 @@ class SignetVpnService : VpnService() {
             tun = builder.establish() ?: error("Разрешение VPN отозвано")
             ConnectionLog.add("VPN","TUN_ESTABLISHED")
             runCatching { previousTun?.close() }
-            val config = Profiles.runtime(selected, tun!!.fd, metricsPort, assetDir.absolutePath, dns)
+            val config = Profiles.androidRuntime(selected, tun!!.fd, metricsPort, assetDir.absolutePath, settings.dns)
+            ConnectionLog.add("DNS","XRAY_BRIDGE_READY")
             startupStage="запуск ядра"
             NativeCore.call("runXray", JSONObject().put("xrayJson", config.toString()))
             ConnectionLog.add("CORE","STARTED")
@@ -166,6 +172,14 @@ class SignetVpnService : VpnService() {
                 }
             }
         } finally { client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown() }
+    }
+    private fun physicalNetwork():Network? {
+        fun eligible(network:Network)=connectivity.getNetworkCapabilities(network)?.let{it.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)&&!it.hasTransport(NetworkCapabilities.TRANSPORT_VPN)}==true
+        connectivity.activeNetwork?.takeIf(::eligible)?.let{return it}
+        return connectivity.allNetworks.filter(::eligible).sortedByDescending{network->
+            val caps=connectivity.getNetworkCapabilities(network)
+            (if(caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)==true)2 else 0)+(if(caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)==true)1 else 0)
+        }.firstOrNull()
     }
     private fun fail(message: String) {
         VpnState.status.value = VpnStatus(VpnPhase.ERROR, error = message,tunActive=tun!=null)

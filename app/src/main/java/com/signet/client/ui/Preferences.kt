@@ -48,7 +48,6 @@ private val Accent=Color(0xFF8AD9FF)
     val s=state.settings;val context=LocalContext.current;val scope=rememberCoroutineScope()
     var dns by remember(s.dns){mutableStateOf(s.dns)}
     var health by remember(s.connectionCheckUrl){mutableStateOf(s.connectionCheckUrl)}
-    var cabinet by remember(s.cabinet){mutableStateOf(s.cabinet)}
     val update by model.updates.state.collectAsStateWithLifecycle()
     val report by model.diagnostic.collectAsStateWithLifecycle()
     val logLines by ConnectionLog.entries.collectAsStateWithLifecycle()
@@ -84,7 +83,7 @@ private val Accent=Color(0xFF8AD9FF)
                     SettingsToggle("Подключаться при открытии","Использовать выбранный сервер",s.autoConnect){model.save(s.copy(autoConnect=it))}
                     SettingsToggle("Восстанавливать соединение","При смене Wi-Fi или мобильной сети",s.reconnect){model.save(s.copy(reconnect=it))}
                     MenuItem(Icons.Outlined.Security,"Системные настройки VPN","Постоянный VPN и блокировка без VPN",{context.startActivity(Intent(AndroidSettings.ACTION_VPN_SETTINGS))})
-                    MenuItem(Icons.Outlined.NetworkPing,"Измерение задержки","Режим, адрес и интервалы проверок",{probes=true})
+                    MenuItem(Icons.Outlined.Speed,"Настройки Ping","Режим, адрес и интервалы проверок",{probes=true})
                 }
                 SettingsCard {
                     SettingsHeading("Проверка подключения")
@@ -118,8 +117,6 @@ private val Accent=Color(0xFF8AD9FF)
                     }
                     SettingsToggle("Уменьшить движение","Спокойная анимация планеты",s.reduceMotion){model.save(s.copy(reduceMotion=it))}
                 }
-                Text("В фоне графика останавливается. Стеклянные кнопки не используют тяжёлое размытие.",fontSize=15.sp,lineHeight=22.sp,color=SecondaryInk)
-                Text("Фототекстуры Земли NASA. День, ночь и огни городов зависят от текущего времени.",fontSize=15.sp,lineHeight=22.sp,color=SecondaryInk)
             }
             "updates"->{
                 SettingsCard {
@@ -152,10 +149,9 @@ private val Accent=Color(0xFF8AD9FF)
             "account"->{
                 SettingsCard {
                     MenuItem(Icons.Outlined.PersonOutline,"Аккаунт Signet","Вход, покупка и продление",{account=true})
-                    MenuItem(Icons.Outlined.Lock,"HWID всегда включён","Постоянный ID этой установки",{},false)
+                    MenuItem(Icons.Outlined.SupportAgent,"Поддержка","Написать в Telegram",{openHttps(context,com.signet.core.SignetLinks.SUPPORT)})
                 }
-                OutlinedTextField(cabinet,{cabinet=it},label={Text("HTTPS адрес личного кабинета")},singleLine=true,modifier=Modifier.fillMaxWidth())
-                GlassButton(onClick={if(cabinet.isEmpty()||SubscriptionMetadata.safeLink(cabinet)!=null)model.save(s.copy(cabinet=cabinet))else model.repository.notify("Укажите HTTPS адрес")},modifier=Modifier.fillMaxWidth()){Text("Сохранить адрес")}
+
             }
         }
         Spacer(Modifier.height(20.dp))

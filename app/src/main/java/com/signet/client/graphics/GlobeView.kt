@@ -17,6 +17,10 @@ import java.nio.*
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+data class CapitalMarker(val name:String="",val x:Int=0,val y:Int=0,val visible:Boolean=false)
 
 class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(context) {
     val globe = GlobeRenderer(context.applicationContext)
@@ -39,6 +43,12 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
     fun update(server: Server?, phase: VpnPhase, quality: String, reduced: Boolean) {
         queueEvent { globe.update(server, phase, quality, reduced) }
     }
+    override fun onLayout(changed:Boolean,left:Int,top:Int,right:Int,bottom:Int){
+        super.onLayout(changed,left,top,right,bottom)
+        val location=IntArray(2);getLocationInWindow(location)
+        val rootWidth=rootView.width;val rootHeight=rootView.height
+        queueEvent{globe.backdropRect(location[0],location[1],rootWidth,rootHeight)}
+    }
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> { lastX = event.x; lastY = event.y; parent.requestDisallowInterceptTouchEvent(true) }
@@ -54,6 +64,11 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
 }
 
 class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
+    private val markerState=MutableStateFlow(CapitalMarker());val capitalMarker=markerState.asStateFlow()
+    private var capitals:JSONObject?=null;private var capital:JSONObject?=null
+    private var capitalRevealed=false
+    private val markerPoint=FloatArray(4);private val markerClip=FloatArray(4);private val markerWorld=FloatArray(4)
+    private var windowX=0;private var windowY=0;private var windowWidth=0;private var windowHeight=0
     @Volatile var frameReady=false
         private set
     @Volatile var renderedCountry:String?=null
@@ -89,13 +104,15 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             frameReady=false
             selected = key; country = server?.countryCode;manual=false
             countryData = country?.let { geography?.optJSONObject(it) }
-            val lat = server?.latitude ?: countryData?.optDouble("lat")?.takeIf { it.isFinite() }
-            val lon = server?.longitude ?: countryData?.optDouble("lon")?.takeIf { it.isFinite() }
+            capital=country?.let{capitals?.optJSONObject(it)};capitalRevealed=false;markerState.value=CapitalMarker()
+            val lat = capital?.optDouble("latitude") ?: countryData?.optDouble("lat")?.takeIf { it.isFinite() }
+            val lon = capital?.optDouble("longitude") ?: countryData?.optDouble("lon")?.takeIf { it.isFinite() }
             focusLat=lat;focusLon=lon;targetYaw = lon?.toFloat()?.unaryMinus(); targetPitch = lat?.toFloat() ?: 12f
-            markerCoords = if (server?.city != null && server.latitude != null && server.longitude != null) server.latitude!! to server.longitude!! else null
+            markerCoords=capital?.let{it.getDouble("latitude") to it.getDouble("longitude")}
             buildCountry()
         }
         if(focusConnection){manual=false;targetYaw=focusLon?.toFloat()?.unaryMinus();targetPitch=focusLat?.toFloat()?:12f}
+        if(state!=VpnPhase.CONNECTED){capitalRevealed=false;markerState.value=CapitalMarker()}
     }
     fun drag(dx: Float, dy: Float) { manual=true;yaw += dx; pitch = (pitch + dy).coerceIn(-85f, 85f); targetYaw = null }
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
@@ -141,8 +158,7 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
                     gl_FragColor=vec4(uColor.rgb,uColor.a);
                 } else if(uMode==6){
                     vec3 space=texture2D(uTexture,vUv).rgb*0.72;
-                    float edge=min(min(vScreen.x,1.0-vScreen.x),min(vScreen.y,1.0-vScreen.y));
-                    gl_FragColor=vec4(mix(vec3(0.01961,0.03137,0.08627),space,smoothstep(0.0,0.12,edge)),1.0);
+                    gl_FragColor=vec4(space,1.0);
                 }
                 else { gl_FragColor=uColor; }
             }
@@ -181,15 +197,25 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         skyAspect=sky.width.toFloat()/sky.height;GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,sky,0);sky.recycle()
 
         geography = context.assets.open("countries.json").bufferedReader().use { JSONObject(it.readText()) }
+        capitals=context.assets.open("capitals.json").bufferedReader().use{JSONObject(it.readText())}
+        capital=country?.let{capitals?.optJSONObject(it)}
         countryData = country?.let { geography?.optJSONObject(it) }
+        capital?.let{focusLat=it.getDouble("latitude");focusLon=it.getDouble("longitude");markerCoords=focusLat!! to focusLon!!;if(!manual){targetYaw=focusLon!!.toFloat().unaryMinus();targetPitch=focusLat!!.toFloat()}}
         if(targetYaw==null && countryData!=null && !manual){targetYaw=countryData!!.optDouble("lon").toFloat().unaryMinus();targetPitch=countryData!!.optDouble("lat").toFloat()}
         buildCountry()
         lastFrame = System.nanoTime()
     }
     override fun onSurfaceChanged(gl: GL10?, w: Int, h: Int) {
         width = w; height = h; GLES20.glViewport(0, 0, w, h)
-        val aspect=w.toFloat()/h;val u=if(aspect<skyAspect)aspect/skyAspect else 1f;val v=if(aspect>skyAspect)skyAspect/aspect else 1f
-        skyUv=floats(floatArrayOf(.5f-u/2,.5f+v/2,.5f+u/2,.5f+v/2,.5f-u/2,.5f-v/2,.5f+u/2,.5f-v/2))
+        updateBackdrop()
+    }
+    fun backdropRect(x:Int,y:Int,w:Int,h:Int){windowX=x;windowY=y;windowWidth=w;windowHeight=h;updateBackdrop()}
+    private fun updateBackdrop(){
+        val rw=windowWidth.takeIf{it>0}?:width;val rh=windowHeight.takeIf{it>0}?:height
+        val aspect=rw.toFloat()/rh;val u=if(aspect<skyAspect)aspect/skyAspect else 1f;val v=if(aspect>skyAspect)skyAspect/aspect else 1f
+        val left=.5f-u/2+u*windowX/rw;val right=left+u*width/rw
+        val top=.5f-v/2+v*windowY/rh;val bottom=top+v*height/rh
+        skyUv=floats(floatArrayOf(left,bottom,right,bottom,left,top,right,top))
     }
     override fun onDrawFrame(gl: GL10?) {
         val now = System.nanoTime(); val dt = ((now-lastFrame)/1e9).coerceIn(0.0, .1).toFloat(); lastFrame = now
@@ -201,7 +227,8 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         Matrix.perspectiveM(projection, 0, 36f, aspect, .1f, 20f)
         val targetZoom=if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED))countryZoom else 1f
         zoom+=(targetZoom-zoom)*(dt*2.4f).coerceAtMost(1f)
-        Matrix.setLookAtM(view, 0, 0f, 0f, (if (aspect < 1f) 3.7f/aspect else 3.7f)/zoom, 0f,0f,0f,0f,1f,0f)
+        val cameraDistance=(if (aspect < 1f) 3.7f/aspect else 3.7f)/zoom
+        Matrix.setLookAtM(view, 0, 0f, 0f, cameraDistance, 0f,0f,0f,0f,1f,0f)
         Matrix.multiplyMM(mv,0,view,0,model,0); Matrix.multiplyMM(mvp,0,projection,0,mv,0)
         GLES20.glUseProgram(program)
         GLES20.glDepthMask(false);GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(program,"uMvp"),1,false,identity,0)
@@ -229,7 +256,16 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         fill?.let { setBuffers(it); color(color, .07f); GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,it.capacity()/3) }
         color(color, .58f); GLES20.glLineWidth(1.2f)
         borders.forEach { setBuffers(it); GLES20.glDrawArrays(GLES20.GL_LINE_STRIP,0,it.capacity()/3) }
-        marker?.let { setBuffers(it); mode(3); color(floatArrayOf(.96f,.98f,1f,1f),1f); GLES20.glDrawArrays(GLES20.GL_POINTS,0,1) }
+        if(phase==VpnPhase.CONNECTED&&capital!=null){
+            val settled=!manual&&abs(Geography.wrap((targetYaw?:yaw)-yaw))<.2f&&abs(targetPitch-pitch)<.2f&&abs(targetZoom-zoom)<.015f
+            if(settled)capitalRevealed=true
+            val coordinates=markerCoords!!;val point=Geography.point(coordinates.first,coordinates.second,1.015)
+            for(i in 0..2)markerPoint[i]=point[i];markerPoint[3]=1f
+            Matrix.multiplyMV(markerClip,0,mvp,0,markerPoint,0);Matrix.multiplyMV(markerWorld,0,model,0,markerPoint,0)
+            val x=((markerClip[0]/markerClip[3]+1)*width/2).roundToInt();val y=((1-markerClip[1]/markerClip[3])*height/2).roundToInt()
+            val visible=capitalRevealed&&markerClip[3]>0&&markerWorld[2]*cameraDistance>1.02f&&x in 0..width&&y in 0..height
+            markerState.value=CapitalMarker(capital!!.getString("name"),x,y,visible)
+        }else if(markerState.value.visible)markerState.value=CapitalMarker()
         GLES20.glDepthMask(true)
         renderedCountry=country;frameReady=true
         val targetFrame = when { reduced || quality == "Battery Saver" -> 100L; quality == "High" -> 16L; else -> 33L }
