@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(statusBarStyle=SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),navigationBarStyle=SystemBarStyle.dark(android.graphics.Color.TRANSPARENT))
-        consume(intent)
+        if(savedInstanceState==null)consume(intent)
         setContent { SignetScreen(model, ::connect) }
     }
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); consume(intent) }
@@ -31,7 +31,8 @@ class MainActivity : ComponentActivity() {
             if(it.scheme == "signet" && it.host == "import") it.getQueryParameter("url") else it.toString()
         }
         // Imports always require review in the import dialog; external links never start VPN.
-        if(!raw.isNullOrBlank()) pendingImport.value = raw
+        if(!raw.isNullOrBlank() && raw.length<=4*1024*1024) pendingImport.value = raw
+        intent?.data=null;intent?.removeExtra(Intent.EXTRA_TEXT)
     }
     private fun connect() {
         if(Build.VERSION.SDK_INT >= 33) notification.launch(Manifest.permission.POST_NOTIFICATIONS)

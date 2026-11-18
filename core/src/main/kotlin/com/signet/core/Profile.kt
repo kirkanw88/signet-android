@@ -11,10 +11,12 @@ data class Server(
     val countryCode: String? = null, val city: String? = null,
     val latitude: Double? = null, val longitude: Double? = null,
     val latencyMs: Long? = null, val checkedAt: Long = 0, val available: Boolean? = null,
-    val favorite: Boolean = false, val successes: Int = 0, val originalConfig: String = config
+    val favorite: Boolean = false, val successes: Int = 0, val originalConfig: String = config,
+    val isAuto: Boolean = false, val description: String? = null, val profileKey: String? = null,
+    val enabled: Boolean = true, val probeMode: String? = null
 ) {
     val countryName: String get() = countryCode?.let { Locale("ru", it).displayCountry } ?: "Локация не указана"
-    val flag: String get() = countryCode?.takeIf { it.length == 2 }?.uppercase()?.map { String(Character.toChars(it.code - 65 + 0x1F1E6)) }?.joinToString("") ?: "◎"
+    val flag: String get() = if(isAuto) "AUTO" else countryCode.orEmpty()
 }
 
 object Profiles {
@@ -37,10 +39,13 @@ object Profiles {
             val meta = config.optJSONObject("signet") ?: first.optJSONObject("signet")
             val country = meta?.optString("countryCode")?.takeIf { it.matches(Regex("[A-Za-z]{2}")) }?.uppercase()
                 ?: flagCountry(name)
-            Server(id(config.toString()), name, config.toString(), tag, country,
+            val isAuto = meta?.optString("selectionMode") == "auto" || name.trim().equals("AUTO", ignoreCase = true)
+            Server(id(config.toString()), name, config.toString(), tag, if(isAuto) null else country,
                 meta?.optString("city")?.takeIf { it.isNotBlank() },
                 meta?.let { if (it.has("latitude")) it.getDouble("latitude") else null },
-                meta?.let { if (it.has("longitude")) it.getDouble("longitude") else null })
+                meta?.let { if (it.has("longitude")) it.getDouble("longitude") else null },
+                isAuto = isAuto, description = meta?.optString("description")?.takeIf { it.isNotBlank() },
+                profileKey = meta?.optString("profileId")?.takeIf { it.isNotBlank() }, enabled = meta?.optBoolean("enabled", true) ?: true)
         }
     }
 
@@ -62,13 +67,13 @@ object Profiles {
         if (p.size == 2) p[1].toLongOrNull()?.let { value -> p[0] to value } else null
     }.toMap()
 
-    fun best(servers: List<Server>, now: Long): Server? = servers.filter { it.available == true && it.latencyMs != null && now - it.checkedAt in 0..300_000 }
-        .sortedWith(compareBy<Server> { it.latencyMs!! + (100 / (it.successes + 1)) }.thenBy { it.id }).firstOrNull()
+    /** AUTO is a delivered profile. No generated AUTO, scoring, fallback, or local balancing. */
+    fun auto(servers: List<Server>): Server? = servers.firstOrNull { it.isAuto && it.enabled }
 
     fun runtime(server: Server, fd: Int, metricsPort: Int, socksPort: Int, assets: String, dns: String): JSONObject {
         val config = JSONObject(server.config)
         val env = config.optJSONObject("env") ?: JSONObject()
-        if(server.outboundTag.isEmpty()) config.getJSONArray("outbounds").getJSONObject(0).put("tag","signet-default")
+        // Preserve ALL outbound objects and their order, including untagged server-provided AUTO.
         env.put("xray.tun.fd", fd.toString()).put("xray.location.asset", assets)
         config.put("env", env)
         // Imported external listeners are not exposed. Routing, DNS, transport and opaque fields remain untouched.

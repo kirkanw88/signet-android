@@ -34,6 +34,7 @@ class SignetVpnService : VpnService() {
     private var monitor: Job? = null
     private var connectJob: Job? = null
     private var requested = false
+    private var retryCount = 0
     private var metricsPort = 0
     private var socksPort = 0
     private val connectivity by lazy { getSystemService(ConnectivityManager::class.java) }
@@ -64,7 +65,7 @@ class SignetVpnService : VpnService() {
             return START_NOT_STICKY
         }
         notification("Подключение…")
-        requested = true
+        requested = true; retryCount = 0
         connectJob?.cancel()
         connectJob = scope.launch { repository.awaitReady(); reconnect() }
         return START_STICKY
@@ -73,9 +74,10 @@ class SignetVpnService : VpnService() {
         if (!requested) return@withLock
         val current = VpnState.status.value
         VpnState.status.value = VpnStatus(if (current.phase == VpnPhase.CONNECTED) VpnPhase.RECONNECTING else VpnPhase.CONNECTING)
-        stopCore()
+        stopCore(closeTun=false)
         val selected = repository.state.value.server
         if (selected == null) { fail("Добавьте подписку и выберите сервер"); return@withLock }
+        if (!selected.enabled) { fail("Сервер отключён в подписке"); return@withLock }
         var startupStage="настройка TUN"
         try {
             val settings = repository.state.value.settings
@@ -102,7 +104,9 @@ class SignetVpnService : VpnService() {
             }
             val ports = NativeCore.call("getFreePorts", JSONObject().put("count", 2)).getJSONArray("ports")
             metricsPort = ports.getInt(0); socksPort = ports.getInt(1)
+            val previousTun=tun
             tun = builder.establish() ?: error("Разрешение VPN отозвано")
+            runCatching { previousTun?.close() }
             val config = Profiles.runtime(selected, tun!!.fd, metricsPort, socksPort, assetDir.absolutePath, dns)
             if(com.signet.client.BuildConfig.DEBUG && selected.name=="LOCAL TEST ONLY") {
                 val localLog=File(cacheDir,"native-local-test.log").apply{writeText("")}
@@ -112,7 +116,7 @@ class SignetVpnService : VpnService() {
             NativeCore.call("runXray", JSONObject().put("xrayJson", config.toString()))
             // A running Go instance alone is insufficient: require real HTTPS over the selected outbound.
             startupStage="проверка HTTPS"
-            val proxyClient = OkHttpClient.Builder().proxy(java.net.Proxy(java.net.Proxy.Type.SOCKS, InetSocketAddress("127.0.0.1", socksPort)))
+            val proxyClient = OkHttpClient.Builder().proxy(java.net.Proxy.NO_PROXY)
                 .connectTimeout(12, TimeUnit.SECONDS).readTimeout(12, TimeUnit.SECONDS).callTimeout(20, TimeUnit.SECONDS).build()
             try {
                 proxyClient.newCall(Request.Builder().url("https://www.gstatic.com/generate_204").build()).awaitResponse().use {
@@ -125,34 +129,47 @@ class SignetVpnService : VpnService() {
             repository.success(selected.id)
             notification("Подключено · ${selected.countryName}")
             monitor = scope.launch { watch(selected) }
-        } catch (e: CancellationException) { stopCore(); throw e }
-        catch (e: Exception) { stopCore(); fail("Не удалось подключиться: $startupStage (${e.javaClass.simpleName}). Проверьте подписку и доступность сервера.") }
+        } catch (e: CancellationException) { stopCore(closeTun=false); throw e }
+        catch (e: Exception) { stopCore(closeTun=false); fail("Не удалось подключиться: $startupStage (${e.javaClass.simpleName}). Проверьте подписку и доступность сервера.") }
     }
     private suspend fun watch(server: Server) {
         val client = OkHttpClient.Builder().proxy(java.net.Proxy.NO_PROXY).callTimeout(2, TimeUnit.SECONDS).build()
+        val health = OkHttpClient.Builder().proxy(java.net.Proxy.NO_PROXY).callTimeout(10,TimeUnit.SECONDS).build()
+        var nextHealth=SystemClock.elapsedRealtime()+30_000;var failures=0
         try {
             while (currentCoroutineContext().isActive && requested) {
                 delay(3000)
                 if (!NativeCore.call("getXrayState").optBoolean("running")) {
+                    stopCore(closeTun=false)
                     fail("Ядро VPN остановилось")
-                    if (repository.state.value.settings.reconnect) networkJob = scope.launch { delay(2000); reconnect() }
                     break
+                }
+                if(SystemClock.elapsedRealtime()>=nextHealth) {
+                    val reachable=runCatching { health.newCall(Request.Builder().url("https://www.gstatic.com/generate_204").build()).awaitResponse().use { it.isSuccessful } }.getOrDefault(false)
+                    failures=if(reachable)0 else failures+1;nextHealth=SystemClock.elapsedRealtime()+30_000
+                    if(reachable)retryCount=0
+                    if(failures>=3){stopCore(closeTun=false);fail("VPN перестал передавать HTTPS-трафик");break}
                 }
                 runCatching {
                     client.newCall(Request.Builder().url("http://127.0.0.1:$metricsPort/debug/vars").build()).execute().use { response ->
                         val raw = response.body?.string() ?: return@use
                         val stats = JSONObject(raw).optJSONObject("stats")?.optJSONObject("outbound") ?: return@use
-                        val outbound = stats.optJSONObject(server.outboundTag.ifEmpty{"signet-default"}) ?: return@use
-                        VpnState.status.update { it.copy(uploaded = outbound.optLong("uplink"), downloaded = outbound.optLong("downlink")) }
+                        val tags=if(server.isAuto || server.outboundTag.isEmpty())stats.keys().asSequence().toList()else listOf(server.outboundTag)
+                        VpnState.status.update { it.copy(uploaded = tags.sumOf { tag->stats.optJSONObject(tag)?.optLong("uplink")?:0L }, downloaded = tags.sumOf { tag->stats.optJSONObject(tag)?.optLong("downlink")?:0L }) }
                     }
                 }
             }
-        } finally { client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown() }
+        } finally { client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown();health.connectionPool.evictAll();health.dispatcher.executorService.shutdown() }
     }
     private fun fail(message: String) {
         VpnState.status.value = VpnStatus(VpnPhase.ERROR, error = message)
+        repository.notify(message)
         notification(message)
-        if (!repository.state.value.settings.reconnect) { requested = false; stopForeground(STOP_FOREGROUND_REMOVE); stopSelf() }
+        if(requested && repository.state.value.settings.reconnect && retryCount<3) {
+            retryCount++;networkJob?.cancel()
+            networkJob=scope.launch { delay(2_000L shl (retryCount-1));if(requested)reconnect() }
+        }
+        if (!repository.state.value.settings.reconnect) { requested = false;if(tun==null){stopForeground(STOP_FOREGROUND_REMOVE);stopSelf()} }
     }
     private fun notification(text: String) {
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
@@ -161,10 +178,10 @@ class SignetVpnService : VpnService() {
             .setContentIntent(open).setOngoing(true).setSilent(true).addAction(0, "Отключить", stop).build()
         if (Build.VERSION.SDK_INT >= 34) startForeground(1, n, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED) else startForeground(1, n)
     }
-    private fun stopCore() {
+    private fun stopCore(closeTun:Boolean=true) {
         monitor?.cancel(); monitor = null
         runCatching { NativeCore.call("stopXray") }; runCatching { NativeCore.detach(this) }
-        runCatching { tun?.close() }; tun = null
+        if(closeTun){runCatching { tun?.close() }; tun = null}
     }
     override fun onRevoke() { requested = false; connectJob?.cancel(); scope.launch { mutex.withLock { stopCore(); VpnState.status.value = VpnStatus() }; stopSelf() } }
     override fun onDestroy() {

@@ -21,7 +21,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _diagnostic = MutableStateFlow(""); val diagnostic = _diagnostic.asStateFlow()
     private var probeJob: Job? = null
     fun import(text: String, ageKey: String = "") { viewModelScope.launch(Dispatchers.IO) { repository.import(text,ageKey=ageKey) } }
-    fun select(id: String) { viewModelScope.launch { repository.select(id) } }
+    fun select(id: String) { viewModelScope.launch { repository.select(id)
+        if(vpn.value.phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING))start()
+    } }
+    fun selectAuto() { state.value.servers.firstOrNull { it.isAuto && it.enabled }?.let { select(it.id) }
+        ?: repository.notify("В подписке нет серверного профиля AUTO") }
     fun favorite(id: String) { viewModelScope.launch { repository.favorite(id) } }
     fun remove(id: String) { viewModelScope.launch { repository.remove(id) } }
     fun refresh() { viewModelScope.launch(Dispatchers.IO) { repository.refreshAll() } }
@@ -37,10 +41,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     val results = Probes.measure(getApplication(), batch)
                     results.forEach { (id, delay) -> repository.measurement(id, delay) }
                 }
-                if(auto) {
-                    val best = Profiles.best(state.value.servers, System.currentTimeMillis())
-                    if(best != null) repository.select(best.id) else repository.notify("Нет доступных серверов с актуальным измерением")
-                }
+                // A probe NEVER changes the selection or the server's AUTO configuration.
             } catch(e: CancellationException) { throw e }
             catch(e: Exception) { repository.notify("Не удалось измерить задержку") }
             finally { _probing.value = false }

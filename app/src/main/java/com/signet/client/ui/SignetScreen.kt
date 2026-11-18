@@ -25,8 +25,8 @@ import androidx.compose.ui.unit.*
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.*
 import androidx.lifecycle.compose.*
-import com.journeyapps.barcodescanner.ScanContract
-import com.journeyapps.barcodescanner.ScanOptions
+import com.signet.client.qr.QrScannerActivity
+import com.signet.client.qr.QrImage
 import com.signet.client.*
 import com.signet.client.R
 import com.signet.client.data.*
@@ -52,7 +52,7 @@ private val Error=Color(0xFFFF657A)
     val probing by model.probing.collectAsStateWithLifecycle()
     var page by rememberSaveable { mutableIntStateOf(0) }
     var add by rememberSaveable { mutableStateOf(false) }
-    var input by rememberSaveable { mutableStateOf("") }
+    var input by remember { mutableStateOf("") }
     var ageKey by remember { mutableStateOf("") }
     val context=LocalContext.current
     val scope=rememberCoroutineScope()
@@ -70,7 +70,14 @@ private val Error=Color(0xFFFF657A)
             }.onFailure { model.repository.notify("Не удалось прочитать файл (максимум 4 МБ)") }
         }
     }
-    val qr=rememberLauncherForActivityResult(ScanContract()) { result -> if(result.contents != null) { input=result.contents; add=true } }
+    val qr=rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        result.data?.getStringExtra("content")?.let { input=it;add=true }
+    }
+    val qrImage=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if(uri!=null)scope.launch(Dispatchers.IO) { runCatching { QrImage.decode(context,uri) }
+            .onSuccess { text -> withContext(Dispatchers.Main) {input=text;add=true} }
+            .onFailure { model.repository.notify("На изображении не найден поддерживаемый QR-код") } }
+    }
     MaterialTheme(colorScheme=darkColorScheme(primary=Primary, secondary=Color(0xFF62F4E8), background=Background, surface=Surface, onSurface=Color.White, error=Error)) {
         Scaffold(containerColor=Background, snackbarHost={SnackbarHost(snackbar)}, bottomBar={
             NavigationBar(containerColor=Background, tonalElevation=0.dp) {
@@ -86,9 +93,9 @@ private val Error=Color(0xFFFF657A)
                     IconButton(onClick={page=3}) { Icon(Icons.Outlined.Settings,"Настройки",tint=Muted) }
                 }
                 when(page) {
-                    0 -> Home(state,vpn,connect,model::stop,{page=2;add=true},model::select,{model.measure(true)},probing)
+                    0 -> Home(state,vpn,connect,model::stop,{page=2;add=true},model::select,model::selectAuto,probing)
                     1 -> Servers(state,probing,model::select,model::favorite,{model.measure()},model::refresh)
-                    2 -> Subscriptions(state,{input="";add=true},{file.launch(arrayOf("text/*","application/json","application/octet-stream"))},{qr.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setPrompt("Сканируйте QR подписки").setBeepEnabled(false))},model::remove,model::refresh)
+                    2 -> Subscriptions(state,{input="";add=true},{file.launch(arrayOf("text/*","application/json","application/octet-stream"))},{qr.launch(Intent(context,QrScannerActivity::class.java))},{qrImage.launch("image/*")},model::remove,model::refresh)
                     3 -> Preferences(state,model)
                 }
             }
@@ -147,7 +154,7 @@ private val Error=Color(0xFFFF657A)
         if(state.servers.isNotEmpty()) {
             Row(Modifier.fillMaxWidth().padding(top=12.dp,bottom=8.dp),horizontalArrangement=Arrangement.SpaceBetween){Text("ЛОКАЦИИ",color=Muted,fontSize=10.sp,letterSpacing=2.sp);Text("HTTP · ms",color=Muted,fontSize=10.sp)}
             LazyRow(horizontalArrangement=Arrangement.spacedBy(10.dp),modifier=Modifier.fillMaxWidth().padding(bottom=8.dp)) {
-                item { Surface(onClick=auto,shape=RoundedCornerShape(18.dp),color=Surface,modifier=Modifier.width(136.dp).height(90.dp)) {Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.SpaceBetween){Text("AUTO",color=Primary,fontWeight=FontWeight.Bold);Text(if(probing)"Проверка…" else "Лучший сервер",color=Muted,fontSize=11.sp)}} }
+                if(state.servers.any{it.isAuto}) item { Surface(onClick=auto,shape=RoundedCornerShape(18.dp),color=Surface,modifier=Modifier.width(136.dp).height(90.dp)) {Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.SpaceBetween){Text("AUTO",color=Primary,fontWeight=FontWeight.Bold);Text("Автоматическая маршрутизация",color=Muted,fontSize=11.sp)}} }
                 items(state.servers,key={it.id}){s -> Surface(onClick={select(s.id)},shape=RoundedCornerShape(18.dp),color=Surface,border=if(s.id==state.selected)BorderStroke(1.dp,Primary)else null,modifier=Modifier.width(164.dp).height(90.dp)){Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.SpaceBetween){Text("${s.flag} ${s.countryName}",fontSize=13.sp,maxLines=1);Text(s.city?:s.name,color=Muted,fontSize=11.sp,maxLines=1,overflow=TextOverflow.Ellipsis);Latency(s)}} }
             }
         }
@@ -181,11 +188,12 @@ private val Error=Color(0xFFFF657A)
     }
 }
 
-@Composable private fun Subscriptions(state:AppState,add:()->Unit,file:()->Unit,qr:()->Unit,remove:(String)->Unit,refresh:()->Unit){
+@Composable private fun Subscriptions(state:AppState,add:()->Unit,file:()->Unit,qr:()->Unit,image:()->Unit,remove:(String)->Unit,refresh:()->Unit){
     val context=LocalContext.current
     Column(Modifier.fillMaxSize().padding(horizontal=22.dp)){
         Title("Подписки","Ваш доступ к Signet")
         Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Button(onClick=add){Icon(Icons.Outlined.Add,null);Text("Добавить")};OutlinedButton(onClick=qr){Icon(Icons.Outlined.QrCodeScanner,"QR-код")};OutlinedButton(onClick=file){Icon(Icons.Outlined.FileOpen,"Из файла")}}
+        TextButton(onClick=image){Text("QR из изображения")}
         TextButton(onClick=refresh,enabled=!state.busy){Text(if(state.busy)"Обновление…" else "Обновить все подписки")}
         if(state.busy)LinearProgressIndicator(Modifier.fillMaxWidth())
         LazyColumn(verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=20.dp)){

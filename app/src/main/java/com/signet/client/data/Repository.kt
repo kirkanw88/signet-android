@@ -58,13 +58,17 @@ class Repository(private val context: Context, private val vault: Vault, private
     }
     fun clearMessage() = _state.update { it.copy(message = null) }
     fun notify(text: String) = _state.update { it.copy(message = text) }
-    suspend fun select(id: String) = mutex.withLock { _state.update { it.copy(selected = id) }; persist() }
+    suspend fun select(id: String) = mutex.withLock {
+        require(state.value.servers.any { it.id == id && it.enabled }) { "Профиль недоступен" }
+        _state.update { it.copy(selected = id) }; persist()
+    }
     suspend fun settings(s: Settings) { settingsStore.save(s); _state.update { it.copy(settings = s) } }
     suspend fun favorite(id: String) = updateServers { if (it.id == id) it.copy(favorite = !it.favorite) else it }
     suspend fun success(id: String) = updateServers { if (it.id == id) it.copy(successes = it.successes + 1) else it }
     suspend fun edit(id: String, text: String) {
         require(text.length <= 512 * 1024) { "Профиль слишком большой для редактора" }
         val parsed = Profiles.parseJson(text).single()
+        require(state.value.servers.firstOrNull { it.id==id }?.isAuto != true) { "AUTO управляется сервером" }
         updateServers { if(it.id==id) parsed.copy(id=id,favorite=it.favorite,successes=it.successes,originalConfig=it.originalConfig) else it }
     }
     suspend fun restore(id: String) = updateServers { if(it.id==id) it.copy(config=it.originalConfig) else it }
@@ -77,6 +81,7 @@ class Repository(private val context: Context, private val vault: Vault, private
     suspend fun import(input: String, existingId: String? = null, ageKey: String = "") = withContext(Dispatchers.IO) {
         awaitReady(); _state.update { it.copy(busy = true) }
         try {
+            require(input.toByteArray().size <= 4*1024*1024) { "Слишком большой импорт" }
             var text = input.trim(); var url: String? = null; var title = "Подписка"; var info = emptyMap<String, Long>()
             if (text.startsWith("https://")) {
                 url = text
@@ -85,7 +90,7 @@ class Repository(private val context: Context, private val vault: Vault, private
                 repeat(6) {
                     if (fetched) return@repeat
                     require(next.startsWith("https://")) { "Разрешены только HTTPS подписки" }
-                    val request = Request.Builder().url(next).header("User-Agent", "SignetVPN/0.1.0 (Android ${Build.VERSION.RELEASE})").header("Accept", "application/json, text/plain")
+                    val request = Request.Builder().url(next).header("User-Agent", "SignetVPN/${com.signet.client.BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE})").header("Accept", "application/json, text/plain")
                     if (_state.value.settings.hwid) {
                         request.header("X-Hwid", installId).header("X-Device-Os", "Android").header("X-Ver-Os", Build.VERSION.RELEASE).header("X-Device-Model", Build.MODEL)
                     }
@@ -119,17 +124,13 @@ class Repository(private val context: Context, private val vault: Vault, private
             require(parsed.isNotEmpty()) { "В подписке нет серверов" }
             val subId = existingId ?: Profiles.id(url ?: text)
             val previous = state.value.subscriptions.firstOrNull { it.id == subId }
-            val servers = parsed.map { p ->
-                val id = Profiles.id(subId + p.id)
-                val old = previous?.servers?.firstOrNull { it.id == id }
-                p.copy(id = id, favorite = old?.favorite ?: false, successes = old?.successes ?: 0)
-            }
+            val servers = ProfileRefresh.reconcile(subId,previous?.servers.orEmpty(),parsed)
             mutex.withLock {
                 val others = state.value.subscriptions.filterNot { it.id == subId }
                 require(others.size < 8 && others.sumOf { it.servers.size } + servers.size <= 500) { "Достигнут лимит профилей" }
                 require(others.flatMap { it.servers }.sumOf { it.config.length } + servers.sumOf { it.config.length } <= 8 * 1024 * 1024) { "Достигнут лимит хранилища" }
                 val sub = Subscription(subId, if (url == null) servers.first().name else title, url, servers, info,ageKey=secret)
-                _state.update { it.copy(subscriptions = it.subscriptions.filterNot { s -> s.id == subId } + sub, selected = it.selected?.takeIf { id -> (it.servers.filterNot { old -> previous?.servers?.any { p -> p.id == old.id } == true } + servers).any { server -> server.id == id } } ?: servers.first().id, message = "Добавлено серверов: ${servers.size}") }
+                _state.update { it.copy(subscriptions = others + sub, selected = ProfileRefresh.selection(it.selected,others.flatMap { s->s.servers }+servers,existingId==null), message = "Добавлено серверов: ${servers.size}") }
                 persist()
             }
         } catch (e: CancellationException) { throw e }
