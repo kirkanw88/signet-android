@@ -155,7 +155,7 @@ private val Error=Color(0xFFFF657A)
 
 @Composable private fun Globe(server:Server?,phase:VpnPhase,settings:Settings,modifier:Modifier) {
     val context=LocalContext.current;val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
-    val view=remember { GlobeView(context) }
+    val view=remember { GlobeView(context,settings.graphics=="High") }
     DisposableEffect(lifecycle,view){
         val observer=LifecycleEventObserver{_,event->when(event){Lifecycle.Event.ON_RESUME->view.onResume();Lifecycle.Event.ON_PAUSE->view.onPause();else->Unit}}
         lifecycle.addObserver(observer)
@@ -176,7 +176,7 @@ private val Error=Color(0xFFFF657A)
             if(state.subscriptions.isEmpty())item{Empty("Добро пожаловать","Добавьте ссылку из личного кабинета Signet или импортируйте конфигурацию. Данные хранятся на устройстве в зашифрованном виде.")}
             items(state.subscriptions,key={it.id}){s->Card(colors=CardDefaults.cardColors(containerColor=Surface)){
                 Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
-                    Row(verticalAlignment=Alignment.CenterVertically){Text(s.title,Modifier.weight(1f),fontWeight=FontWeight.SemiBold);IconButton(onClick={remove(s.id)}){Icon(Icons.Outlined.DeleteOutline,"Удалить подписку",tint=Muted)}}
+                    Row(verticalAlignment=Alignment.CenterVertically){Text(com.signet.core.DisplayText.clean(s.title),Modifier.weight(1f),fontWeight=FontWeight.SemiBold);IconButton(onClick={remove(s.id)}){Icon(Icons.Outlined.DeleteOutline,"Удалить подписку",tint=Muted)}}
                     Text("${s.servers.size} серверов · ${if(s.url!=null)"Автообновление" else "Локальный профиль"}",color=Muted,fontSize=12.sp)
                     Text(if(s.format=="XRAY_JSON")"Xray JSON ? DNS ? ????????????? ?????????"else"URI-???????? ? ?????????? Xray JSON-??????? ? ??? ?? ??????????",color=Muted,fontSize=12.sp)
                     if(s.metadata.announcement.isNotBlank())Text(s.metadata.announcement,color=Primary,fontSize=13.sp)

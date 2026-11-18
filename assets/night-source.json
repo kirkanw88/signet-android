@@ -1,0 +1,11 @@
+{
+  "url": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_01deg.jpg",
+  "originalSha256": "d87de751a264e4f8ff69c68de5dab9606daee87a6f15ae743c93200743bd7ec1",
+  "outputSha256": "ba787dd56601d89cec7818f2aa87fd8312ee16cee74da612603fd92a61ea776e",
+  "size": [
+    2048,
+    1024
+  ],
+  "credit": "NASA Earth Observatory / Black Marble team, Suomi NPP VIIRS, 2016",
+  "terms": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+}

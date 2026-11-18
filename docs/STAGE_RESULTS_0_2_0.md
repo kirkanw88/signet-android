@@ -35,3 +35,11 @@ Strict verification, 31 core tests, app JVM NO-SOURCE, Lint 0 errors / 40 warnin
 Ручная проверка обновлений, foreground auto-check не чаще 24 ч, ETag/304, bounded metadata/cache, числовой SemVer, выбор ABI и баннер с отложенным показом. Только официальный GitHub repository, HTTPS, без токенов/cookies/HWID и фоновой загрузки APK. Unit проверяют версии, ABI, unsafe URLs, draft/prerelease. Для работы реальных обновлений необходим публичный Release; текущий private repository не открывался и токен в APK не добавлялся.
 
 Публичный OpenAPI кабинета проверен GET-запросом. Настроены реальные browser OAuth Google/Яндекс, кабинет покупки/продления, поддержка и официальный бот. Native session API/schema отсутствуют: native login/registration/session refresh/device billing endpoints не имитируются и не объявляются готовыми. API_CONTRACTS.md содержит найденные поверхности и явно отделённый проект недостающего backend-контракта. Серверные изменения/входы/реальные платежи не выполнялись.
+
+## C — графика
+
+Strict verification, 34 core tests, app JVM NO-SOURCE, Lint, Debug/Release: PASS, 2m 32s, stage-C-final.log. Точные shader strings дополнительно compiled/linked в WebGL1/OpenGL ES2 Chromium: PASS, tests/evidence/0.2.0/glsl-check.json. Это не измерение Android FPS/GPU.
+
+Заливка — один непрозрачный цвет без country glow/pulse. JTS-треугольники дополнительно разделяются перед проекцией на сферу: большие хорды больше не проваливаются под поверхность. Сохранены MultiPolygon/holes; кольца отверстий выравниваются по longitude shell. Добавлены плавный ограниченный zoom по угловому радиусу страны, возврат к overview, сохранение ручного вращения при потере GL context, детерминированный звёздный фон и настоящая ночная карта NASA Black Marble 2016. Ночная текстура при загрузке ограничена 1024×512 RGB565; CPU bitmap освобождается. High запрашивает 4x MSAA с fallback, Balanced/Battery не получают дополнительные multisample buffers.
+
+Adaptive icon теперь использует знак И полную надпись SIGNET, вписанную в центральную safe area. Уведомление использует отдельный mono icon. Проверка физических launchers/нагрева/батареи: NOT RUN; подробная Android UI/географическая матрица ещё ожидает runtime-стенда.

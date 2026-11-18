@@ -13,3 +13,5 @@ Natural Earth — public domain, https://www.naturalearthdata.com/about/terms-of
 
 flag-icons, MIT, copyright Lipis и contributors. Исходный commit `ac7e0eb3259eb62aa6100c435607e2fe03896a97`, https://github.com/lipis/flag-icons. License включена в APK: assets/licenses/flag-icons-MIT.txt. PNG отрендерены из SVG этого проекта, без ресурсов Happ/Incy. Происхождение и контрольные суммы: assets/flags-source.json.
 
+NASA Black Marble 2016 night lights: NASA Earth Observatory / Black Marble team, Suomi NPP VIIRS. Official source/credit/checksums: assets/night-source.json. Reduced locally to 2048×1024; NASA imagery terms https://www.nasa.gov/nasa-brand-center/images-and-media/. No NASA endorsement is implied.
+
