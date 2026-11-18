@@ -4,6 +4,8 @@
 
 Причина `invalid_origin` воспроизведена в Chrome для всех трёх способов: no-referrer на HTML consent превращал browser form Origin в null, который корректно отвергал сервер. GET consent теперь same-origin, JSON API/redirect сохраняют no-referrer. Origin:null/foreign по-прежнему запрещены, правильный Origin без CSRF также отклоняется. Дополнительный CSP form-action self блокировал custom-scheme redirect: теперь разрешён только self и протокол com.signet.client:, а сам backend callback остаётся жёстко фиксированным. State/PKCE/code store не менялись.
 
+[Публичный v0.2.5](https://github.com/kirkanw88/signet-android/releases/tag/v0.2.5) опубликован из `da8fd46`. Три ABI APK, source и SHA256SUMS загружены, asset digests совпали с локальными SHA-256. Точный endpoint updater без Authorization вернул v0.2.5. [Публикация](../tests/evidence/0.2.5/public-release.json). ARM64 50 376 943 bytes, SHA-256 `291b047caa629c6d5a0ed873d599d80d50a85e3efc627155b14eb28e0068a85f`. Сертификат проверен и совпадает с 0.2.1–0.2.4: `8158ed1e88c0d5e485abed87d63209f295021a482fc6c51d108e44fdce0448b1`.
+
 | Проверка | Итог 0.2.5 |
 |---|---|
 | Server policy + payment-return regression | 10/10 PASS локально (0.142 s) и 10/10 в isolated image / network none |
