@@ -79,15 +79,18 @@ jobs:
           echo "${ANDROID_HOME}/platform-tools" >> "$GITHUB_PATH"
           mkdir -p "$ANDROID_AVD_HOME" "$ANDROID_USER_HOME"
           echo no | "${ANDROID_HOME}/cmdline-tools/latest/bin/avdmanager" create avd --force --name signet-test --path "$ANDROID_AVD_HOME/signet-test.avd" --package 'system-images;android-36;google_apis;x86_64' --device pixel_2
-          sed -i -e '/^hw.lcd.width=/d' -e '/^hw.lcd.height=/d' -e '/^hw.lcd.density=/d' -e '/^hw.cpu.ncore=/d' "$ANDROID_AVD_HOME/signet-test.avd/config.ini"
-          printf 'hw.lcd.width=720\nhw.lcd.height=1280\nhw.lcd.density=320\nhw.cpu.ncore=2\n' >> "$ANDROID_AVD_HOME/signet-test.avd/config.ini"
+          sed -i -e '/^hw.lcd.width=/d' -e '/^hw.lcd.height=/d' -e '/^hw.lcd.density=/d' -e '/^hw.cpu.ncore=/d' -e '/^disk.dataPartition.size=/d' "$ANDROID_AVD_HOME/signet-test.avd/config.ini"
+          printf 'hw.lcd.width=720\nhw.lcd.height=1280\nhw.lcd.density=320\nhw.cpu.ncore=2\ndisk.dataPartition.size=2048M\n' >> "$ANDROID_AVD_HOME/signet-test.avd/config.ini"
           printf 'avd.ini.encoding=UTF-8\npath=%s/signet-test.avd\ntarget=android-36\n' "$ANDROID_AVD_HOME" > "$ANDROID_AVD_HOME/signet-test.ini"
           "${ANDROID_HOME}/emulator/emulator" -list-avds | grep '^signet-test$'
       - name: Boot Android fixture before compiling
         shell: bash
         run: |
           set -euo pipefail
-          "${ANDROID_HOME}/emulator/emulator" -avd signet-test -no-window -no-audio -no-boot-anim -no-snapshot -memory 4096 -gpu swiftshader -feature -Vulkan > /tmp/signet-emulator.log 2>&1 &
+          ulimit -c 0
+          df -h . /tmp
+          python3 -c "import shutil; assert shutil.disk_usage('.').free >= 4*1024**3, 'Insufficient runner disk for emulator'"
+          "${ANDROID_HOME}/emulator/emulator" -avd signet-test -no-window -no-audio -no-boot-anim -no-snapshot -memory 4096 -gpu software -feature -Vulkan > /tmp/signet-emulator.log 2>&1 &
           signet_emulator_pid=$!
           timeout 240 adb wait-for-device
           timeout 240 bash -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = 1 ]; do sleep 2; done'
@@ -103,7 +106,10 @@ jobs:
           set -euo pipefail
           mkdir -p tests/evidence/runtime
           jps -lv | awk '/KotlinCompileDaemon/ {print $1}' | xargs -r kill
-          "${ANDROID_HOME}/emulator/emulator" -avd signet-test -no-window -no-audio -no-boot-anim -no-snapshot -memory 4096 -gpu swiftshader -feature -Vulkan > /tmp/signet-emulator.log 2>&1 &
+          ulimit -c 0
+          df -h . /tmp
+          python3 -c "import shutil; assert shutil.disk_usage('.').free >= 4*1024**3, 'Insufficient runner disk for emulator'"
+          "${ANDROID_HOME}/emulator/emulator" -avd signet-test -no-window -no-audio -no-boot-anim -no-snapshot -memory 4096 -gpu software -feature -Vulkan > /tmp/signet-emulator.log 2>&1 &
           timeout 240 adb wait-for-device
           timeout 240 bash -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = 1 ]; do sleep 2; done'
           adb get-state
