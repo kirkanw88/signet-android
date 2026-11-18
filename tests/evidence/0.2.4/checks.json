@@ -63,8 +63,9 @@
   "photos": "8192x4096 source checksums PASS; runtime bounded region decoder compiled only",
   "installer": "Bounded transfer/digest/redirect tests PASS; PackageInstaller lifecycle NOT RUN on Android",
   "phone": "NOT RUN",
-  "productionApiDeployment": "NOT RUN; code and migration prepared",
+  "productionApiDeployment": "ACTIVE; public HTTPS capability and database-backed anonymous guards PASS",
   "coldCache": "NOT REPEATED",
   "emulator": "NOT RUN by user request",
-  "signingCertificateSha256": "8158ed1e88c0d5e485abed87d63209f295021a482fc6c51d108e44fdce0448b1"
+  "signingCertificateSha256": "8158ed1e88c0d5e485abed87d63209f295021a482fc6c51d108e44fdce0448b1",
+  "productionActivatedAt": "2026-11-18T19:55:59.037225+00:00"
 }

@@ -1,6 +1,10 @@
 # Signet Android 0.2.4 — проверка 18.11.2026
 
-Изменения: [RELEASE_0_2_4](RELEASE_0_2_4.md), [mobile API](MOBILE_API_CLIENT.md). Android-код остаётся в `feature/android-0.2.0`. По последующему прямому запросу пользователя также подготовлен customer API в локальном веб-кабинете. **Production API ещё не развёрнут; БД production, VPN infrastructure и main не менялись.** Backend bundle предоставляется отдельно локально, без публикации существующего закрытого кода кабинета в Android GitHub.
+Изменения: [RELEASE_0_2_4](RELEASE_0_2_4.md), [mobile API](MOBILE_API_CLIENT.md). Android-код остаётся в `feature/android-0.2.0`. По последующему прямому запросу пользователя также подготовлен customer API, затем **развёрнут по отдельному явному разрешению 18.11.2026 19:55:59 UTC**: две новые mobile таблицы, API flag и перезапуск кабинета. Бот/VPN nodes не менялись, main не объединялся. Backend bundle предоставляется отдельно локально, без публикации существующего закрытого кода кабинета в Android GitHub.
+
+[Публичный выпуск v0.2.4](https://github.com/kirkanw88/signet-android/releases/tag/v0.2.4) опубликован из `e967dce`: три ABI APK, исходники и SHA256SUMS. Asset digests совпали с локальными SHA-256, анонимный `/releases/latest` вернул v0.2.4. [Подтверждение](../tests/evidence/0.2.4/public-release.json). ARM64 50 376 943 bytes, SHA-256 `3a3fc969a7115e1c75a90c2a8ce2af5ae403f813852957630d5a47ede36d2d0b`.
+
+Production: совпадение исходной версии подтверждено до deployment; новый image создан overlay на точном прежнем image и проверен без сети. Source/environment/image backup и verified PostgreSQL dump сохранены приватно на сервере. API активирован, контейнер running/restarts=0. Внешний HTTPS capabilities=200/no-store, account с неизвестным bearer=401 и token refresh с неизвестным token=400 проверяют настоящий новый DB path. Existing login=200, support history без login=401. Реальные клиентские данные не запрашивались, тестовые аккаунты/сессии не создавались. [Production smoke](../tests/evidence/0.2.4/production-api.json).
 
 | Проверка | Итог 0.2.4 |
 |---|---|
@@ -15,7 +19,8 @@
 | APK package/signature/alignment | PASS 0.2.4/code 6, три ABI, v2 signature, zip/ELF 16 KB |
 | Cold cache / long CI / emulator / physical phone | NOT RUN в 0.2.4 по просьбе ограничить проверки |
 | Реальный PackageInstaller self-update cycle | NOT RUN; проверены pure stream/hash/size/URL branches и Android compilation |
-| Production OAuth/API, live subscription/devices/bot delivery | NOT RUN; отдельное развёртывание и smoke ещё нужны |
+| Production API | PASS: verified backup, isolated image, migration, enabled HTTPS capabilities, DB-backed guards, existing login/support guards |
+| Physical OAuth, live customer subscription/devices/bot delivery | NOT RUN; authenticated customer end-to-end ещё нужен |
 
 Финальная Android сборка после изменений очистки installer session: 1m 9s. Lint warnings не подавлялись: рекомендации KTX/обновлений зависимостей и прежние замечания. Synchronous commit выполняется в Dispatchers.IO с проверкой результата до передачи управления установщику. Global verification exclusions/off не использовались, новые Maven зависимости не добавлялись.
 

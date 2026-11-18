@@ -1,0 +1,18 @@
+{
+  "apiUrl": "https://signet-cab.com/api/mobile/v1",
+  "capabilities": "PASS HTTPS external GET",
+  "features": [
+    "account",
+    "balance",
+    "subscriptions",
+    "devices",
+    "autopay",
+    "support"
+  ],
+  "cacheControl": "no-store",
+  "randomUnknownBearer": "401; real DB-backed authentication path exercised",
+  "randomUnknownRefresh": "400; real token table lookup exercised",
+  "customerData": "No authenticated customer requests; no test customer/session created",
+  "productionApiDeployment": "ACTIVE",
+  "physicalAndroidOAuth": "NOT RUN"
+}
