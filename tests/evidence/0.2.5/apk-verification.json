@@ -1,0 +1,50 @@
+[
+  {
+    "abi": "arm64-v8a",
+    "version": "0.2.5",
+    "versionCode": 7,
+    "bytes": 50376943,
+    "sha256": "291b047caa629c6d5a0ed873d599d80d50a85e3efc627155b14eb28e0068a85f",
+    "signatureV2": "PASS",
+    "zip16k": "PASS",
+    "elf16k": "PASS",
+    "manifest": "PASS",
+    "nativeLibraries": [
+      "lib/arm64-v8a/libandroidx.graphics.path.so",
+      "lib/arm64-v8a/libdatastore_shared_counter.so",
+      "lib/arm64-v8a/libgojni.so"
+    ]
+  },
+  {
+    "abi": "armeabi-v7a",
+    "version": "0.2.5",
+    "versionCode": 7,
+    "bytes": 49652949,
+    "sha256": "8860dc516f574d00b15a3bc35ebcc5b4a3e0d07882755c3cde5abebc263f4e1f",
+    "signatureV2": "PASS",
+    "zip16k": "PASS",
+    "elf16k": "PASS",
+    "manifest": "PASS",
+    "nativeLibraries": [
+      "lib/armeabi-v7a/libandroidx.graphics.path.so",
+      "lib/armeabi-v7a/libdatastore_shared_counter.so",
+      "lib/armeabi-v7a/libgojni.so"
+    ]
+  },
+  {
+    "abi": "x86_64",
+    "version": "0.2.5",
+    "versionCode": 7,
+    "bytes": 52754150,
+    "sha256": "308374c0778d4881e7344a5c89408099a8cb27cc717181c50091acbc47a4cf44",
+    "signatureV2": "PASS",
+    "zip16k": "PASS",
+    "elf16k": "PASS",
+    "manifest": "PASS",
+    "nativeLibraries": [
+      "lib/x86_64/libandroidx.graphics.path.so",
+      "lib/x86_64/libdatastore_shared_counter.so",
+      "lib/x86_64/libgojni.so"
+    ]
+  }
+]

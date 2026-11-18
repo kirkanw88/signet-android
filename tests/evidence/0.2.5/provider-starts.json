@@ -1,0 +1,26 @@
+{
+  "results": [
+    {
+      "provider": "telegram",
+      "mobileDispatch": "PASS",
+      "consentReferrerPolicy": "same-origin",
+      "liveProviderStart": "PASS",
+      "credentialsOrMfaUsed": false
+    },
+    {
+      "provider": "google",
+      "mobileDispatch": "PASS",
+      "consentReferrerPolicy": "same-origin",
+      "liveProviderStart": "PASS",
+      "credentialsOrMfaUsed": false
+    },
+    {
+      "provider": "yandex",
+      "mobileDispatch": "PASS",
+      "consentReferrerPolicy": "same-origin",
+      "liveProviderStart": "PASS",
+      "credentialsOrMfaUsed": false
+    }
+  ],
+  "scope": "Live public provider dispatch/configuration; no login credentials, customer records or sessions created"
+}

@@ -1,3 +1,31 @@
+# Signet Android 0.2.5 — проверка 18.11.2026
+
+Изменения: [RELEASE_0_2_5](RELEASE_0_2_5.md). Android ветка `feature/android-0.2.0`; main не объединялся. В рамках уже разрешённого развёртывания customer API исправлены app/main.py и app/mobile_api.py на действующем кабинете: резервный image/source сохранён, новый image проверен без сети, пересоздан только кабинет. БД не мигрировалась, bot/VPN nodes не менялись.
+
+Причина `invalid_origin` воспроизведена в Chrome для всех трёх способов: no-referrer на HTML consent превращал browser form Origin в null, который корректно отвергал сервер. GET consent теперь same-origin, JSON API/redirect сохраняют no-referrer. Origin:null/foreign по-прежнему запрещены, правильный Origin без CSRF также отклоняется. Дополнительный CSP form-action self блокировал custom-scheme redirect: теперь разрешён только self и протокол com.signet.client:, а сам backend callback остаётся жёстко фиксированным. State/PKCE/code store не менялись.
+
+| Проверка | Итог 0.2.5 |
+|---|---|
+| Server policy + payment-return regression | 10/10 PASS локально (0.142 s) и 10/10 в isolated image / network none |
+| Real Chrome old/new | Для Telegram/Google/Yandex old: null/403; fixed: canonical Origin/303/correct callback+state, CSP violations=0 |
+| Live provider starts | Telegram widget и Google/Yandex HTTPS provider/callback configuration PASS; credentials/MFA не использовались |
+| Production hotfix | ACTIVE 2026-11-18T20:27:58.229614+00:00; кабинет running/restarts=0; API и login доступны |
+| Debug / Release / Lint | PASS, STRICT verification; 2m 1s, 0 errors / 48 warnings |
+| GLSL compile/link | PASS WebGL1; screen-space border uniform, не проверка Android FPS |
+| APK identity/signature/alignment | PASS 0.2.5/code 7, три ABI, v2 signature, zip/ELF 16 KB |
+| Physical Android / real provider login / complete self-update | NOT RUN |
+| Long CI / emulator / cold cache | NOT REPEATED по просьбе ограничить проверки |
+
+Browser provider replies и code store локально заменены stub, но настоящие Signet callback routes, session cookies, signed pending и form POST выполняются браузером. Desktop не имеет Android protocol handler; проверка callback URL не заявляется выполненным физическим входом. На production проверены только публичные starts без customer cookies, паролей, token minting или чтения клиентских данных. Существующие 29 JVM/27 backend результаты 0.2.4 ниже не пересчитываются как новые тесты 0.2.5.
+
+Границы: центральная линия бело-голубая alpha 1.0, 4 offset pass обводки вместо зависимости от glLineWidth >1, заливка 17% вместо 7% при connecting/reconnecting/connected. Нет blur framebuffer и новых bitmap; цвета хранятся в переиспользуемых массивах. Реальный screenshot/FPS телефона не измерялся.
+
+[Проверки](../tests/evidence/0.2.5/checks.json), [Chrome](../tests/evidence/0.2.5/browser-auth.json), [публичные providers](../tests/evidence/0.2.5/provider-starts.json), [APK](../tests/evidence/0.2.5/apk-verification.json), [шейдеры](../tests/evidence/0.2.5/glsl-check.json). Старую страницу invalid_origin нужно закрыть и начать вход заново из APK. Серверный hotfix действует также для 0.2.4.
+
+Browser reference: [MDN Origin](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Origin), [Referrer-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referrer-Policy). Исходники/backend deploy note сохранены локально в signet_cabinet/docs/MOBILE_AUTH_HOTFIX_0_2_5.md; закрытый код кабинета не публикуется в Android GitHub.
+
+---
+
 # Signet Android 0.2.4 — проверка 18.11.2026
 
 Изменения: [RELEASE_0_2_4](RELEASE_0_2_4.md), [mobile API](MOBILE_API_CLIENT.md). Android-код остаётся в `feature/android-0.2.0`. По последующему прямому запросу пользователя также подготовлен customer API, затем **развёрнут по отдельному явному разрешению 18.11.2026 19:55:59 UTC**: две новые mobile таблицы, API flag и перезапуск кабинета. Бот/VPN nodes не менялись, main не объединялся. Backend bundle предоставляется отдельно локально, без публикации существующего закрытого кода кабинета в Android GitHub.

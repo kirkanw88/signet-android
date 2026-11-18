@@ -1,0 +1,59 @@
+{
+  "results": [
+    {
+      "mode": "legacy",
+      "provider": "telegram",
+      "referrerPolicy": "no-referrer",
+      "origin": "null",
+      "status": 403,
+      "callback": false,
+      "cspErrors": []
+    },
+    {
+      "mode": "legacy",
+      "provider": "google",
+      "referrerPolicy": "no-referrer",
+      "origin": "null",
+      "status": 403,
+      "callback": false,
+      "cspErrors": []
+    },
+    {
+      "mode": "legacy",
+      "provider": "yandex",
+      "referrerPolicy": "no-referrer",
+      "origin": "null",
+      "status": 403,
+      "callback": false,
+      "cspErrors": []
+    },
+    {
+      "mode": "current",
+      "provider": "telegram",
+      "referrerPolicy": "same-origin",
+      "origin": "http://127.0.0.1:35277",
+      "status": 303,
+      "callback": true,
+      "cspErrors": []
+    },
+    {
+      "mode": "current",
+      "provider": "google",
+      "referrerPolicy": "same-origin",
+      "origin": "http://127.0.0.1:35277",
+      "status": 303,
+      "callback": true,
+      "cspErrors": []
+    },
+    {
+      "mode": "current",
+      "provider": "yandex",
+      "referrerPolicy": "same-origin",
+      "origin": "http://127.0.0.1:35277",
+      "status": 303,
+      "callback": true,
+      "cspErrors": []
+    }
+  ],
+  "scope": "Real Chrome, real Signet routes/cookies/consent; identity provider replies and code store are local stubs; physical Android handler not exercised"
+}

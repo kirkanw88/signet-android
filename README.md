@@ -1,10 +1,10 @@
 # Signet VPN для Android
 
-Нативный клиент `com.signet.client`: Kotlin, Compose, Android VpnService, официальный libXray/Xray 26.11.9. Версия приложения 0.2.4. Android 8.0 / API 26 и новее.
+Нативный клиент `com.signet.client`: Kotlin, Compose, Android VpnService, официальный libXray/Xray 26.11.9. Версия приложения 0.2.5. Android 8.0 / API 26 и новее.
 
 ## Установка
 
-Установите APK из [публичных Releases](https://github.com/kirkanw88/signet-android/releases/latest) или `release/`. Для современных телефонов используйте `signet-0.2.4-arm64-v8a.apk`. В настройках откройте «Подписки» и импортируйте вашу HTTPS-ссылку, QR, файл, VLESS/Hysteria2 URI или Xray JSON. Сервер выбирается нажатием на страну на главном экране. При первом подключении подтвердите системное разрешение Android VPN. Проверка подключения имеет отдельный HTTPS адрес; для измерения задержки URL по умолчанию — `https://www.gstatic.com/generate_204`.
+Установите APK из [публичных Releases](https://github.com/kirkanw88/signet-android/releases/latest) или `release/`. Для современных телефонов используйте `signet-0.2.5-arm64-v8a.apk`. В настройках откройте «Подписки» и импортируйте вашу HTTPS-ссылку, QR, файл, VLESS/Hysteria2 URI или Xray JSON. Сервер выбирается нажатием на страну на главном экране. При первом подключении подтвердите системное разрешение Android VPN. Проверка подключения имеет отдельный HTTPS адрес; для измерения задержки URL по умолчанию — `https://www.gstatic.com/generate_204`.
 
 Сборка подписана локальным сертификатом разработки, пригодна для установки, не опубликована в Google Play. Это первая сборка: проверенные сценарии и ограничения перечислены в [отчёте](docs/TEST_REPORT.md). Нельзя считать все пункты исходного ТЗ прошедшими приёмку на основании наличия APK.
 

@@ -1,0 +1,28 @@
+{
+  "version": "0.2.5",
+  "versionCode": 7,
+  "dependencyVerification": "STRICT; no dependency changes",
+  "backendPolicyTests": {
+    "local": 10,
+    "isolatedImage": 10,
+    "result": "PASS"
+  },
+  "browserProviders": 3,
+  "legacyReproduced": "Origin null / 403",
+  "fixedResult": "canonical Origin / 303 callback / no CSP violation",
+  "productionHotfix": "ACTIVE",
+  "productionActivatedAt": "2026-11-18T20:27:58.229614+00:00",
+  "databaseMigration": "none",
+  "providerStarts": "Telegram/Google/Yandex PASS; no credentials/MFA used",
+  "build": "Debug/Release PASS",
+  "buildTime": "2m 1s",
+  "lint": {
+    "Error": 0,
+    "Fatal": 0,
+    "Warning": 48
+  },
+  "physicalAndroid": "NOT RUN",
+  "fullProviderCredentialsMfa": "NOT RUN",
+  "emulatorColdCi": "NOT REPEATED",
+  "signingCertificateSha256": "8158ed1e88c0d5e485abed87d63209f295021a482fc6c51d108e44fdce0448b1"
+}

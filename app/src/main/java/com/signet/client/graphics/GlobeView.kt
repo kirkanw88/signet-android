@@ -100,6 +100,9 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     private var countryData: JSONObject? = null
     private var markerCoords: Pair<Double, Double>? = null
     private val scaledModel=FloatArray(16)
+    private val borderColor=floatArrayOf(.224f,.64f,.90f,1f)
+    private val borderHighlight=floatArrayOf(.45f,.85f,1f,1f)
+    private val borderCore=floatArrayOf(.86f,.97f,1f,1f)
 
     fun update(server: Server?, state: VpnPhase, graphics: String, reduceMotion: Boolean) {
         val focusConnection=state in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED)&&phase !in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED)
@@ -130,10 +133,10 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
         program = GLES20.glCreateProgram()
         val vs = shader(GLES20.GL_VERTEX_SHADER, """
-            uniform mat4 uMvp; uniform mat4 uModel; uniform mediump int uMode;
+            uniform mat4 uMvp; uniform mat4 uModel; uniform mediump int uMode; uniform vec2 uScreenOffset;
             attribute vec3 aPosition; attribute vec2 aUv;
             varying vec2 vUv; varying vec3 vNormal; varying vec2 vScreen;
-            void main(){ vUv=aUv; vScreen=aPosition.xy*0.5+0.5; vNormal=mat3(uModel)*normalize(aPosition); gl_Position=uMvp*vec4(aPosition,1.0); gl_PointSize=6.0; }
+            void main(){ vUv=aUv; vScreen=aPosition.xy*0.5+0.5; vNormal=mat3(uModel)*normalize(aPosition); gl_Position=uMvp*vec4(aPosition,1.0); gl_Position.xy+=uScreenOffset*gl_Position.w; gl_PointSize=6.0; }
         """.trimIndent())
         val fs = shader(GLES20.GL_FRAGMENT_SHADER, """
             #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -253,6 +256,8 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         Matrix.setLookAtM(view, 0, 0f, 0f, cameraDistance, 0f,0f,0f,0f,1f,0f)
         Matrix.multiplyMM(mv,0,view,0,model,0); Matrix.multiplyMM(mvp,0,projection,0,mv,0)
         GLES20.glUseProgram(program)
+        val borderOffset=GLES20.glGetUniformLocation(program,"uScreenOffset")
+        GLES20.glUniform2f(borderOffset,0f,0f)
         GLES20.glDepthMask(false);GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(program,"uMvp"),1,false,identity,0)
         GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(program,"uModel"),1,false,identity,0)
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,spaceTexture);GLES20.glUniform1i(GLES20.glGetUniformLocation(program,"uTexture"),0)
@@ -278,10 +283,22 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             Matrix.multiplyMM(mv,0,view,0,model,0); Matrix.multiplyMM(mvp,0,projection,0,mv,0)
             GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(program,"uMvp"),1,false,mvp,0)
         }
-        val color = floatArrayOf(.224f,.64f,.90f,1f)
+        val focused=phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED)
         mode(1); GLES20.glDepthMask(false)
-        fill?.let { setBuffers(it); color(color, .07f); GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,it.capacity()/3) }
-        color(color, .58f); GLES20.glLineWidth(1.2f)
+        fill?.let { setBuffers(it); color(if(focused)borderHighlight else borderColor,if(focused).17f else .07f); GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,it.capacity()/3) }
+        // ES2 GPUs often clamp line width to 1px. Offset passes form a constant-width cyan edge.
+        GLES20.glLineWidth(1f)
+        if(focused){
+            color(borderHighlight,.86f)
+            for(pass in 0..3){
+                val x=when(pass){0->-2.5f/width;1->2.5f/width;else->0f}
+                val y=when(pass){2->-2.5f/height;3->2.5f/height;else->0f}
+                GLES20.glUniform2f(borderOffset,x,y)
+                borders.forEach{setBuffers(it);GLES20.glDrawArrays(GLES20.GL_LINE_STRIP,0,it.capacity()/3)}
+            }
+        }
+        GLES20.glUniform2f(borderOffset,0f,0f)
+        color(if(focused)borderCore else borderColor,if(focused)1f else .58f)
         borders.forEach { setBuffers(it); GLES20.glDrawArrays(GLES20.GL_LINE_STRIP,0,it.capacity()/3) }
         if(phase==VpnPhase.CONNECTED&&capital!=null){
             val settled=!manual&&abs(Geography.wrap((targetYaw?:yaw)-yaw))<.2f&&abs(targetPitch-pitch)<.2f&&abs(targetZoom-zoom)<.015f
