@@ -62,7 +62,7 @@ import kotlinx.coroutines.*
             Text("Автопроверка выполняется только пока приложение открыто. Проверки полного профиля идут последовательно в изолированном ядре.",style=MaterialTheme.typography.bodySmall)
             error?.let{Text(it,color=MaterialTheme.colorScheme.error)}
         }
-        Button(onClick={runCatching {value=value.copy(timeoutMs=timeout.toInt(),attempts=attempts.toInt(),intervalMs=interval.toInt(),parallelism=parallel.toInt(),autoMinutes=minutes.toInt()).validated();model.save(model.state.value.settings.copy(probes=value));close()}.onFailure{error="Проверьте HTTPS URL и допустимые значения"}},modifier=Modifier.fillMaxWidth().padding(vertical=8.dp)){Text("Сохранить")}
+        GlassButton(onClick={runCatching {value=value.copy(timeoutMs=timeout.toInt(),attempts=attempts.toInt(),intervalMs=interval.toInt(),parallelism=parallel.toInt(),autoMinutes=minutes.toInt()).validated();model.save(model.state.value.settings.copy(probes=value));close()}.onFailure{error="Проверьте HTTPS URL и допустимые значения"}},modifier=Modifier.fillMaxWidth().padding(vertical=8.dp)){Text("Сохранить")}
     }
 }
 @Composable private fun ProbeNumber(label:String,value:String,change:(String)->Unit){OutlinedTextField(value,{if(it.length<=6&&it.all(Char::isDigit))change(it)},label={Text(label)},singleLine=true,keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),modifier=Modifier.fillMaxWidth())}
@@ -99,7 +99,7 @@ private data class VisibleApp(val info:ApplicationInfo,val name:String,val syste
                 }
             }
         }
-        Button(onClick={if(mode=="include"&&selected.isEmpty())error="Выберите хотя бы одно приложение"else{model.save(model.state.value.settings.copy(appMode=mode,packages=selected));close()}},modifier=Modifier.fillMaxWidth().padding(vertical=8.dp)){Text("Сохранить")}
+        GlassButton(onClick={if(mode=="include"&&selected.isEmpty())error="Выберите хотя бы одно приложение"else{model.save(model.state.value.settings.copy(appMode=mode,packages=selected));close()}},modifier=Modifier.fillMaxWidth().padding(vertical=8.dp)){Text("Сохранить")}
     }
     preview?.let { routing->
         val missing=routing.packages-apps.map{it.info.packageName}.toSet()

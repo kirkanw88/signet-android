@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import com.google.zxing.*
 import com.google.zxing.common.HybridBinarizer
+import com.google.zxing.common.GlobalHistogramBinarizer
 import com.signet.core.ImportReview
 import com.signet.client.data.readLimited
 
@@ -21,7 +22,10 @@ object QrImage {
         try {
             val pixels=IntArray(bitmap.width*bitmap.height);bitmap.getPixels(pixels,0,bitmap.width,0,0,bitmap.width,bitmap.height)
             val source=RGBLuminanceSource(bitmap.width,bitmap.height,pixels)
-            val result=MultiFormatReader().decode(BinaryBitmap(HybridBinarizer(source)),mapOf(DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE),DecodeHintType.TRY_HARDER to true)).text
+            val hints=mapOf(DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE),DecodeHintType.TRY_HARDER to true,DecodeHintType.CHARACTER_SET to "UTF-8")
+            val result=sequenceOf(source,source.invert()).flatMap { light->sequenceOf(HybridBinarizer(light),GlobalHistogramBinarizer(light)) }
+                .mapNotNull{binarizer->runCatching{MultiFormatReader().decode(BinaryBitmap(binarizer),hints).text}.getOrNull()}.firstOrNull()?.let(ImportReview::normalize)
+                ?:error("QR не найден")
             require(ImportReview.supported(result)) { "Неподдерживаемое содержимое QR" };return result
         } finally { bitmap.recycle() }
     }

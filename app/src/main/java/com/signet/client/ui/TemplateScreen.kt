@@ -24,6 +24,6 @@ import org.json.JSONObject
             Text("Статическая проверка и принятие JSON ядром не подтверждают сетевую маршрутизацию. Ping в режиме «Полный профиль» использует предоставленные правила; DNS/UDP/IPv6 и split tunneling требуют отдельного теста трафика.",style=MaterialTheme.typography.bodySmall)
             result?.let{Text(it)}
         }
-        Button(onClick={scope.launch {checking=true;result=withContext(Dispatchers.IO){runCatching {if(Probes.validate(context,server))"Ядро приняло адаптированный JSON · PASS"else"Ядро отклонило JSON · FAIL. Проверьте geodata, ссылки и поддержку транспорта."}.getOrDefault("Не удалось выполнить проверку")};checking=false}},enabled=!checking&&report.accepted,modifier=Modifier.fillMaxWidth().padding(vertical=8.dp)){Text(if(checking)"Проверка…"else"Проверить JSON ядром")}
+        GlassButton(onClick={scope.launch {checking=true;result=withContext(Dispatchers.IO){runCatching {if(Probes.validate(context,server))"Ядро приняло адаптированный JSON · PASS"else"Ядро отклонило JSON · FAIL. Проверьте geodata, ссылки и поддержку транспорта."}.getOrDefault("Не удалось выполнить проверку")};checking=false}},enabled=!checking&&report.accepted,modifier=Modifier.fillMaxWidth().padding(vertical=8.dp)){Text(if(checking)"Проверка…"else"Проверить JSON ядром")}
     }
 }

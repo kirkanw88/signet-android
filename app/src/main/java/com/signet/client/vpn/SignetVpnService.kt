@@ -119,7 +119,7 @@ class SignetVpnService : VpnService() {
             val proxyClient = OkHttpClient.Builder().proxy(java.net.Proxy.NO_PROXY)
                 .connectTimeout(12, TimeUnit.SECONDS).readTimeout(12, TimeUnit.SECONDS).callTimeout(20, TimeUnit.SECONDS).build()
             try {
-                proxyClient.newCall(Request.Builder().url(settings.probes.url).build()).awaitResponse().use {
+                proxyClient.newCall(Request.Builder().url(settings.connectionCheckUrl).build()).awaitResponse().use {
                     check(it.isSuccessful) { "Сервер не подтвердил передачу данных" }
                 }
             } finally { proxyClient.connectionPool.evictAll(); proxyClient.dispatcher.executorService.shutdown() }
@@ -132,7 +132,7 @@ class SignetVpnService : VpnService() {
         } catch (e: CancellationException) { stopCore(closeTun=false); throw e }
         catch (e: Exception) {
             stopCore(closeTun=false)
-            fail(if(startupStage=="проверка HTTPS")"HTTPS-проверка не прошла. Проверьте сервер и разрешён ли адрес проверки правилами профиля. Адрес можно изменить в настройках Ping."
+            fail(if(startupStage=="проверка HTTPS")"HTTPS-проверка не прошла. Проверьте сервер и разрешён ли адрес проверки правилами профиля. Адрес можно изменить в настройках проверки соединения."
                 else "Не удалось подключиться: $startupStage (${e.javaClass.simpleName}). Проверьте подписку и доступность сервера.")
         }
     }
@@ -149,7 +149,7 @@ class SignetVpnService : VpnService() {
                     break
                 }
                 if(SystemClock.elapsedRealtime()>=nextHealth) {
-                    val reachable=runCatching { health.newCall(Request.Builder().url(repository.state.value.settings.probes.url).build()).awaitResponse().use { it.isSuccessful } }.getOrDefault(false)
+                    val reachable=runCatching { health.newCall(Request.Builder().url(repository.state.value.settings.connectionCheckUrl).build()).awaitResponse().use { it.isSuccessful } }.getOrDefault(false)
                     failures=if(reachable)0 else failures+1;nextHealth=SystemClock.elapsedRealtime()+30_000
                     if(reachable)retryCount=0
                     if(failures>=3){stopCore(closeTun=false);fail("VPN перестал передавать HTTPS-трафик");break}

@@ -3,6 +3,25 @@ import org.junit.Test
 import kotlin.test.*
 
 class DisplayAndSettingsTest {
+    @Test fun duplicateCountryServersKeepCitiesAndReceiveOrdinalsOnlyWhenNeeded(){
+        val first=server("DE Frankfurt").copy(id="first")
+        val second=first.copy(id="second")
+        val gaming=server("DE Gaming").copy(id="game")
+        val labels=ServerDisplayModel.all(listOf(first,second,gaming))
+        assertTrue(labels.getValue("first").title.endsWith("№1"))
+        assertTrue(labels.getValue("second").title.endsWith("№2"))
+        assertTrue(labels.getValue("game").title.contains("Gaming"))
+        assertFalse(labels.getValue("game").title.contains("№"))
+        assertEquals(listOf("first","second","game"),labels.keys.toList())
+    }
+    @Test fun remnawaveAnnouncementPreservesParagraphsAndIndentation(){
+        val text="Signet\r\n\r\n  Gaming\n    Fast &amp; stable"
+        assertEquals("Signet\n\n  Gaming\n    Fast & stable",SubscriptionMetadata.text(text))
+        val encoded="base64:"+java.util.Base64.getEncoder().encodeToString(text.toByteArray())
+        assertEquals(SubscriptionMetadata.text(text),SubscriptionMetadata.text(encoded))
+        assertEquals("Title\n  Details\n\nEnd",SubscriptionMetadata.text("Title<br>  Details</p>End"))
+        assertEquals("ab",SubscriptionMetadata.text("a\u202eb\u0000"))
+    }
     private fun server(name:String="🇩🇪 DE Frankfurt")=Profiles.parseJson("""{"remarks":"$name","outbounds":[{"protocol":"vless","settings":{"vnext":[{"address":"example.com","port":443}]}}]}""").single()
     @Test fun displayDoesNotChangeConfigurationOrIdentity(){val s=server();val display=ServerDisplayModel.from(s);assertEquals("Frankfurt",display.title);assertEquals(s.id,display.id);assertEquals("DE",display.country);assertTrue(s.name.contains("🇩🇪"))}
     @Test fun countryLabelsAndDuplicatePrefixesDoNotDependOnDeviceLanguage(){

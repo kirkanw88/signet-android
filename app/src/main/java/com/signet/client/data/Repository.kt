@@ -100,7 +100,7 @@ class Repository(private val context: Context, private val vault: Vault, private
                     if (fetched) return@repeat
                     require(SubscriptionMetadata.safeLink(next)!=null) { "Разрешены только корректные HTTPS ссылки без встроенных учётных данных" }
                     val request = Request.Builder().url(next).header("User-Agent", "SignetVPN/${com.signet.client.BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE})").header("Accept", "application/json, text/plain")
-                    if (_state.value.settings.hwid && java.net.URI(next).host.equals(java.net.URI(url).host,true)) {
+                    if (java.net.URI(next).host.equals(java.net.URI(url).host,true)) {
                         request.header("X-Hwid", installId).header("X-Device-Os", "Android").header("X-Ver-Os", Build.VERSION.RELEASE).header("X-Device-Model", Build.MODEL)
                     }
                     client.newCall(request.build()).awaitResponse().use { response ->

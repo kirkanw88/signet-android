@@ -38,13 +38,13 @@ fun openHttps(context:Context,url:String,onError:()->Unit={}) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
             Text("Один аккаунт для Signet",style=MaterialTheme.typography.headlineSmall)
             Text("Войдите в существующий кабинет через Google или Яндекс. При первом входе аккаунт создаётся в Signet. Подписки и платежи остаются в вашем действующем кабинете.")
-            Button(onClick={open("/auth/google")},modifier=Modifier.fillMaxWidth()){Text("Войти через Google")}
-            OutlinedButton(onClick={open("/auth/yandex")},modifier=Modifier.fillMaxWidth()){Text("Войти через Яндекс")}
-            OutlinedButton(onClick={openHttps(context,"https://t.me/signet_it_bot"){model.repository.notify("Не удалось открыть Telegram")}},modifier=Modifier.fillMaxWidth()){Text("Открыть Telegram-бот Signet")}
+            GlassButton(onClick={open("/auth/google")},modifier=Modifier.fillMaxWidth()){Text("Войти через Google")}
+            GlassButton(onClick={open("/auth/yandex")},modifier=Modifier.fillMaxWidth()){Text("Войти через Яндекс")}
+            GlassButton(onClick={openHttps(context,"https://t.me/signet_it_bot"){model.repository.notify("Не удалось открыть Telegram")}},modifier=Modifier.fillMaxWidth()){Text("Открыть Telegram-бот Signet")}
             HorizontalDivider()
             Text("Подписки и оплата",style=MaterialTheme.typography.titleLarge)
             Text("Покупка, продление, тарифы, устройства и подтверждение оплаты выполняются защищённым кабинетом. Приложение не получает данные банковской карты.")
-            Button(onClick={open("/cabinet")},modifier=Modifier.fillMaxWidth()){Text("Покупка и продление")}
+            GlassButton(onClick={open("/cabinet")},modifier=Modifier.fillMaxWidth()){Text("Покупка и продление")}
             Text("После входа скопируйте ссылку подписки или QR из кабинета и добавьте в Signet. Подписка из веб-кабинета и Telegram использует ваш существующий аккаунт.")
             TextButton(onClick={open("/support")}){Text("Поддержка и восстановление доступа")}
             Row{TextButton(onClick={open("/terms")}){Text("Условия")};TextButton(onClick={open("/privacy")}){Text("Конфиденциальность")}}

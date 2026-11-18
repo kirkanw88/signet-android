@@ -43,5 +43,5 @@ for abi in ('arm64-v8a','armeabi-v7a','x86_64'):
                     alignments.append(alignment)
     rows.append({'abi':abi,'version':version,'versionCode':int(code),'bytes':path.stat().st_size,'sha256':digest(path),'signatureV2':'PASS','zip16k':'PASS','elf16k':'PASS','manifest':'PASS','nativeLibraries':native})
     print(abi,version,path.stat().st_size,'PASS')
-out=root/'tests/evidence/0.2.0';out.mkdir(parents=True,exist_ok=True)
+out=root/'tests/evidence'/version;out.mkdir(parents=True,exist_ok=True)
 (out/'apk-verification.json').write_text(json.dumps(rows,indent=2)+'\n')

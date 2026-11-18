@@ -13,6 +13,18 @@ object DisplayText {
 
 data class ServerDisplayModel(val id:String,val title:String,val description:String?,val country:String?,val group:String,val isAuto:Boolean,val transport:String) {
     companion object {
+        fun all(servers:List<Server>):Map<String,ServerDisplayModel> {
+            val bases=servers.associate{it.id to from(it)}
+            val totals=servers.filterNot{it.isAuto}.groupingBy{it.countryCode?:it.countryName}.eachCount()
+            val titles=servers.groupingBy{(it.countryCode?:"")+":"+bases.getValue(it.id).title}.eachCount()
+            val positions=mutableMapOf<String,Int>()
+            return servers.associate { server->
+                val base=bases.getValue(server.id);val key=(server.countryCode?:"")+":"+base.title
+                val n=(positions[key]?:0)+1;positions[key]=n
+                val named=if(!server.isAuto && (totals[server.countryCode?:server.countryName]?:0)>1 && base.title!=server.countryName)"${server.countryName} · ${base.title}"else base.title
+                server.id to base.copy(title=if((titles[key]?:0)>1)"$named №$n"else named)
+            }
+        }
         fun from(server:Server):ServerDisplayModel {
             val code=server.countryCode
             val names=listOfNotNull(code,code?.let{Locale("",it).getDisplayCountry(Locale.ENGLISH)},code?.let{Locale("",it).getDisplayCountry(Locale("ru"))},"Signet")

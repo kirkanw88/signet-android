@@ -20,43 +20,31 @@ import com.signet.client.vpn.VpnStatus
 import com.signet.client.vpn.VpnPhase
 import com.signet.core.*
 
-@Composable fun LocationList(state:AppState,vpn:VpnStatus,probing:Boolean,select:(String)->Unit,favorite:(String)->Unit,ping:()->Unit,refresh:()->Unit,modifier:Modifier=Modifier,compact:Boolean=false) {
+@Composable fun LocationList(state:AppState,vpn:VpnStatus,probing:Boolean,select:(String)->Unit,favorite:(String)->Unit,ping:()->Unit,refresh:()->Unit,modifier:Modifier=Modifier,compact:Boolean=false,activeProbes:Set<String> = emptySet()) {
     var query by rememberSaveable{mutableStateOf("")};var favoriteOnly by rememberSaveable{mutableStateOf(false)}
-    var sort by rememberSaveable{mutableStateOf(false)};var collapsed by rememberSaveable{mutableStateOf(listOf<String>())}
-    var notice by remember{mutableStateOf(false)}
+    var sort by rememberSaveable{mutableStateOf(false)}
     val announcements=state.subscriptions.map{it.metadata.announcement}.filter{it.isNotBlank()}.distinct().joinToString("\n\n")
-    val displays=remember(state.servers){state.servers.associate{it.id to ServerDisplayModel.from(it)}}
+    val displays=remember(state.servers){ServerDisplayModel.all(state.servers)}
     val filtered=state.servers.filter { s->(!favoriteOnly||s.favorite)&&("${displays[s.id]?.title} ${s.countryName} ${displays[s.id]?.description} ${displays[s.id]?.transport}").contains(query,true) }
-    val groups=filtered.filterNot{it.isAuto}.groupBy{displays.getValue(it.id).group}.toSortedMap()
     Column(modifier) {
-        if(announcements.isNotBlank())Text(announcements,Modifier.fillMaxWidth().clickable{notice=true}.padding(vertical=8.dp),color=Color(0xFF39C8FF),fontSize=12.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
             Text("Локации",Modifier.weight(1f),fontWeight=FontWeight.SemiBold,fontSize=18.sp)
-            TextButton(onClick=ping,enabled=state.servers.isNotEmpty()){if(probing)CircularProgressIndicator(Modifier.size(12.dp),strokeWidth=1.5.dp);Text(if(probing)" Стоп"else"Ping")}
-            TextButton(onClick=refresh,enabled=!state.busy){Text(if(state.busy)"…"else"Обновить")}
+            TextButton(onClick=ping,enabled=state.servers.isNotEmpty()&&vpn.phase !in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.DISCONNECTING)){if(probing)CircularProgressIndicator(Modifier.size(12.dp),strokeWidth=1.5.dp);Text(if(probing)" Стоп"else"Ping")}
+            TextButton(onClick=refresh,enabled=!state.busy){if(state.busy)CircularProgressIndicator(Modifier.size(16.dp),strokeWidth=2.dp);Text(if(state.busy)" Обновление"else"Обновить")}
         }
         if(!compact) {
             OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),placeholder={Text("Страна, город, сервер")},leadingIcon={Icon(Icons.Outlined.Search,null)},singleLine=true,shape=RoundedCornerShape(16.dp))
             Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){FilterChip(favoriteOnly,{favoriteOnly=!favoriteOnly},label={Text("Избранное")});FilterChip(sort,{sort=!sort},label={Text("По задержке")})}
         }
         LazyColumn(Modifier.weight(1f),contentPadding=PaddingValues(bottom=16.dp)) {
-            items(filtered.filter{it.isAuto},key={it.id}) { server->ServerRow(server,displays.getValue(server.id),state,vpn,select,favorite) }
-            groups.forEach { (country,list)->
-                item(key="group-$country") {
-                    Row(Modifier.fillMaxWidth().clickable {collapsed=if(country in collapsed)collapsed-country else collapsed+country}.padding(vertical=12.dp),verticalAlignment=Alignment.CenterVertically) {
-                        CountryFlag(list.first().countryCode);Text(country,Modifier.weight(1f).padding(start=12.dp),color=Color(0xFF9BAAC2),fontSize=13.sp)
-                        Text("${list.size}",color=Color(0xFF9BAAC2),fontSize=12.sp);Icon(if(country in collapsed)Icons.Outlined.ExpandMore else Icons.Outlined.ExpandLess,"Свернуть или развернуть",tint=Color(0xFF9BAAC2))
-                    }
-                }
-                if(country !in collapsed)items(if(sort)list.sortedBy{it.latencyMs?:Long.MAX_VALUE}else list,key={it.id}) { server->ServerRow(server,displays.getValue(server.id),state,vpn,select,favorite) }
-            }
+            if(announcements.isNotBlank())item(key="subscription-announcement"){Text(announcements,Modifier.fillMaxWidth().padding(vertical=16.dp),color=Color(0xFFBFEAFF),fontSize=13.sp,lineHeight=21.sp)}
+            items(if(sort)filtered.sortedBy{it.latencyMs?:Long.MAX_VALUE}else filtered,key={it.id}) { server->ServerRow(server,displays.getValue(server.id),state,vpn,select,favorite,server.id in activeProbes) }
             if(filtered.isEmpty())item{Text(if(state.servers.isEmpty())"Добавьте подписку, чтобы увидеть серверы"else"Ничего не найдено",Modifier.padding(vertical=24.dp),color=Color(0xFF9BAAC2))}
         }
     }
-    if(notice)FullScreenPanel("Сообщение подписки",{notice=false}){Column(Modifier.weight(1f).verticalScroll(rememberScrollState())){Text(announcements)}}
 }
 
-@Composable private fun ServerRow(server:Server,display:ServerDisplayModel,state:AppState,vpn:VpnStatus,select:(String)->Unit,favorite:(String)->Unit) {
+@Composable private fun ServerRow(server:Server,display:ServerDisplayModel,state:AppState,vpn:VpnStatus,select:(String)->Unit,favorite:(String)->Unit,probing:Boolean) {
     val active=vpn.serverId==server.id&&vpn.phase==VpnPhase.CONNECTED
     val selected=state.selected==server.id
     val color=if(active)Color(0xFF32E6A1)else Color(0xFF39C8FF)
@@ -68,6 +56,7 @@ import com.signet.core.*
             Text(display.transport,color=Color(0xFF73859F),fontSize=10.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
         }
         Column(horizontalAlignment=Alignment.End) {
+            if(probing)CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp)
             Text(when {server.probeMessage=="CONSENT_REQUIRED"->"Нужно согласие";server.probeMessage=="UNSUPPORTED"->"—";server.latencyMs!=null->"${server.latencyMs} ms";server.available==false->"Нет ответа";else->"—"},color=if(server.available==false)Color(0xFFFFC857)else Color(0xFF9BAAC2),fontSize=11.sp)
             Text(if(active)"Подключён"else if(!server.enabled)"Отключён"else if(selected)"Выбран"else server.probeMode.orEmpty(),color=if(selected||active)color else Color(0xFF73859F),fontSize=10.sp)
         }

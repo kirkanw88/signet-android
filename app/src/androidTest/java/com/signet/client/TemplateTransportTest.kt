@@ -41,7 +41,7 @@ class TemplateTransportTest {
         val repository=get<Repository>(Repository::class.java);repository.awaitReady()
         val previousSettings=repository.state.value.settings
         // geosite:google intentionally blocks gstatic; choose an allowed HTTPS health target.
-        repository.settings(previousSettings.copy(probes=previousSettings.probes.copy(url="https://example.com")))
+        repository.settings(previousSettings.copy(connectionCheckUrl="https://example.com",probes=previousSettings.probes.copy(mode=com.signet.core.ProbeMode.TCP,url="https://www.gstatic.com/generate_204")))
         repository.import(config.toString())
         val sub=repository.state.value.subscriptions.last()
         val server=sub.servers.single();repository.select(server.id)

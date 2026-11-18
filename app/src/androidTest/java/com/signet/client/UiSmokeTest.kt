@@ -40,6 +40,14 @@ class UiSmokeTest {
         }
     }
     @Test fun emptyStateAndNavigation(){
+        runBlocking {
+            val context=InstrumentationRegistry.getInstrumentation().targetContext
+            val key=booleanPreferencesKey("hwid");val before=context.settingsStore.data.first()[key]
+            try {
+                context.settingsStore.edit{it[key]=false}
+                org.junit.Assert.assertTrue("Old opt-out must migrate to always-on",com.signet.client.data.SettingsStore(context).load().hwid)
+            }finally {context.settingsStore.edit{if(before==null)it.remove(key)else it[key]=before}}
+        }
         compose.onNodeWithText("Не подключено").assertExists()
         compose.onNodeWithText("Подписки",useUnmergedTree=true).performClick()
         compose.onNodeWithText("Добавить",substring=false).assertExists()

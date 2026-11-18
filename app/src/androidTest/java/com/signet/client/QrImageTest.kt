@@ -13,13 +13,15 @@ class QrImageTest {
     @Test fun imageImportDecodesSubscriptionBeforeConfirmation() {
         val context=InstrumentationRegistry.getInstrumentation().targetContext
         val text="https://example.invalid/subscription/qr-fixture"
-        val matrix=QRCodeWriter().encode(text,BarcodeFormat.QR_CODE,512,512)
+        for((content,inverted) in listOf(text to false,text to true,("happ://add/"+text) to true)) {
+        val matrix=QRCodeWriter().encode(content,BarcodeFormat.QR_CODE,512,512)
         val bitmap=Bitmap.createBitmap(512,512,Bitmap.Config.ARGB_8888)
-        for(y in 0 until 512)for(x in 0 until 512)bitmap.setPixel(x,y,if(matrix[x,y])android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+        for(y in 0 until 512)for(x in 0 until 512)bitmap.setPixel(x,y,if(matrix[x,y] xor inverted)android.graphics.Color.BLACK else android.graphics.Color.WHITE)
         val file=context.cacheDir.resolve("qr-test.png")
         try {
             file.outputStream().use{bitmap.compress(Bitmap.CompressFormat.PNG,100,it)}
             assertEquals(text,QrImage.decode(context,Uri.fromFile(file)))
         } finally {bitmap.recycle();file.delete()}
+        }
     }
 }

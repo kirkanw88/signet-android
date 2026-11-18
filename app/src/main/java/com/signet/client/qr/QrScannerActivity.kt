@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.zxing.BarcodeFormat
+import com.google.zxing.DecodeHintType
+import com.journeyapps.barcodescanner.camera.CameraSettings
 import com.journeyapps.barcodescanner.*
 import com.signet.core.ImportReview
 import java.util.concurrent.atomic.AtomicBoolean
@@ -42,7 +44,10 @@ class QrScannerActivity: ComponentActivity() {
                 Box(Modifier.fillMaxSize().background(Color(0xFF050816)).safeDrawingPadding()) {
                     if(granted && packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
                         AndroidView(factory={context->DecoratedBarcodeView(context).apply {
-                            setStatusText("");barcodeView.decoderFactory=DefaultDecoderFactory(listOf(BarcodeFormat.QR_CODE))
+                            setStatusText("")
+                            barcodeView.decoderFactory=DefaultDecoderFactory(listOf(BarcodeFormat.QR_CODE),mapOf(DecodeHintType.TRY_HARDER to true),"UTF-8",2)
+                            barcodeView.cameraSettings=CameraSettings().apply { focusMode=CameraSettings.FocusMode.CONTINUOUS }
+                            barcodeView.setMarginFraction(.1)
                             camera=this
                             barcodeView.addStateListener(object:CameraPreview.StateListener {
                                 override fun previewSized(){}
@@ -53,15 +58,14 @@ class QrScannerActivity: ComponentActivity() {
                             })
                             decodeContinuous(object:BarcodeCallback {
                                 override fun barcodeResult(result:BarcodeResult) {
-                                    if(!delivered.compareAndSet(false,true))return
-                                    val text=result.text
+                                    if(delivered.get())return
+                                    val text=ImportReview.normalize(result.text)
                                     if(!ImportReview.supported(text)) {
-                                        error="QR не содержит поддерживаемую подписку или Xray-конфигурацию";pause()
-                                    } else {pause();setResult(RESULT_OK,Intent().putExtra("content",text));finish()}
+                                        error="QR не содержит поддерживаемую подписку или Xray-конфигурацию"
+                                    } else if(delivered.compareAndSet(false,true)){pause();setResult(RESULT_OK,Intent().putExtra("content",text));finish()}
                                 }
                             });resume()
                         }},modifier=Modifier.fillMaxSize())
-                        Box(Modifier.align(Alignment.Center).sizeIn(maxWidth=280.dp,maxHeight=280.dp).fillMaxSize(.72f).border(2.dp,Color(0xFF39C8FF),RoundedCornerShape(24.dp)))
                     } else Text(error?:if(granted)"На устройстве нет доступной камеры. Импортируйте QR из изображения."else"Для сканирования нужен доступ к камере",Modifier.align(Alignment.Center).padding(24.dp),color=Color.White)
                     Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().background(Color(0xDD050816)).padding(16.dp)) {
                         Text("SIGNET · Сканировать QR",color=Color.White,style=MaterialTheme.typography.titleLarge)

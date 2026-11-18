@@ -58,6 +58,11 @@ class GlobeVisualTest {
                 }
                 // Allow the actual GL surface and camera interpolation to finish.
                 Thread.sleep(3000)
+                val globeBounds=compose.onNodeWithTag("home-globe").fetchSemanticsNode().boundsInRoot
+                val connectBounds=compose.onNodeWithTag("home-connect").fetchSemanticsNode().boundsInRoot
+                assertTrue("Dedicated globe area must be larger than the previous 140dp",globeBounds.height>200*compose.activity.resources.displayMetrics.density)
+                assertFalse("Controls must not cover the globe",globeBounds.overlaps(connectBounds))
+                compose.onNodeWithText("Локации").assertDoesNotExist()
                 val screenshot=File(directory,"$code.png")
                 assertTrue(device.takeScreenshot(screenshot));assertTrue(screenshot.length()>10_000)
                 assertEquals(VpnPhase.DISCONNECTED,VpnState.status.value.phase)
