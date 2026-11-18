@@ -1,0 +1,76 @@
+{
+  "core": "26.11.9",
+  "scope": "Host loopback core, not Android TUN/physical device",
+  "cases": [
+    {
+      "case": "vless",
+      "tcp": "PASS",
+      "httpsVerified": "PASS",
+      "udpDns": "PASS",
+      "tlsNameReject": "PASS",
+      "result": "PASS"
+    },
+    {
+      "case": "reality",
+      "tcp": "PASS",
+      "httpsVerified": "PASS",
+      "udpDns": "PASS",
+      "tlsNameReject": "PASS",
+      "result": "PASS"
+    },
+    {
+      "case": "xhttp",
+      "tcp": "PASS",
+      "httpsVerified": "PASS",
+      "udpDns": "PASS",
+      "tlsNameReject": "PASS",
+      "result": "PASS"
+    },
+    {
+      "case": "xdrive",
+      "tcp": "PASS",
+      "httpsVerified": "PASS",
+      "udpDns": "PASS",
+      "tlsNameReject": "PASS",
+      "result": "PASS"
+    },
+    {
+      "case": "masque-h2",
+      "tcp": "PASS",
+      "httpsVerified": "PASS",
+      "udpDns": "PASS",
+      "tlsNameReject": "PASS",
+      "result": "PASS"
+    },
+    {
+      "case": "masque-h3",
+      "tcp": "PASS",
+      "httpsVerified": "PASS",
+      "udpDns": "PASS",
+      "tlsNameReject": "PASS",
+      "result": "PASS"
+    },
+    {
+      "case": "remnawave-auto",
+      "tcp": "PASS",
+      "httpsVerified": "PASS",
+      "udpDns": "PASS",
+      "domainDns": "PASS",
+      "routingBlock": "PASS",
+      "tlsNameReject": "PASS",
+      "result": "PASS"
+    },
+    {
+      "case": "remnawave-split",
+      "tcp": "PASS",
+      "httpsVerified": "PASS",
+      "udpDns": "PASS",
+      "domainDns": "PASS",
+      "routingBlock": "PASS",
+      "geoipDirect": "PASS",
+      "geositeBlock": "PASS",
+      "tlsNameReject": "PASS",
+      "result": "PASS"
+    }
+  ]
+}

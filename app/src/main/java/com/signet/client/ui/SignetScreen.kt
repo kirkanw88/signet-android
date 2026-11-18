@@ -56,6 +56,7 @@ private val Error=Color(0xFFFF657A)
     var add by rememberSaveable { mutableStateOf(false) }
     var input by remember { mutableStateOf("") }
     var ageKey by remember { mutableStateOf("") }
+    var oauthConsent by remember{mutableStateOf(false)}
     val context=LocalContext.current
     val scope=rememberCoroutineScope()
     val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
@@ -114,13 +115,14 @@ private val Error=Color(0xFFFF657A)
             }
         }
         if(showAccount)AccountScreen(model){showAccount=false}
-        if(add) AlertDialog(onDismissRequest={add=false},title={Text("Добавить подписку")},text={
-            Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
+        if(add) AlertDialog(onDismissRequest={add=false;input="";ageKey="";oauthConsent=false},title={Text("Добавить подписку")},text={
+            Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                 Text("HTTPS ссылка, VLESS / Hysteria2 или полный Xray JSON. Ссылки подписки содержат ваш ключ доступа.",color=Muted)
                 OutlinedTextField(value=input,onValueChange={if(it.length<=4*1024*1024)input=it},label={Text("Ссылка или конфигурация")},minLines=3,maxLines=7,modifier=Modifier.fillMaxWidth())
+                Row(verticalAlignment=Alignment.CenterVertically){Checkbox(oauthConsent,{oauthConsent=it});Text("Разрешить OAuth-доступ XDrive из этой подписки",fontSize=12.sp)}
                 OutlinedTextField(value=ageKey,onValueChange={ageKey=it},label={Text("Ключ AGE · если требуется")},visualTransformation=androidx.compose.ui.text.input.PasswordVisualTransformation(),singleLine=true,modifier=Modifier.fillMaxWidth())
             }
-        },confirmButton={TextButton(onClick={model.import(input,ageKey);ageKey="";add=false},enabled=input.isNotBlank()&&!state.busy){Text("Импортировать")}},dismissButton={TextButton(onClick={ageKey="";add=false}){Text("Отмена")}})
+        },confirmButton={TextButton(onClick={model.import(input,ageKey,oauthConsent);input="";ageKey="";oauthConsent=false;add=false},enabled=input.isNotBlank()&&!state.busy){Text("Импортировать")}},dismissButton={TextButton(onClick={input="";ageKey="";oauthConsent=false;add=false}){Text("Отмена")}})
     }
 }
 
@@ -129,23 +131,23 @@ private val Error=Color(0xFFFF657A)
     val active=phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING)
     val server=if(phase==VpnPhase.CONNECTED)state.servers.firstOrNull{it.id==vpn.serverId}else state.server
     val display=server?.let{com.signet.core.ServerDisplayModel.from(it)}
-    val status=when(phase){VpnPhase.CONNECTED->"????????";VpnPhase.CONNECTING->"???????????";VpnPhase.RECONNECTING->"???????????????";VpnPhase.ERROR->"?????? ???????????";VpnPhase.DISCONNECTING->"??????????";else->"?? ??????????"}
+    val status=when(phase){VpnPhase.CONNECTED->"Подключено";VpnPhase.CONNECTING->"Подключение";VpnPhase.RECONNECTING->"Переподключение";VpnPhase.ERROR->"Ошибка подключения";VpnPhase.DISCONNECTING->"Отключение";else->"Не подключено"}
     val probing by model.probing.collectAsStateWithLifecycle()
     val landscape=LocalConfiguration.current.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE
     @Composable fun connectionButton() {
         Button(onClick={if(active)model.stop()else if(server==null)add()else connect()},enabled=phase!=VpnPhase.DISCONNECTING,modifier=Modifier.fillMaxWidth().heightIn(min=56.dp),shape=RoundedCornerShape(18.dp)) {
             if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Background)else Icon(Icons.Outlined.PowerSettingsNew,null)
-            Text(if(phase==VpnPhase.DISCONNECTING)"???????????"else if(active)"???????????"else if(server==null)"???????? ????????"else"????????????",Modifier.padding(start=8.dp),maxLines=2)
+            Text(if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else"Подключиться",Modifier.padding(start=8.dp),maxLines=2)
         }
-        if(phase==VpnPhase.ERROR)TextButton(onClick=model::stop){Text("?????????? VPN")}
+        if(phase==VpnPhase.ERROR)TextButton(onClick=model::stop){Text("Отключить VPN")}
     }
     if(landscape) Row(Modifier.fillMaxSize().padding(horizontal=16.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)) {
-        Column(Modifier.weight(1f),horizontalAlignment=Alignment.CenterHorizontally){Text(status,fontSize=22.sp,color=if(phase==VpnPhase.CONNECTED)Green else Color.White);Globe(server,phase,state.settings,Modifier.weight(1f).fillMaxWidth());Text(display?.title?:"???? ??? ?? ?????",maxLines=2,overflow=TextOverflow.Ellipsis)}
+        Column(Modifier.weight(1f),horizontalAlignment=Alignment.CenterHorizontally){Text(status,fontSize=22.sp,color=if(phase==VpnPhase.CONNECTED)Green else Color.White);Globe(server,phase,state.settings,Modifier.weight(1f).fillMaxWidth());Text(display?.title?:"Мир пока не выбран",maxLines=2,overflow=TextOverflow.Ellipsis)}
         Column(Modifier.weight(1f)){LocationList(state,vpn,probing,model::select,model::favorite,{model.measure()},model::refresh,Modifier.weight(1f),compact=true);connectionButton()}
     } else Column(Modifier.fillMaxSize().padding(horizontal=16.dp),horizontalAlignment=Alignment.CenterHorizontally) {
         Text(status,fontSize=24.sp,fontWeight=FontWeight.Light,color=if(phase==VpnPhase.CONNECTED)Green else Color.White,maxLines=1)
         Box(Modifier.fillMaxWidth().height(if(LocalConfiguration.current.screenHeightDp<720)140.dp else 200.dp),contentAlignment=Alignment.Center){Globe(server,phase,state.settings,Modifier.fillMaxSize())}
-        Row(verticalAlignment=Alignment.CenterVertically,modifier=Modifier.padding(bottom=8.dp)) {CountryFlag(display?.country,display?.isAuto?:false);Text(display?.title?:"???? ??? ?? ?????",Modifier.padding(start=10.dp),fontSize=17.sp,maxLines=1,overflow=TextOverflow.Ellipsis)}
+        Row(verticalAlignment=Alignment.CenterVertically,modifier=Modifier.padding(bottom=8.dp)) {CountryFlag(display?.country,display?.isAuto?:false);Text(display?.title?:"Мир пока не выбран",Modifier.padding(start=10.dp),fontSize=17.sp,maxLines=1,overflow=TextOverflow.Ellipsis)}
         vpn.error?.let{Text(it,color=Warning,fontSize=11.sp,maxLines=2,overflow=TextOverflow.Ellipsis)}
         LocationList(state,vpn,probing,model::select,model::favorite,{model.measure()},model::refresh,Modifier.weight(1f),compact=true)
         connectionButton()
@@ -178,11 +180,11 @@ private val Error=Color(0xFFFF657A)
                 Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
                     Row(verticalAlignment=Alignment.CenterVertically){Text(com.signet.core.DisplayText.clean(s.title),Modifier.weight(1f),fontWeight=FontWeight.SemiBold);IconButton(onClick={remove(s.id)}){Icon(Icons.Outlined.DeleteOutline,"Удалить подписку",tint=Muted)}}
                     Text("${s.servers.size} серверов · ${if(s.url!=null)"Автообновление" else "Локальный профиль"}",color=Muted,fontSize=12.sp)
-                    Text(if(s.format=="XRAY_JSON")"Xray JSON ? DNS ? ????????????? ?????????"else"URI-???????? ? ?????????? Xray JSON-??????? ? ??? ?? ??????????",color=Muted,fontSize=12.sp)
+                    Text(if(s.format=="XRAY_JSON")"Xray JSON · DNS и маршрутизация сохранены"else"URI-подписка · исходного Xray JSON-шаблона в ней нет",color=Muted,fontSize=12.sp)
                     if(s.metadata.announcement.isNotBlank())Text(s.metadata.announcement,color=Primary,fontSize=13.sp)
                     s.error?.let{Text(it,color=Warning,fontSize=12.sp)}
-                    s.metadata.webPage?.let{url->TextButton(onClick={context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))}){Text("???????? ????????")}}
-                    s.metadata.support?.let{url->TextButton(onClick={context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))}){Text("????????? ????????")}}
+                    s.metadata.webPage?.let{url->TextButton(onClick={openHttps(context,url)}){Text("Страница подписки")}}
+                    s.metadata.support?.let{url->TextButton(onClick={openHttps(context,url)}){Text("Поддержка подписки")}}
                     val expire=s.info["expire"]?.takeIf{it>0};val total=s.info["total"]?:0;val used=(s.info["upload"]?:0)+(s.info["download"]?:0)
                     if(expire!=null){val remaining=expire*1000-System.currentTimeMillis();val days=remaining/86_400_000;Text(if(remaining<0)"Подписка истекла" else "До ${DateFormat.getDateInstance().format(Date(expire*1000))}",color=if(days<3)Warning else Muted)}
                     if(total>0){LinearProgressIndicator(progress={(used.toFloat()/total).coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth());Text("${bytes(used)} из ${bytes(total)}",color=if(used>=total)Warning else Muted,fontSize=12.sp)}

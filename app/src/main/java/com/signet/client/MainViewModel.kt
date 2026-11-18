@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit
 class MainViewModel(app: Application) : AndroidViewModel(app) {
     val updates=AppUpdates(app)
     init { viewModelScope.launch(Dispatchers.IO){runCatching{updates.restore()}} }
-    fun checkUpdates(automatic:Boolean=false){viewModelScope.launch(Dispatchers.IO){try{val result=updates.check(automatic);if(!automatic&&result.isNotBlank())repository.notify(result)}catch(e:CancellationException){throw e}catch(e:Exception){if(!automatic)repository.notify("?? ??????? ????????? ??????????")}}}
+    fun checkUpdates(automatic:Boolean=false){viewModelScope.launch(Dispatchers.IO){try{val result=updates.check(automatic);if(!automatic&&result.isNotBlank())repository.notify(result)}catch(e:CancellationException){throw e}catch(e:Exception){if(!automatic)repository.notify("Не удалось проверить обновления")}}}
     fun dismissUpdate(){viewModelScope.launch(Dispatchers.IO){updates.dismiss()}}
     override fun onCleared(){updates.close();super.onCleared()}
     val repository: Repository = get(Repository::class.java)
@@ -25,7 +25,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _probing = MutableStateFlow(false); val probing = _probing.asStateFlow()
     private val _diagnostic = MutableStateFlow(""); val diagnostic = _diagnostic.asStateFlow()
     private var probeJob: Job? = null
-    fun import(text: String, ageKey: String = "") { viewModelScope.launch(Dispatchers.IO) { repository.import(text,ageKey=ageKey) } }
+    fun import(text: String, ageKey: String = "",allowXDriveOAuth:Boolean=false) { viewModelScope.launch(Dispatchers.IO) { repository.import(text,ageKey=ageKey,allowXDriveOAuth=allowXDriveOAuth) } }
     fun select(id: String) { viewModelScope.launch { repository.select(id)
         if(vpn.value.phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING))start()
     } }
@@ -48,7 +48,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 val options=state.value.settings.probes.validated()
                 val targets=if(onlySelected)listOfNotNull(state.value.server)else state.value.servers.filter{it.enabled}
-                for(batch in targets.chunked(options.parallelism)) {
+                val allowed=targets.filter { !com.signet.core.TransportChecks.requiresOAuthConsent(org.json.JSONObject(it.config))||repository.allowsOAuth(it.id) }
+                targets.filterNot{it in allowed}.forEach{repository.measurement(it.id,null,options.mode.name,"CONSENT_REQUIRED")}
+                for(batch in allowed.chunked(options.parallelism)) {
                     val samples=batch.associate{it.id to mutableListOf<Long>()};val statuses=mutableMapOf<String,String>()
                     repeat(options.attempts) { attempt->
                         Probes.measureDetailed(getApplication(),batch,options).forEach { (id,result)->

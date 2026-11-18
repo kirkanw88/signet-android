@@ -78,6 +78,7 @@ class SignetVpnService : VpnService() {
         stopCore(closeTun=false)
         val selected = repository.state.value.server
         if (selected == null) { fail("Добавьте подписку и выберите сервер"); return@withLock }
+        if(com.signet.core.TransportChecks.requiresOAuthConsent(JSONObject(selected.config))&&!repository.allowsOAuth(selected.id)){fail("Для XDrive OAuth требуется согласие при повторном импорте подписки");return@withLock}
         if (!selected.enabled) { fail("Сервер отключён в подписке"); return@withLock }
         var startupStage="настройка TUN"
         try {

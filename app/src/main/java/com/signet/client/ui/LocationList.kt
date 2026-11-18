@@ -68,7 +68,7 @@ import com.signet.core.*
             Text(display.transport,color=Color(0xFF73859F),fontSize=10.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
         }
         Column(horizontalAlignment=Alignment.End) {
-            Text(when {server.probeMessage=="UNSUPPORTED"->"—";server.latencyMs!=null->"${server.latencyMs} ms";server.available==false->"Нет ответа";else->"—"},color=if(server.available==false)Color(0xFFFFC857)else Color(0xFF9BAAC2),fontSize=11.sp)
+            Text(when {server.probeMessage=="CONSENT_REQUIRED"->"Нужно согласие";server.probeMessage=="UNSUPPORTED"->"—";server.latencyMs!=null->"${server.latencyMs} ms";server.available==false->"Нет ответа";else->"—"},color=if(server.available==false)Color(0xFFFFC857)else Color(0xFF9BAAC2),fontSize=11.sp)
             Text(if(active)"Подключён"else if(!server.enabled)"Отключён"else if(selected)"Выбран"else server.probeMode.orEmpty(),color=if(selected||active)color else Color(0xFF73859F),fontSize=10.sp)
         }
         IconButton(onClick={favorite(server.id)},modifier=Modifier.size(40.dp)){Icon(if(server.favorite)Icons.Outlined.Star else Icons.Outlined.StarOutline,"Избранное",Modifier.size(18.dp),tint=if(server.favorite)Color(0xFFFFC857)else Color(0xFF73859F))}

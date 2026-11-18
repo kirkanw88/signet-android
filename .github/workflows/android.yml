@@ -40,3 +40,68 @@ jobs:
           path: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/apk/release/*.apk
+  runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      GRADLE_USER_HOME: ${{ github.workspace }}/.gradle/runtime-user-home
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare authorized loopback transport fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/transport-lab.py --serve > /tmp/signet-lab.log 2>&1 &
+          for i in $(seq 1 120); do
+            if grep -q 'LOCAL LAB READY' /tmp/signet-lab.log; then break; fi
+            sleep 1
+          done
+          grep -q 'LOCAL LAB READY' /tmp/signet-lab.log
+          mkdir -p .gradle/transport-lab/android-assets
+          cp .gradle/transport-lab/profiles.json .gradle/transport-lab/android-assets/local-profiles.json
+      - name: Install emulator and enable runner KVM
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-signet-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-36" "build-tools;36.0.0" "emulator" "system-images;android-36;google_apis;x86_64"
+          echo no | "${ANDROID_HOME}/cmdline-tools/latest/bin/avdmanager" create avd --force --name signet-test --package 'system-images;android-36;google_apis;x86_64' --device pixel_2
+      - run: python3 scripts/fetch-native.py
+      - name: Compile instrumented APKs with strict verification
+        run: chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Run Android UI and native TUN tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p tests/evidence/runtime
+          "${ANDROID_HOME}/emulator/emulator" -avd signet-test -no-window -no-audio -no-boot-anim -no-snapshot -memory 2048 -gpu swiftshader_indirect -feature -Vulkan > /tmp/signet-emulator.log 2>&1 &
+          adb wait-for-device
+          timeout 240 bash -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = 1 ]; do sleep 2; done'
+          adb shell input keyevent 82
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          adb install app/build/outputs/apk/debug/app-x86_64-debug.apk
+          adb install app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb shell appops set com.signet.client ACTIVATE_VPN allow
+          for port in 10888 10889 10890 10891 10894 18480 19095; do adb reverse tcp:$port tcp:$port; done
+          adb shell am instrument -w -r -e localVpn true com.signet.client.test/androidx.test.runner.AndroidJUnitRunner | tee tests/evidence/runtime/instrumentation.txt
+          adb shell dumpsys meminfo com.signet.client > tests/evidence/runtime/meminfo.txt
+          adb shell screencap -p /sdcard/signet.png
+          adb pull /sdcard/signet.png tests/evidence/runtime/screen.png
+          grep -Eq '^OK \([0-9]+ tests?\)' tests/evidence/runtime/instrumentation.txt
+          ! grep -Eq 'FAILURES|INSTRUMENTATION_FAILED|Process crashed' tests/evidence/runtime/instrumentation.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signet-runtime-evidence
+          path: |
+            tests/evidence/runtime/
+            app/build/reports/androidTests/
+            build/reports/dependency-verification/

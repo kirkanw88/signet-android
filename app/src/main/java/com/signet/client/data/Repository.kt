@@ -14,7 +14,7 @@ import org.json.*
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-data class Subscription(val id: String, val title: String, val url: String?, val servers: List<Server>, val info: Map<String, Long> = emptyMap(), val updated: Long = System.currentTimeMillis(), val ageKey: String = "", val metadata:SubscriptionMetadata=SubscriptionMetadata(),val format:String="XRAY_JSON",val error:String?=null)
+data class Subscription(val id: String, val title: String, val url: String?, val servers: List<Server>, val info: Map<String, Long> = emptyMap(), val updated: Long = System.currentTimeMillis(), val ageKey: String = "", val metadata:SubscriptionMetadata=SubscriptionMetadata(),val format:String="XRAY_JSON",val error:String?=null,val oauthConsent:Boolean=false)
 data class AppState(val subscriptions: List<Subscription> = emptyList(), val selected: String? = null, val settings: Settings = Settings(), val busy: Boolean = false, val message: String? = null, val ready: Boolean = false) {
     val servers get() = subscriptions.flatMap { it.servers }
     val server get() = servers.firstOrNull { it.id == selected }
@@ -40,7 +40,7 @@ class Repository(private val context: Context, private val vault: Vault, private
                     (0 until a.length()).map { j ->
                         val s = a.getJSONObject(j); Profiles.parseJson(s.getString("config")).first().copy(
                             id = s.getString("id"), favorite = s.optBoolean("favorite"), successes = s.optInt("successes"), originalConfig = s.optString("original").takeIf { it.isNotEmpty() } ?: s.getString("config"))
-                    }, Profiles.userInfo(o.optString("info")), o.optLong("updated"),o.optString("ageKey"),o.optJSONObject("metadata")?.let(SubscriptionMetadata::parse)?:SubscriptionMetadata(),o.optString("format","XRAY_JSON"))
+                    }, Profiles.userInfo(o.optString("info")), o.optLong("updated"),o.optString("ageKey"),o.optJSONObject("metadata")?.let(SubscriptionMetadata::parse)?:SubscriptionMetadata(),o.optString("format","XRAY_JSON"),oauthConsent=o.optBoolean("oauthConsent"))
             }
             _state.value = AppState(loaded, saved?.optString("selected"), settings)
             unlocked=true
@@ -50,16 +50,17 @@ class Repository(private val context: Context, private val vault: Vault, private
     } }
     suspend fun awaitReady() = state.first { it.ready }
     private suspend fun persist(s:AppState=state.value) {
-        check(unlocked) { "?????????? ????????? ??????????" }
+        check(unlocked) { "Защищённое хранилище недоступно" }
         val subs = JSONArray()
         s.subscriptions.forEach { sub ->
             val servers = JSONArray(); sub.servers.forEach { servers.put(JSONObject().put("id", it.id).put("config", it.config).put("original", if(it.config!=it.originalConfig)it.originalConfig else "").put("favorite", it.favorite).put("successes", it.successes)) }
             subs.put(JSONObject().put("id", sub.id).put("title", sub.title).put("url", sub.url ?: "").put("updated", sub.updated)
-                .put("info", sub.info.entries.joinToString(";") { "${it.key}=${it.value}" }).put("servers", servers).put("ageKey",sub.ageKey).put("metadata",sub.metadata.json()).put("format",sub.format))
+                .put("info", sub.info.entries.joinToString(";") { "${it.key}=${it.value}" }).put("servers", servers).put("ageKey",sub.ageKey).put("metadata",sub.metadata.json()).put("format",sub.format).put("oauthConsent",sub.oauthConsent))
         }
         vault.write(JSONObject().put("installation", installId).put("selected", s.selected).put("subscriptions", subs).toString())
     }
     private suspend fun commit(next:AppState){persist(next);_state.value=next}
+    fun allowsOAuth(serverId:String):Boolean=state.value.subscriptions.any{it.oauthConsent&&it.servers.any{s->s.id==serverId}}
     fun clearMessage() = _state.update { it.copy(message = null) }
     fun notify(text: String) = _state.update { it.copy(message = text) }
     suspend fun select(id: String) = mutex.withLock {
@@ -84,14 +85,14 @@ class Repository(private val context: Context, private val vault: Vault, private
         val s=state.value;val subs=s.subscriptions.filterNot{it.id==id}
         commit(s.copy(subscriptions=subs,selected=s.selected?.takeIf{selected->subs.any{sub->sub.servers.any{it.id==selected}}}))
     }
-    suspend fun import(input: String, existingId: String? = null, ageKey: String = "") = withContext(Dispatchers.IO) { importMutex.withLock {
+    suspend fun import(input: String, existingId: String? = null, ageKey: String = "",allowXDriveOAuth:Boolean=false) = withContext(Dispatchers.IO) { importMutex.withLock {
         awaitReady(); _state.update { it.copy(busy = true) }
         try {
-            check(unlocked) { "????????? ??????????" }
+            check(unlocked) { "Хранилище недоступно" }
             require(input.toByteArray().size <= 4*1024*1024) { "Слишком большой импорт" }
             var text = input.trim(); var url: String? = null; var title = "Подписка"; var info = emptyMap<String, Long>();var metadata=SubscriptionMetadata()
             if (text.startsWith("https://")) {
-                require(SubscriptionMetadata.safeLink(text)!=null) { "???????? HTTPS ??????" }
+                require(SubscriptionMetadata.safeLink(text)!=null) { "Неверная HTTPS ссылка" }
                 url = text
                 var next = text
                 var fetched = false
@@ -106,13 +107,13 @@ class Repository(private val context: Context, private val vault: Vault, private
                         if (response.code in 300..399) {
                             next = response.request.url.resolve(response.header("Location") ?: error("Нет адреса перенаправления"))?.toString() ?: error("Неверный адрес")
                         } else {
-                            require(response.isSuccessful) { when(response.code){401->"????? ????????? ??????????? ??? ????? ?????? ????????";403->"?????? ????????. ????????? ?????? ???????? ? ????? ?????????";429->"??????? ????? ????????. ????????? ?????";else->"?? ??????? ???????? ????????: HTTP ${response.code}"} }
+                            require(response.isSuccessful) { when(response.code){401->"Нужна действующая подписка или новая ссылка доступа";403->"Доступ запрещён. Проверьте статус подписки и лимит устройств";429->"Слишком много запросов. Повторите позже";else->"Не удалось получить подписку: HTTP ${response.code}"} }
                             val body = response.body ?: error("Пустой ответ")
                             require(body.contentLength() <= 4 * 1024 * 1024) { "Подписка слишком большая" }
                             val bytes = body.byteStream().readLimited(4 * 1024 * 1024)
                             require(bytes.size <= 4 * 1024 * 1024) { "Подписка слишком большая" }
                             text = String(bytes, Charsets.UTF_8)
-                            title = SubscriptionMetadata.text(response.header("profile-title"),200).ifBlank{"????????"}
+                            title = SubscriptionMetadata.text(response.header("profile-title"),200).ifBlank{"Подписка"}
                             metadata=SubscriptionMetadata.headers { name->response.header(name) }
                             info = Profiles.userInfo(response.header("subscription-userinfo")); fetched = true
                         }
@@ -131,24 +132,25 @@ class Repository(private val context: Context, private val vault: Vault, private
                 val nodes = NativeCore.call("convertShareLinksToXrayJson", JSONObject().put("text", text)).getJSONArray("outbounds")
                 (0 until nodes.length()).flatMap { Profiles.parseJson(JSONObject().put("outbounds", JSONArray().put(nodes.getJSONObject(it))).toString()) }
             }
-            require(parsed.all{TemplateCompatibility.inspect(JSONObject(it.config)).accepted}) { "?????? ?? ????????: ????? ?????????????? Xray JSON ???????? ??? ?????? ??????" }
+            val oauthConsent=allowXDriveOAuth || state.value.subscriptions.firstOrNull{it.id==existingId}?.oauthConsent==true
+            require(oauthConsent || parsed.none{TransportChecks.requiresOAuthConsent(JSONObject(it.config))}) { "Для OAuth backend XDrive нужно отдельное согласие при импорте" }
+            require(parsed.all{TemplateCompatibility.inspect(JSONObject(it.config)).accepted}) { "Шаблон не применим: нужен сформированный Xray JSON подписки без ошибок связей" }
             require(parsed.isNotEmpty()) { "В подписке нет серверов" }
             val subId = existingId ?: Profiles.id(url ?: text)
             val previous = state.value.subscriptions.firstOrNull { it.id == subId }
             val servers = ProfileRefresh.reconcile(subId,previous?.servers.orEmpty(),parsed)
             mutex.withLock {
-                require(existingId==null || state.value.subscriptions.any{it.id==existingId}) { "???????? ???? ???????" }
+                require(existingId==null || state.value.subscriptions.any{it.id==existingId}) { "Подписка была удалена" }
                 val others = state.value.subscriptions.filterNot { it.id == subId }
                 require(others.size < 8 && others.sumOf { it.servers.size } + servers.size <= 500) { "Достигнут лимит профилей" }
                 require(others.flatMap { it.servers }.sumOf { it.config.length } + servers.sumOf { it.config.length } <= 8 * 1024 * 1024) { "Достигнут лимит хранилища" }
-                val sub = Subscription(subId, if (url == null) servers.first().name else title, url, servers, info,ageKey=secret,metadata=metadata,format=if(isJson)"XRAY_JSON"else"SHARE_LINKS")
-                _state.update { it.copy(subscriptions = others + sub, selected = ProfileRefresh.selection(it.selected,others.flatMap { s->s.servers }+servers,existingId==null), message = "Добавлено серверов: ${servers.size}") }
-                persist()
+                val sub = Subscription(subId, if (url == null) servers.first().name else title, url, servers, info,ageKey=secret,metadata=metadata,format=if(isJson)"XRAY_JSON"else"SHARE_LINKS",oauthConsent=oauthConsent)
+                commit(state.value.copy(subscriptions = others + sub, selected = ProfileRefresh.selection(state.value.selected,others.flatMap { s->s.servers }+servers,existingId==null), message = "Добавлено серверов: ${servers.size}"))
             }
         } catch (e: CancellationException) { throw e }
         catch (e: Exception) { notify(if (e.message?.startsWith("HTTP ") == true) e.message!! else "Не удалось импортировать профиль. Проверьте ссылку и формат конфигурации.") }
         finally { _state.update { it.copy(busy = false) } }
     } }
     suspend fun refreshAll(onlyDue:Boolean=false) { awaitReady(); state.value.subscriptions.filter { it.url != null && (!onlyDue || System.currentTimeMillis()-it.updated>=it.metadata.updateHours*3_600_000L) }.forEach { import(it.url!!, it.id) } }
-    suspend fun measurement(id: String, delay: Long?,mode:String="OUTBOUND",status:String?=null) = updateServers(persistent = false) { if (it.id == id) it.copy(latencyMs = delay, available = if(status=="UNSUPPORTED")null else delay != null, checkedAt = System.currentTimeMillis(),probeMode=mode,probeMessage=status) else it }
+    suspend fun measurement(id: String, delay: Long?,mode:String="OUTBOUND",status:String?=null) = updateServers(persistent = false) { if (it.id == id) it.copy(latencyMs = delay, available = if(status in setOf("UNSUPPORTED","CONSENT_REQUIRED"))null else delay != null, checkedAt = System.currentTimeMillis(),probeMode=mode,probeMessage=status) else it }
 }

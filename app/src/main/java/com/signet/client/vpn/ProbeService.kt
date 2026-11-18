@@ -1,4 +1,4 @@
-﻿package com.signet.client.vpn
+package com.signet.client.vpn
 
 import android.app.Service
 import android.content.*
@@ -28,7 +28,7 @@ class ProbeService:Service() {
         val vpn=manager.getNetworkCapabilities(manager.activeNetwork)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN)==true
         !vpn||protector.protect(fd.toInt())
     }
-    override fun onCreate(){super.onCreate();libXray.LibXray.registerDialerController(controller)}
+    override fun onCreate(){super.onCreate();libXray.LibXray.registerDialerController(controller);libXray.LibXray.registerListenerController(controller)}
     private val incoming=Messenger(Handler(Looper.getMainLooper()){message->
         val fd=message.data.getParcelable<ParcelFileDescriptor>("requestFd")?:return@Handler true
         val reply=message.replyTo

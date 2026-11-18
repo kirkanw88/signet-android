@@ -43,3 +43,13 @@ Strict verification, 34 core tests, app JVM NO-SOURCE, Lint, Debug/Release: PASS
 Заливка — один непрозрачный цвет без country glow/pulse. JTS-треугольники дополнительно разделяются перед проекцией на сферу: большие хорды больше не проваливаются под поверхность. Сохранены MultiPolygon/holes; кольца отверстий выравниваются по longitude shell. Добавлены плавный ограниченный zoom по угловому радиусу страны, возврат к overview, сохранение ручного вращения при потере GL context, детерминированный звёздный фон и настоящая ночная карта NASA Black Marble 2016. Ночная текстура при загрузке ограничена 1024×512 RGB565; CPU bitmap освобождается. High запрашивает 4x MSAA с fallback, Balanced/Battery не получают дополнительные multisample buffers.
 
 Adaptive icon теперь использует знак И полную надпись SIGNET, вписанную в центральную safe area. Уведомление использует отдельный mono icon. Проверка физических launchers/нагрева/батареи: NOT RUN; подробная Android UI/географическая матрица ещё ожидает runtime-стенда.
+
+## D — native transports и типовые шаблоны
+
+Strict verification, 39 core tests, app JVM NO-SOURCE, Lint, Debug/Release: PASS, 2m 33s (stage-D-final.log). Последующие исправления сообщений и сборка instrumentation APK перепроверяются в CI и этапе G.
+
+Официальный закреплённый Xray 26.11.9: host loopback e2e PASS для VLESS TCP, REALITY Vision, XHTTP REALITY, XDrive template, MASQUE h2/h3, Remnawave AUTO и split template. Для всех: TCP, HTTPS с валидной CA/именем, UDP DNS, отказ неправильного TLS имени. Для шаблонов дополнительно доменный DNS и block; для split GeoIP private/direct и geosite google/block. Отчёт transport-host.json не выдаётся за Android результат.
+
+Сохранён sniffing входа шаблона в TUN/probe, добавлены предупреждения IPIFNONMATCH_CATCHALL и DOMAIN_SNIFFING без переписывания политики. XDrive проверяет encryption/Mux/backend и запрашивает явное согласие для OAuth. Реальные Google credentials и production endpoints не использовались.
+
+Добавлен отдельный GitHub runtime job на Linux KVM: собственный loopback server, временная CA, сборка тестового APK со строгой проверкой, UI и native TUN instrumentation. Фактический результат фиксируется после выполнения; само наличие job не означает PASS. Локальный Windows emulator не загрузился; physical device отсутствует.

@@ -9,16 +9,21 @@ data class TemplateReport(val inboundTag:String,val issues:List<TemplateIssue>) 
 }
 
 object TemplateCompatibility {
+    fun sourceInbound(config:JSONObject):JSONObject? {
+        val a=config.optJSONArray("inbounds")?:return null
+        val all=(0 until a.length()).map{a.getJSONObject(it)}
+        val explicit=config.optJSONObject("signet")?.optString("tunInboundTag")?.takeIf{it.isNotBlank()}
+        if(explicit!=null)return all.firstOrNull{it.optString("tag")==explicit}
+        return listOf("tun","socks","http").firstNotNullOfOrNull{protocol->all.firstOrNull{it.optString("protocol")==protocol}}
+    }
     /** A single Android TUN maps to the template's TUN/SOCKS/HTTP ingress, never rewrites rules. */
     fun inboundTag(config:JSONObject):String {
         config.optJSONObject("signet")?.optString("tunInboundTag")?.takeIf{it.isNotBlank()}?.let{return it}
-        val a=config.optJSONArray("inbounds")
-        val all=if(a==null)emptyList()else (0 until a.length()).map{a.getJSONObject(it)}
-        val chosen=listOf("tun","socks","http").firstNotNullOfOrNull{protocol->all.firstOrNull{it.optString("protocol")==protocol}}
-        return chosen?.optString("tag")?.takeIf{it.isNotBlank()}?:"signet-tun"
+        return sourceInbound(config)?.optString("tag")?.takeIf{it.isNotBlank()}?:"signet-tun"
     }
     fun inspect(config:JSONObject):TemplateReport {
         val issues=mutableListOf<TemplateIssue>();val active=inboundTag(config)
+        issues+=TransportChecks.issues(config)
         if(config.has("remnawave"))issues+=TemplateIssue("UNRENDERED_TEMPLATE","Нужен сформированный панелью Xray JSON из подписки, а не исходный injectHosts-шаблон",true)
         val out=config.optJSONArray("outbounds")
         if(out==null||out.length()==0)issues+=TemplateIssue("NO_OUTBOUNDS","Нет исходящих подключений",true)
@@ -31,6 +36,8 @@ object TemplateCompatibility {
             if((0 until selectors.length()).none{j->tags.any{it.startsWith(selectors.getString(j))}})issues+=TemplateIssue("EMPTY_BALANCER","У balancer нет совпадающих outbound tags; проверьте результат injectHosts")
         }
         val rules=routing?.optJSONArray("rules")
+        if(rules!=null && routing.optString("domainStrategy")=="IPIfNonMatch" && (0 until rules.length()).any{i->val r=rules.getJSONObject(i);r.has("network")&&r.keySet().all{it in setOf("type","network","outboundTag","balancerTag")}})issues+=TemplateIssue("IPIFNONMATCH_CATCHALL","Для доменных запросов catch-all может сработать раньше DNS/GeoIP; клиент не меняет domainStrategy и порядок правил")
+        if(rules!=null && (0 until rules.length()).any{rules.getJSONObject(it).has("domain")} && sourceInbound(config)?.optJSONObject("sniffing")?.optBoolean("enabled")!=true)issues+=TemplateIssue("DOMAIN_SNIFFING","TUN получает IP-пакеты. Проверьте sniffing/доменный контекст для доменных правил шаблона")
         if(rules!=null)for(i in 0 until rules.length()) {
             val rule=rules.getJSONObject(i)
             val balancer=rule.optString("balancerTag")
@@ -46,7 +53,7 @@ object TemplateCompatibility {
         else value.matches(Regex("[0-9]{1,3}(\\.[0-9]{1,3}){3}"))&&value.split('.').all{it.toInt() in 0..255}
     fun deviceDns(server:Server,fallback:String):String {
         val a=JSONObject(server.config).optJSONObject("dns")?.optJSONArray("servers")?:return fallback
-        for(i in 0 until a.length()){val item=a.get(i);val address=if(item is JSONObject)item.optString("address")else item.toString();if(numericAddress(address))return address}
+        for(i in 0 until a.length()){val item=a.get(i);if(item is JSONObject && (item.optJSONArray("domains")?.length()?:0)>0)continue;val address=if(item is JSONObject)item.optString("address")else item.toString();if(numericAddress(address))return address}
         return fallback
     }
 }

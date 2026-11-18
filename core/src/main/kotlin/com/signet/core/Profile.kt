@@ -78,9 +78,11 @@ object Profiles {
         // Imported external listeners are not exposed. Routing, DNS, transport and opaque fields remain untouched.
         val inbounds = JSONArray()
         val originalTag = TemplateCompatibility.inboundTag(config)
+        val sniffing=TemplateCompatibility.sourceInbound(config)?.optJSONObject("sniffing")
         inbounds.put(JSONObject().put("tag", originalTag).put("protocol", "tun").put("settings", JSONObject().put("name", "signet").put("MTU", 1500)))
         inbounds.put(JSONObject().put("tag", "signet-check").put("listen", "127.0.0.1").put("port", socksPort).put("protocol", "socks").put("settings", JSONObject().put("auth","password").put("accounts",JSONArray().put(JSONObject().put("user","signet").put("pass",java.util.UUID.randomUUID().toString())))))
         config.put("inbounds", inbounds)
+        if(sniffing!=null)inbounds.getJSONObject(0).put("sniffing",JSONObject(sniffing.toString()))
         if (!config.has("dns")) config.put("dns", JSONObject().put("servers", JSONArray().put(dns)))
         config.put("log", JSONObject().put("loglevel", "none"))
         config.put("metrics", JSONObject().put("tag", "signet-metrics").put("listen", "127.0.0.1:$metricsPort"))
@@ -94,7 +96,9 @@ object Profiles {
     fun probeRuntime(server:Server,port:Int,assets:String,secret:String):JSONObject {
         val config=JSONObject(server.config)
         val tag=TemplateCompatibility.inboundTag(config)
+        val sniffing=TemplateCompatibility.sourceInbound(config)?.optJSONObject("sniffing")
         config.put("inbounds",JSONArray().put(JSONObject().put("tag",tag).put("listen","127.0.0.1").put("port",port).put("protocol","http").put("settings",JSONObject().put("accounts",JSONArray().put(JSONObject().put("user","signet").put("pass",secret))))))
+        if(sniffing!=null)config.getJSONArray("inbounds").getJSONObject(0).put("sniffing",JSONObject(sniffing.toString()))
         val env=config.optJSONObject("env")?:JSONObject();env.remove("xray.tun.fd");env.put("xray.location.asset",assets);config.put("env",env)
         config.remove("metrics");config.remove("api");config.put("log",JSONObject().put("loglevel","none"))
         return config
