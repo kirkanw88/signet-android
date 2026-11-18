@@ -1,0 +1,25 @@
+{
+  "run": "https://github.com/kirkanw88/signet-android/actions/runs/44284290353",
+  "commit": "291e4ce829e4d49160110da8af5426f46ed0e7ec",
+  "tests": {
+    "realTunTrafficThroughLocalXhttpReality": "PASS",
+    "encryptedStorageDoesNotContainSubscriptionSecrets": "PASS",
+    "nativeCoreSupportsRequiredShareFormats": "PASS",
+    "realTunTrafficThroughLocalRealityVision": "PASS",
+    "realTunTrafficThroughLocalVlessServer": "PASS",
+    "selectedCountryFrames": "PASS",
+    "imageImportDecodesSubscriptionBeforeConfirmation": "PASS",
+    "remnawaveDefaultRenderedTemplate": "PASS",
+    "masqueHttp3ConnectIp": "PASS",
+    "remnawaveAutoBalancer": "PASS",
+    "masqueHttp2ConnectIp": "PASS",
+    "xdriveTemplate": "PASS",
+    "remnawaveSplitRules": "PASS",
+    "availableUpdateBannerCanBeDismissed": "FAIL",
+    "importDialogCanBeCancelled": "FAIL",
+    "emptyStateAndNavigation": "FAIL",
+    "manualUpdateControlIsReachable": "FAIL"
+  },
+  "cause": "System UI ANR overlay prevented Activity window focus; screenshot confirms OS dialog over Signet. All four UI tests failed in setup before their actions. Native and country frames passed.",
+  "next": "Use 4 GB AVD, release compiler memory, execute UI before VPN restart series, retain all checks and capture lastanr diagnostics."
+}

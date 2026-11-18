@@ -87,7 +87,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "${ANDROID_HOME}/emulator/emulator" -avd signet-test -no-window -no-audio -no-boot-anim -no-snapshot -memory 2048 -gpu swiftshader_indirect -feature -Vulkan > /tmp/signet-emulator.log 2>&1 &
+          "${ANDROID_HOME}/emulator/emulator" -avd signet-test -no-window -no-audio -no-boot-anim -no-snapshot -memory 4096 -gpu swiftshader_indirect -feature -Vulkan > /tmp/signet-emulator.log 2>&1 &
           signet_emulator_pid=$!
           timeout 240 adb wait-for-device
           timeout 240 bash -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = 1 ]; do sleep 2; done'
@@ -102,7 +102,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p tests/evidence/runtime
-          "${ANDROID_HOME}/emulator/emulator" -avd signet-test -no-window -no-audio -no-boot-anim -no-snapshot -memory 2048 -gpu swiftshader_indirect -feature -Vulkan > /tmp/signet-emulator.log 2>&1 &
+          jps -lv | awk '/KotlinCompileDaemon/ {print $1}' | xargs -r kill
+          "${ANDROID_HOME}/emulator/emulator" -avd signet-test -no-window -no-audio -no-boot-anim -no-snapshot -memory 4096 -gpu swiftshader_indirect -feature -Vulkan > /tmp/signet-emulator.log 2>&1 &
           timeout 240 adb wait-for-device
           timeout 240 bash -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = 1 ]; do sleep 2; done'
           adb get-state
@@ -115,25 +116,33 @@ jobs:
           adb install app/build/outputs/apk/debug/app-x86_64-debug.apk
           adb install app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           adb shell appops set com.signet.client ACTIVATE_VPN allow
+          adb shell pm grant com.signet.client android.permission.POST_NOTIFICATIONS
           for port in 10888 10889 10890 10891 10894 18480 19095; do adb reverse tcp:$port tcp:$port; done
-          adb shell am instrument -w -r -e localVpn true com.signet.client.test/androidx.test.runner.AndroidJUnitRunner | tee tests/evidence/runtime/instrumentation.txt
-          adb shell dumpsys meminfo com.signet.client > tests/evidence/runtime/meminfo.txt
-          adb shell screencap -p /sdcard/signet.png
-          adb pull /sdcard/signet.png tests/evidence/runtime/screen.png
-          grep -Eq '^OK \([0-9]+ tests?\)' tests/evidence/runtime/instrumentation.txt
-          ! grep -Eq 'FAILURES|INSTRUMENTATION_FAILED|Process crashed' tests/evidence/runtime/instrumentation.txt
+          adb shell am instrument -w -r -e localVpn true -e class com.signet.client.GlobeVisualTest,com.signet.client.QrImageTest,com.signet.client.UiSmokeTest com.signet.client.test/androidx.test.runner.AndroidJUnitRunner | tee tests/evidence/runtime/ui-instrumentation.txt
+          grep -Eq '^OK \(6 tests\)' tests/evidence/runtime/ui-instrumentation.txt
+          ! grep -Eq 'FAILURES|INSTRUMENTATION_FAILED|Process crashed' tests/evidence/runtime/ui-instrumentation.txt
           adb pull /sdcard/Android/data/com.signet.client/files/country-frames tests/evidence/runtime/countries
           adb pull /sdcard/Android/data/com.signet.client/files/ui-state tests/evidence/runtime/ui-state
-          adb pull /sdcard/Android/data/com.signet.client/files/vpn-memory tests/evidence/runtime/vpn-memory
           adb install -r app/build/outputs/apk/release/app-x86_64-release.apk
           python3 scripts/capture-matrix.py
           adb shell dumpsys meminfo com.signet.client > tests/evidence/runtime/meminfo-release.txt
+          adb install -r app/build/outputs/apk/debug/app-x86_64-debug.apk
+          adb shell appops set com.signet.client ACTIVATE_VPN allow
+          adb shell pm grant com.signet.client android.permission.POST_NOTIFICATIONS
+          adb shell am instrument -w -r -e localVpn true -e class com.signet.client.ClientIntegrationTest,com.signet.client.TemplateTransportTest com.signet.client.test/androidx.test.runner.AndroidJUnitRunner | tee tests/evidence/runtime/native-instrumentation.txt
+          cat tests/evidence/runtime/ui-instrumentation.txt tests/evidence/runtime/native-instrumentation.txt > tests/evidence/runtime/instrumentation.txt
+          grep -Eq '^OK \(11 tests\)' tests/evidence/runtime/native-instrumentation.txt
+          ! grep -Eq 'FAILURES|INSTRUMENTATION_FAILED|Process crashed' tests/evidence/runtime/native-instrumentation.txt
+          adb pull /sdcard/Android/data/com.signet.client/files/vpn-memory tests/evidence/runtime/vpn-memory
+          adb shell dumpsys activity lastanr > tests/evidence/runtime/lastanr.txt
+          ! grep -q 'ANR in ' tests/evidence/runtime/lastanr.txt
       - name: Collect emulator crash diagnostics
         if: failure()
         run: |
           mkdir -p tests/evidence/runtime
           cp /tmp/signet-emulator.log tests/evidence/runtime/emulator.txt || true
           timeout 15 adb logcat -d -b crash > tests/evidence/runtime/crash.txt || true
+          timeout 15 adb shell dumpsys activity lastanr > tests/evidence/runtime/lastanr.txt || true
           timeout 15 adb pull /sdcard/Android/data/com.signet.client/files/ui-state tests/evidence/runtime/ui-state || true
           timeout 15 adb pull /sdcard/Android/data/com.signet.client/files/country-frames tests/evidence/runtime/countries || true
           timeout 15 adb pull /sdcard/Android/data/com.signet.client/files/vpn-memory tests/evidence/runtime/vpn-memory || true

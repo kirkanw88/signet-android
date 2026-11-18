@@ -49,6 +49,8 @@ class UiSmokeTest {
         compose.onNodeWithText("Подключаться при открытии").assertExists()
     }
     @Test fun importDialogCanBeCancelled(){
+        compose.activityRule.scenario.onActivity{ViewModelProvider(it)[MainViewModel::class.java].repository.notify("UI fixture message")}
+        compose.waitUntil(5_000){compose.onAllNodesWithText("UI fixture message").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("Добавить подписку").assertIsDisplayed().performClick()
         compose.waitUntil(15_000){compose.onAllNodesWithText("Ссылка или конфигурация").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("Ссылка или конфигурация").assertExists()

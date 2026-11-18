@@ -1,8 +1,8 @@
 {
-  "scope": "Ubuntu 24.04 clean Gradle dependency cache; build job only, Android runtime separate",
-  "run": "https://github.com/kirkanw88/signet-android/actions/runs/44269709962",
-  "commit": "23a65fb887aedfc6fbeb5464137048840d864d98",
-  "jobId": 134682955116,
+  "scope": "Ubuntu 24.04 clean Gradle cache; build job; Android runtime separate",
+  "run": "https://github.com/kirkanw88/signet-android/actions/runs/44284290353",
+  "commit": "291e4ce829e4d49160110da8af5426f46ed0e7ec",
+  "jobId": 134732822631,
   "gradleVerification": "strict",
   "core": {
     "tests": 42,
@@ -20,7 +20,7 @@
       "version": "0.2.0",
       "versionCode": 2,
       "bytes": 41907427,
-      "sha256": "d5972d9ae9437a3670ffbf9d28d0494235c75952fa06301721fc6332fdde2353",
+      "sha256": "d55640ec2c5c18f428e6c0ca53eede58cbb9759e9f96f360da4435009f105ab5",
       "signatureV2": "PASS",
       "zip16k": "PASS",
       "elf16k": "PASS",
@@ -36,7 +36,7 @@
       "version": "0.2.0",
       "versionCode": 2,
       "bytes": 41183433,
-      "sha256": "065f18b30029c60e57aa4a017a9863d1306a90f21d88ccc595f22d695cfc6927",
+      "sha256": "5e55ef07d1a952f55738e9c332e96f769568b751b3c0457b29260b50ec59f85a",
       "signatureV2": "PASS",
       "zip16k": "PASS",
       "elf16k": "PASS",
@@ -52,7 +52,7 @@
       "version": "0.2.0",
       "versionCode": 2,
       "bytes": 44284634,
-      "sha256": "40d7c3d4b2591ae244f06c69b1711234f2847a2cbb4cf0512971c9698e83969b",
+      "sha256": "c461c4ccc8bbcf7773c585ec534cf07b01430c022cf097148abd46b8b90da9d4",
       "signatureV2": "PASS",
       "zip16k": "PASS",
       "elf16k": "PASS",
@@ -64,5 +64,5 @@
       ]
     }
   ],
-  "note": "CI debug signing certificate differs from local development key. Local APK hashes are in apk-verification.json."
+  "note": "CI development signing differs from the local key; local installable APK hashes are in apk-verification.json."
 }
