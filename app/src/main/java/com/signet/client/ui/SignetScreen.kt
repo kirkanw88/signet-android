@@ -70,7 +70,7 @@ private val Error=Color(0xFFFF657A)
     }
     val snackbar=remember { SnackbarHostState() }
     val pending=MainActivity.pendingImport.value
-    LaunchedEffect(pending) { if(pending != null) { input=pending; add=true; MainActivity.pendingImport.value=null } }
+    LaunchedEffect(pending) { if(pending != null) { input=pending;ageKey="";oauthConsent=false;add=true; MainActivity.pendingImport.value=null } }
     LaunchedEffect(state.message) { state.message?.let { snackbar.showSnackbar(it); model.repository.clearMessage() } }
     LaunchedEffect(state.ready,state.settings.automaticUpdates){if(state.ready&&state.settings.automaticUpdates)model.checkUpdates(automatic=true)}
     LaunchedEffect(state.ready) { if(state.ready && state.settings.autoConnect && state.server != null && vpn.phase==VpnPhase.DISCONNECTED) connect() }
@@ -151,7 +151,7 @@ private val Error=Color(0xFFFF657A)
         vpn.error?.let{Text(it,color=Warning,fontSize=11.sp,maxLines=2,overflow=TextOverflow.Ellipsis)}
         LocationList(state,vpn,probing,model::select,model::favorite,{model.measure()},model::refresh,Modifier.weight(1f),compact=true)
         connectionButton()
-        if(phase==VpnPhase.CONNECTED)Text("? ${bytes(vpn.uploaded)}    ? ${bytes(vpn.downloaded)}",color=Muted,fontSize=11.sp,modifier=Modifier.padding(vertical=4.dp))else Spacer(Modifier.height(8.dp))
+        if(phase==VpnPhase.CONNECTED)Text("↑ ${bytes(vpn.uploaded)}    ↓ ${bytes(vpn.downloaded)}",color=Muted,fontSize=11.sp,modifier=Modifier.padding(vertical=4.dp))else Spacer(Modifier.height(8.dp))
     }
 }
 

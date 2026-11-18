@@ -2,7 +2,7 @@
 
 Источники: [официальный Incy README](https://github.com/INCY-DEV/incy-platforms), [Incy docs](https://docs.incy.cc/), [Happ docs](https://www.happ.su/main/llms.txt), [Happ Hysteria2](https://www.happ.su/main/faq/hysteria2.md). Это публичные заявления разработчиков, не результаты собственного тестирования чужих приложений. Закрытый код не использовался. В Incy RELEASE.json version=3.9.9 расходится с именем/URL Android 4.0.1; однозначную версию установленного клиента не утверждаем. Google Play Happ по указанному URL в браузерном исследовании вернул 404; документация доступна.
 
-| Функция | Incy (публично) | Happ (публично) | Signet 0.1.0 | API/библиотека |
+| Функция | Incy (публично) | Happ (публично) | Signet 0.2.0 | API/библиотека |
 |---|---|---|---|---|
 | Xray, VLESS REALITY | Да | Да | Реальное ядро | libXray |
 | Hysteria2 | Да | Документирована | Импорт/ядро; e2e отдельно | Core Hysteria |
@@ -17,3 +17,5 @@
 | 3D Земля и границы | Не подтверждено | Не подтверждено | Реализованы | GLES2, Natural Earth, JTS |
 
 Нет заявления о полном функциональном паритете с закрытыми клиентами. Приватные API, биллинг, TV-pairing, виджеты и их закрытые криптоссылки не входят в эту сборку.
+
+Добавления 0.2.0: delivered AUTO, группы/flags, четыре режима проб, QR permission/lifecycle/image preview, per-app JSON preview, Remnawave metadata, public release updater, XDrive/MASQUE JSON. Уровни поддержки транспорта и фактические тесты — TRANSPORT_COMPATIBILITY.md; наличие функции не приравнивается к e2e PASS. Native кабинет/платежи BLOCKED до backend API; browser кабинет работает через существующие маршруты.

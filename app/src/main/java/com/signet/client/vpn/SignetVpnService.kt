@@ -37,7 +37,6 @@ class SignetVpnService : VpnService() {
     private var requested = false
     private var retryCount = 0
     private var metricsPort = 0
-    private var socksPort = 0
     private val connectivity by lazy { getSystemService(ConnectivityManager::class.java) }
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) { changedNetwork() }
@@ -99,22 +98,20 @@ class SignetVpnService : VpnService() {
             when (settings.appMode) {
                 "include" -> {
                     require(settings.packages.isNotEmpty()) { "Выберите приложения для VPN" }
-                    settings.packages.forEach(builder::addAllowedApplication)
+                    val visible=settings.packages.filter { runCatching { packageManager.getApplicationInfo(it,0) }.isSuccess }
+                    require(visible.isNotEmpty()) { "Выбранные приложения удалены или недоступны в этом профиле Android" }
+                    visible.forEach(builder::addAllowedApplication)
                     // Needed for the through-TUN connectivity check and diagnostics.
                     builder.addAllowedApplication(packageName)
                 }
-                "exclude" -> settings.packages.filter { it != packageName }.forEach(builder::addDisallowedApplication)
+                "exclude" -> settings.packages.filter { it != packageName && runCatching { packageManager.getApplicationInfo(it,0) }.isSuccess }.forEach(builder::addDisallowedApplication)
             }
-            val ports = NativeCore.call("getFreePorts", JSONObject().put("count", 2)).getJSONArray("ports")
-            metricsPort = ports.getInt(0); socksPort = ports.getInt(1)
+            val ports = NativeCore.call("getFreePorts", JSONObject().put("count", 1)).getJSONArray("ports")
+            metricsPort = ports.getInt(0)
             val previousTun=tun
             tun = builder.establish() ?: error("Разрешение VPN отозвано")
             runCatching { previousTun?.close() }
-            val config = Profiles.runtime(selected, tun!!.fd, metricsPort, socksPort, assetDir.absolutePath, dns)
-            if(com.signet.client.BuildConfig.DEBUG && selected.name=="LOCAL TEST ONLY") {
-                val localLog=File(cacheDir,"native-local-test.log").apply{writeText("")}
-                config.put("log",JSONObject().put("loglevel","debug").put("error",localLog.absolutePath))
-            }
+            val config = Profiles.runtime(selected, tun!!.fd, metricsPort, assetDir.absolutePath, dns)
             startupStage="запуск ядра"
             NativeCore.call("runXray", JSONObject().put("xrayJson", config.toString()))
             // A running Go instance alone is insufficient: require real HTTPS over the selected outbound.
@@ -155,7 +152,7 @@ class SignetVpnService : VpnService() {
                 }
                 runCatching {
                     client.newCall(Request.Builder().url("http://127.0.0.1:$metricsPort/debug/vars").build()).execute().use { response ->
-                        val raw = response.body?.string() ?: return@use
+                        val raw = response.body?.byteStream()?.use { String(it.readLimited(512*1024),Charsets.UTF_8) } ?: return@use
                         val stats = JSONObject(raw).optJSONObject("stats")?.optJSONObject("outbound") ?: return@use
                         val tags=if(server.isAuto || server.outboundTag.isEmpty())stats.keys().asSequence().toList()else listOf(server.outboundTag)
                         VpnState.status.update { it.copy(uploaded = tags.sumOf { tag->stats.optJSONObject(tag)?.optLong("uplink")?:0L }, downloaded = tags.sumOf { tag->stats.optJSONObject(tag)?.optLong("downlink")?:0L }) }

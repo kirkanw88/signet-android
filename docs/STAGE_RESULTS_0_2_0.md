@@ -53,3 +53,11 @@ Strict verification, 39 core tests, app JVM NO-SOURCE, Lint, Debug/Release: PASS
 Сохранён sniffing входа шаблона в TUN/probe, добавлены предупреждения IPIFNONMATCH_CATCHALL и DOMAIN_SNIFFING без переписывания политики. XDrive проверяет encryption/Mux/backend и запрашивает явное согласие для OAuth. Реальные Google credentials и production endpoints не использовались.
 
 Добавлен отдельный GitHub runtime job на Linux KVM: собственный loopback server, временная CA, сборка тестового APK со строгой проверкой, UI и native TUN instrumentation. Фактический результат фиксируется после выполнения; само наличие job не означает PASS. Локальный Windows emulator не загрузился; physical device отсутствует.
+
+## G — release, security и проверки
+
+0.2.0/code 2: strict verification, 40 core tests, app JVM NO-SOURCE, Debug Lint 0 errors, Debug/Release/R8 PASS, 3m 11s. Instrumented APK compile PASS, 29s. Все три ABI release APK прошли apksigner v2, aapt identity/permissions/ABI, zipalign 16 KB и ELF LOAD alignment 16 KB. Результаты и SHA-256 — apk-verification.json.
+
+Удалены неиспользуемый SOCKS listener и debug file logging. QR bounded/downsampled, metrics bounded; импорт очищает секреты, проверяет missing outbound reference. Дополнены security/performance/contracts/transport/UI/matrix/release документы. Production signing, native API и публичный Release остаются внешними ограничениями.
+
+Первый новый CI runtime job 44265924197 собрал instrumented APK со strict verification, но не запустил тесты: `adb: command not found` (platform-tools не в PATH runner). Workflow теперь явно устанавливает platform-tools и экспортирует PATH, ожидания устройства ограничены, diagnostics сохраняются. Это инфраструктурный сбой тестового runner, не отключение защит и не успешный runtime результат. Повторный результат будет внесён отдельно.

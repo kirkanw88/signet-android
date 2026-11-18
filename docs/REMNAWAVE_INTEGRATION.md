@@ -1,5 +1,7 @@
 # Подписки Remnawave
 
+0.2.0: типовые готовые Xray JSON проверены отдельно от panel injector; отчёт — REMNAWAVE_TEMPLATE_COMPATIBILITY.md. Сохраняются outbounds/rules/balancers/DNS и ingress sniffing, AUTO не генерируется. Разбираются announce/profile-title/web/support/update interval/refill-date. Текст очищается, ссылки только HTTPS без userinfo. Domain-scoped DNS не выбирается глобальным Android resolver. HWID не пересылается при redirect на другой host. Поддержка XDrive/MASQUE ядром не доказывает штатный экспорт из обычного Remnawave Host UI.
+
 Приложение получает только пользовательскую subscription URL. Панель и production-инфраструктура не изменяются, административный API не используется. Полный Xray JSON, JSON arrays, share links и Base64 импортируются отдельно: полный JSON не проходит через конвертер узлов, удаляющий routing и DNS.
 
 Разрешены HTTPS и максимум пять HTTP redirects с сохранением HTTPS. Тело ограничено 4 МБ. Собственного HTTP-кеша нет. `profile-title` (включая `base64:`) и `subscription-userinfo` (upload/download/total/expire) отображаются в карточке. Обновление явно запускается пользователем или WorkManager каждые 6 часов при доступной сети. Ошибка загрузки оставляет предыдущую рабочую подписку.

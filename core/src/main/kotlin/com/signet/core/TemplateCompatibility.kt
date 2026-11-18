@@ -41,6 +41,8 @@ object TemplateCompatibility {
         if(rules!=null)for(i in 0 until rules.length()) {
             val rule=rules.getJSONObject(i)
             val balancer=rule.optString("balancerTag")
+            val outbound=rule.optString("outboundTag")
+            if(outbound.isNotBlank()&&outbound !in tags)issues+=TemplateIssue("MISSING_OUTBOUND","Правило ${i+1} ссылается на отсутствующий outbound",true)
             if(balancer.isNotBlank()&&balancer !in balancerTags)issues+=TemplateIssue("MISSING_BALANCER","Правило ${i+1} ссылается на отсутствующий balancer",true)
             val inbound=rule.optJSONArray("inboundTag")
             if(inbound!=null && (0 until inbound.length()).none{inbound.getString(it)==active})issues+=TemplateIssue("INBOUND_SCOPE","Правило ${i+1} относится к другому ingress; Android использует tag $active")

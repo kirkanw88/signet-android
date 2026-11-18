@@ -44,6 +44,13 @@ class QrScannerActivity: ComponentActivity() {
                         AndroidView(factory={context->DecoratedBarcodeView(context).apply {
                             setStatusText("");barcodeView.decoderFactory=DefaultDecoderFactory(listOf(BarcodeFormat.QR_CODE))
                             camera=this
+                            barcodeView.addStateListener(object:CameraPreview.StateListener {
+                                override fun previewSized(){}
+                                override fun previewStarted(){}
+                                override fun previewStopped(){}
+                                override fun cameraClosed(){}
+                                override fun cameraError(exception:Exception){error="Камера недоступна. Закройте другое приложение камеры или импортируйте QR из изображения."}
+                            })
                             decodeContinuous(object:BarcodeCallback {
                                 override fun barcodeResult(result:BarcodeResult) {
                                     if(!delivered.compareAndSet(false,true))return
@@ -55,7 +62,7 @@ class QrScannerActivity: ComponentActivity() {
                             });resume()
                         }},modifier=Modifier.fillMaxSize())
                         Box(Modifier.align(Alignment.Center).sizeIn(maxWidth=280.dp,maxHeight=280.dp).fillMaxSize(.72f).border(2.dp,Color(0xFF39C8FF),RoundedCornerShape(24.dp)))
-                    } else Text(error?:"Для сканирования нужен доступ к камере",Modifier.align(Alignment.Center).padding(24.dp),color=Color.White)
+                    } else Text(error?:if(granted)"На устройстве нет доступной камеры. Импортируйте QR из изображения."else"Для сканирования нужен доступ к камере",Modifier.align(Alignment.Center).padding(24.dp),color=Color.White)
                     Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().background(Color(0xDD050816)).padding(16.dp)) {
                         Text("SIGNET · Сканировать QR",color=Color.White,style=MaterialTheme.typography.titleLarge)
                         Text("После распознавания вы увидите данные перед импортом",color=Color(0xFF9BAAC2))

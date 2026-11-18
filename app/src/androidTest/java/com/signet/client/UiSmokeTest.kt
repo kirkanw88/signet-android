@@ -26,4 +26,8 @@ class UiSmokeTest {
         compose.onNodeWithText("Отмена").performClick()
         compose.onNodeWithText("Добавить",substring=false).assertExists()
     }
+    @Test fun manualUpdateControlIsReachable(){
+        compose.onNodeWithText("Настройки",useUnmergedTree=true).performClick()
+        compose.onNodeWithText("Проверить обновление").performScrollTo().assertIsEnabled()
+    }
 }

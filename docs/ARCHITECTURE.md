@@ -1,5 +1,11 @@
 # Архитектура
 
+Версия 0.2.0: AUTO — только исходный профиль панели, без локальной оценки или fallback. Runtime заменяет вход на TUN с исходными tag/sniffing и сохраняет DNS/routing/outbounds/balancers; probeRuntime переносит тот же ingress в аутентифицированный loopback HTTP proxy отдельного процесса. Неиспользуемый основной SOCKS listener удалён. Метрики пока loopback TCP и не являются UID-private.
+
+Импорт/refresh сериализованы; encrypted vault записывается до публикации состояния. Ошибка открытия vault запрещает перезапись. Probes передают ограниченный JSON через ParcelFileDescriptor pipe, не через большой Binder Bundle и не через plaintext-файл. Probe runtime уничтожается после отвязки; результаты только в RAM.
+
+Обновления приложения — отдельный bounded public GitHub release client с ETag, 24-часовым auto interval и явным переходом к загрузке. Метаданные не содержат VPN-секретов. Кабинет/платежи используют действующие browser flows, native session не симулируется.
+
 `core` — JVM-модуль: модели, непрозрачный импорт полного JSON, метаданные, AUTO, географические преобразования и unit tests. `app` — Android Compose, ViewModel/StateFlow, Koin, Room, DataStore, WorkManager, native bridge, VPN и OpenGL.
 
 Поток подключения: системное согласие → foreground service → сериализованный lifecycle mutex → защищённые native-сокеты и DNS resolver → Android TUN → fd в `env.xray.tun.fd` → libXray `runXray` → реальная HTTPS-проверка выбранного outbound → CONNECTED. После этого системные пакеты передаёт native TUN. Отдельный инструментальный тест проверяет HTTPS без локального SOCKS, то есть непосредственно через системный TUN.

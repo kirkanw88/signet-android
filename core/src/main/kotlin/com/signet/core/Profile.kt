@@ -69,7 +69,7 @@ object Profiles {
     /** AUTO is a delivered profile. No generated AUTO, scoring, fallback, or local balancing. */
     fun auto(servers: List<Server>): Server? = servers.firstOrNull { it.isAuto && it.enabled }
 
-    fun runtime(server: Server, fd: Int, metricsPort: Int, socksPort: Int, assets: String, dns: String): JSONObject {
+    fun runtime(server: Server, fd: Int, metricsPort: Int, assets: String, dns: String): JSONObject {
         val config = JSONObject(server.config)
         val env = config.optJSONObject("env") ?: JSONObject()
         // Preserve ALL outbound objects and their order, including untagged server-provided AUTO.
@@ -80,7 +80,6 @@ object Profiles {
         val originalTag = TemplateCompatibility.inboundTag(config)
         val sniffing=TemplateCompatibility.sourceInbound(config)?.optJSONObject("sniffing")
         inbounds.put(JSONObject().put("tag", originalTag).put("protocol", "tun").put("settings", JSONObject().put("name", "signet").put("MTU", 1500)))
-        inbounds.put(JSONObject().put("tag", "signet-check").put("listen", "127.0.0.1").put("port", socksPort).put("protocol", "socks").put("settings", JSONObject().put("auth","password").put("accounts",JSONArray().put(JSONObject().put("user","signet").put("pass",java.util.UUID.randomUUID().toString())))))
         config.put("inbounds", inbounds)
         if(sniffing!=null)inbounds.getJSONObject(0).put("sniffing",JSONObject(sniffing.toString()))
         if (!config.has("dns")) config.put("dns", JSONObject().put("servers", JSONArray().put(dns)))

@@ -1,4 +1,32 @@
-# Signet 0.1.0 — отчёт 17.11.2026
+# Signet 0.2.0 — 18.11.2026
+
+Ветка `feature/android-0.2.0`, база `fc4f885`. Только Android repository, production и main не менялись. Ниже этой секции сохранены исторические результаты 0.1.0.
+
+| Проверка | Результат 0.2.0 |
+|---|---|
+| Strict Gradle Dependency Verification | PASS, не отключалась, метаданные доверия в 0.2.0 не расширялись |
+| Core JVM | 40 tests, 0 failures/errors |
+| app JVM | NO-SOURCE, не отдельный тест |
+| Lint Debug | PASS, 0 errors; warnings в HTML/XML |
+| Debug и Release/R8 | PASS, stage-G-release.log, 3m 11s |
+| Instrumentation APK | Strict compile PASS, 29s; это не runtime PASS |
+| Release signature/ABI/identity | PASS, 0.2.0/code 2, все 3 ABI, Signature v2, zip/ELF 16 KB alignment |
+| Точные GLES shaders | WebGL1 compile/link PASS; не Android FPS benchmark |
+| Host transport e2e | 8/8 конфигураций PASS, transport-host.json |
+| Android native TUN/UI 0.2.0 | Runtime job добавлен, результат обновляется после выполнения |
+| Физические устройства, камера, мобильная сеть, soak | NOT RUN |
+
+Размеры APK: arm64-v8a 41,907,511 bytes; armeabi-v7a 41,183,517; x86_64 44,284,718. Устанавливаемые development releases с debug certificate; production key не задан. Хеши — `tests/evidence/0.2.0/apk-verification.json`.
+
+По выбору пользователя проверены типовые Remnawave templates, без production-подписки. AUTO/balancer и split GeoIP/geosite прошли host TCP/HTTPS/UDP-DNS/domain-DNS/block проверки. Исправлено отсутствие переноса ingress sniffing в TUN/probe, добавлен unit-тест. IPIfNonMatch + catch-all диагностируется без изменения политики.
+
+Официальный Xray 26.11.9: VLESS TCP, REALITY Vision, XHTTP REALITY, XDrive template, MASQUE h2/h3, AUTO и split. В каждом host случае подтверждены TCP, HTTPS с доверенной тестовой CA/правильным именем, UDP DNS и отказ неправильного TLS имени. Private CA/server keys остаются в игнорируемом `.gradle/transport-lab`. Реальный Google OAuth, S3/Yandex providers, публичный MASQUE, IPv6 egress и packet-loss/MTU: NOT RUN.
+
+Проверка обновлений/баннер реализованы; публичный Release пока недоступен из-за private GitHub repository. Токен в APK не встроен, visibility не менялась. Native account/session/payment API отсутствует: browser кабинет реализован, native часть BLOCKED; контракт — API_CONTRACTS.md. Production не менялся, реальные платежи/входы не выполнялись.
+
+Лимиты данных, ленивые списки и текстуры ограничивают память; нет traffic log, HTTP disk cache, probe history и auto APK download. Это не доказательство отсутствия утечек: финальный физический PSS/soak не получен. См. PERFORMANCE.md и ANDROID_TEST_MATRIX.md.
+
+## Исторический отчёт Signet 0.1.0 — 17.11.2026
 
 Xray/libXray v26.11.9, Kotlin/Compose, native Android VpnService TUN. Это устанавливаемая первая development release с локальной подписью разработки. Полная приёмка исходного ТЗ ещё не завершена.
 
