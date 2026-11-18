@@ -40,7 +40,7 @@ PASS на host-стенде: готовый AUTO с двумя outbound и rando
 
 Системный Android DNS выбирается только среди глобальных числовых серверов. Domain-scoped DNS не становится резолвером для всех запросов. DoH-only, fakeDNS, несколько inbound и пользовательские `ext:` geodata требуют отдельной проверки политики; наличие JSON само по себе не доказывает отсутствие DNS-утечек.
 
-Первый Android TUN run подтвердил default и AUTO с сохранённым sniffing, включая TCP/HTTPS/UDP DNS и domain block для AUTO. Split выявил важное условие: health URL должен быть разрешён самим шаблоном. `geosite:google` включает gstatic, поэтому стандартная проверка gstatic завершилась ожидаемым отказом. В тесте выбран example.com; в пользовательском приложении адрес меняется через Ping settings, политика не переписывается и сертификаты не игнорируются. Финальный результат split/GeoIP/Google block — TEST_REPORT.
+Первый Android TUN run подтвердил default и AUTO с сохранённым sniffing, включая TCP/HTTPS/UDP DNS и domain block для AUTO. Split выявил важное условие: health URL должен быть разрешён самим шаблоном. `geosite:google` включает gstatic, поэтому стандартная проверка gstatic завершилась ожидаемым отказом. Начиная с 0.2.1 адрес проверки соединения отдельный от Ping, по умолчанию example.com и доступен в настройках. Политика не переписывается и сертификаты не игнорируются. Регрессионный fixture включает TCP Ping с gstatic и отдельный health URL example.com. Финальный результат split/GeoIP/Google block — TEST_REPORT.
 
 ## XDrive / MASQUE
 

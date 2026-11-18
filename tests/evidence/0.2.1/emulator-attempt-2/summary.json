@@ -1,0 +1,12 @@
+{
+  "run": 44298413902,
+  "status": "INCOMPLETE",
+  "observations": [
+    "Boot readiness gate passed, Settings responsive",
+    "Emulator host process segfault during GlobeVisualTest",
+    "GitHub warning: Free space left: 0 MB"
+  ],
+  "native": "NOT RUN",
+  "cause": "Host emulator/runner failure; the relation between disk exhaustion and segmentation fault is not established.",
+  "applicationBuild": "PASS"
+}

@@ -1,3 +1,36 @@
+# Signet Android 0.2.1 — проверка 18.11.2026
+
+Код приложения `177f860`, стенд `a40e962`, ветка `feature/android-0.2.0`. Исправления и причины: [RELEASE_0_2_1.md](RELEASE_0_2_1.md). Production, соседний кабинет и main не изменялись. Старые результаты 0.2.0/0.1.0 ниже относятся только к своим версиям.
+
+| Проверка | Результат 0.2.1 |
+|---|---|
+| Local core JVM | 45/45 PASS, failures/errors/skipped = 0 |
+| app JVM | NO-SOURCE |
+| Android Lint Debug | PASS, 0 errors / 38 warnings |
+| Debug / Release / test APK | PASS, strict Dependency Verification, R8/resource shrinking |
+| APK integrity | PASS, три ABI, versionName 0.2.1/code 3, Signature v2, zip/ELF 16 KB alignment |
+| Cold CI build | PASS, runs 44295197199 и 44298413902: 45 JVM tests, Lint 0 errors / 38 warnings, Debug/Release, APK integrity |
+| Android emulator | Полная приёмка НЕ ПОДТВЕРЖДЕНА: первый run — 2 PASS / 4 FAIL (System UI ANR); второй — падение host emulator; native NOT RUN |
+| Physical ARM / camera / soak | NOT RUN |
+
+Локальная полная проверка: `--dependency-verification strict --no-daemon :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest`, BUILD SUCCESSFUL за 4m 38s. [Результаты](../tests/evidence/0.2.1/local-checks.json), [проверка выдаваемых APK](../tests/evidence/0.2.1/apk-verification.json). Глобальные исключения и отключение Dependency Verification не применялись; зависимости не добавлялись.
+
+[Cold CI build](../tests/evidence/0.2.1/ci-build.json): сборка Ubuntu с новым `GRADLE_USER_HOME` и без restore cache, strict verification. [GitHub Actions 44298413902](https://github.com/kirkanw88/signet-android/actions/runs/44298413902).
+
+Первый эмуляторный прогон не прошёл: [снимок System UI ANR](../tests/evidence/0.2.1/emulator-attempt-1/system-ui-dialog.png), [вывод UI-тестов](../tests/evidence/0.2.1/emulator-attempt-1/ui-instrumentation.txt). Bounds/QR assertions прошли, но четыре UiSmokeTest остановились в ожидании фокуса: поверх Signet находился системный диалог. `lastanr` ошибочно не отражал видимый сбой, поэтому не используется как единственная проверка. Workflow `7f214c7` добавляет проверку системных диалогов до/после тестов, прогрев Settings после загрузки и logcat; устаревший `swiftshader_indirect` заменён поддерживаемым `swiftshader` ([Android documentation](https://developer.android.com/studio/run/emulator-acceleration)). Это изменение стенда, а не подтверждение исправления Android System UI на всех устройствах; причина его внутреннего ANR не установлена. Приложение не изменялось, проверки не отключались.
+
+Во втором прогоне проверка готовности Settings прошла. Host-процесс эмулятора упал с segmentation fault во время GlobeVisualTest, одновременно runner сообщил `Free space left: 0 MB`; [результат](../tests/evidence/0.2.1/emulator-attempt-2/summary.json). Связь заполнения диска и падения не установлена. `a40e962` ограничивает userdata AVD до 2 GB, запрещает core dump, проверяет свободные 4 GB до запуска и использует поддерживаемый автоматический выбор software backend. Повтор после этой настройки ещё не засчитан успешным. Код приложения и выдаваемые APK не менялись. Результаты 17/17 Android tests для 0.2.0 ниже не переносятся автоматически на 0.2.1.
+
+Причины: Home раньше содержал список и ограниченную область планеты; теперь список на своей вкладке, а планета и поля занимают отдельные области. Стеклянные кнопки используют градиент и кромку без blur buffers. Текст метаданных проходил через `DisplayText.clean`, который схлопывал пробелы и переносы; новый sanitizer сохраняет форматирование. HWID зависел от сохранённого opt-out; теперь загрузка/сохранение принудительно включают его, запрос не зависит от флага.
+
+HTTPS при подключении ошибочно брал `probes.url`, независимо от TCP-режима. Например, Remnawave split блокирует прежний gstatic через `geosite:google`. Добавлен отдельный `connectionCheckUrl`, по умолчанию example.com, с редактированием в настройках. Проверка настоящего HTTPS через TUN обязательна; TLS и правила профиля сохранены. Начало подключения отменяет параллельные пробы.
+
+QR: normal-only decoder, несовпадающая декоративная рамка и остановка после неподходящего кода ограничивали сканер. Mixed decoder, непрерывный автофокус и продолжающееся сканирование исправляют эти пути. Image import добавляет inverted/binarizer fallback; известные launcher-ссылки раскрываются в безопасный HTTPS без изменения токена. Конкретный пользовательский QR отсутствует, поэтому успешное чтение именно его на физической камере не заявляется.
+
+APK ARM64: `release/signet-0.2.1-arm64-v8a.apk`, SHA-256 `bea7f70f92167c3c34353a666bf71052f590c80d482b75c09449ce8f4d516889`. Прежний локальный development key; CI использует другой development key. Публичная публикация обновлений и production signing этой задачей не выполнялись.
+
+---
+
 # Signet Android 0.2.0 — итог проверки 18.11.2026
 
 Проверенный commit `93769e7`, функциональный код APK — `291e4ce`. Ветка `feature/android-0.2.0`, база `fc4f885`. [GitHub Actions 44288047516 — SUCCESS](https://github.com/kirkanw88/signet-android/actions/runs/44288047516): оба job завершились успешно. Production Signet, соседний кабинет и main не изменялись. Ниже сохранён исторический отчёт 0.1.0.

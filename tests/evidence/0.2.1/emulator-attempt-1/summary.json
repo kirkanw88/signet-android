@@ -1,0 +1,10 @@
+{
+  "run": 44295197199,
+  "ui": {
+    "pass": 2,
+    "fail": 4
+  },
+  "native": "NOT RUN",
+  "failure": "System UI ANR dialog owns the window; four UiSmokeTest setup checks time out waiting for focus; dumpsys lastanr reports no ANR, so it is insufficient as a sole readiness check.",
+  "productionApkBuild": "PASS"
+}

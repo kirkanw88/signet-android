@@ -1,0 +1,65 @@
+{
+  "run": "https://github.com/kirkanw88/signet-android/actions/runs/44298413902",
+  "commit": "7f214c713e99735b893a87e3e35735767a1caf7a",
+  "conclusion": "success",
+  "gradleVerification": "strict, fresh repo-local Gradle home, no cache restore",
+  "core": {
+    "tests": 45,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "Warning": 38
+  },
+  "apkIntegrity": [
+    {
+      "abi": "arm64-v8a",
+      "version": "0.2.1",
+      "versionCode": 3,
+      "bytes": 41907427,
+      "sha256": "9c75c6d39d96ceee6cc0673e02ce0b50e8e53aaa8e036315b9f1bac865d30670",
+      "signatureV2": "PASS",
+      "zip16k": "PASS",
+      "elf16k": "PASS",
+      "manifest": "PASS",
+      "nativeLibraries": [
+        "lib/arm64-v8a/libandroidx.graphics.path.so",
+        "lib/arm64-v8a/libdatastore_shared_counter.so",
+        "lib/arm64-v8a/libgojni.so"
+      ]
+    },
+    {
+      "abi": "armeabi-v7a",
+      "version": "0.2.1",
+      "versionCode": 3,
+      "bytes": 41183433,
+      "sha256": "4ad6ff74dddb3f26e0ed99bb42fb1ac17c1b42f2a9db8b9fa70411a1dd104f3b",
+      "signatureV2": "PASS",
+      "zip16k": "PASS",
+      "elf16k": "PASS",
+      "manifest": "PASS",
+      "nativeLibraries": [
+        "lib/armeabi-v7a/libandroidx.graphics.path.so",
+        "lib/armeabi-v7a/libdatastore_shared_counter.so",
+        "lib/armeabi-v7a/libgojni.so"
+      ]
+    },
+    {
+      "abi": "x86_64",
+      "version": "0.2.1",
+      "versionCode": 3,
+      "bytes": 44284634,
+      "sha256": "5944dd1e982c90f45f089f773152a406751cea6397e75a9a2324819f2add3a8b",
+      "signatureV2": "PASS",
+      "zip16k": "PASS",
+      "elf16k": "PASS",
+      "manifest": "PASS",
+      "nativeLibraries": [
+        "lib/x86_64/libandroidx.graphics.path.so",
+        "lib/x86_64/libdatastore_shared_counter.so",
+        "lib/x86_64/libgojni.so"
+      ]
+    }
+  ]
+}

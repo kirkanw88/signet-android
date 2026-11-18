@@ -1,0 +1,28 @@
+{
+  "core": {
+    "tests": 45,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "Warning": 38
+  },
+  "appUnit": "NO-SOURCE",
+  "commit": "177f860a1d4e3869ce9da643eb983642ae9886ba",
+  "gradleVerification": "strict",
+  "build": "BUILD SUCCESSFUL",
+  "duration": "4m 38s",
+  "tasks": [
+    "core:test",
+    "app:testDebugUnitTest",
+    "app:lintDebug",
+    "app:assembleDebug",
+    "app:assembleRelease",
+    "app:assembleDebugAndroidTest"
+  ],
+  "certificateSha256": "8158ed1e88c0d5e485abed87d63209f295021a482fc6c51d108e44fdce0448b1",
+  "sameCertificateAs020": true,
+  "version": "0.2.1",
+  "versionCode": 3
+}
