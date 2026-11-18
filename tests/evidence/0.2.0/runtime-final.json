@@ -1,0 +1,124 @@
+{
+  "run": "https://github.com/kirkanw88/signet-android/actions/runs/44288047516",
+  "commit": "93769e731eeaf8506f90b37030d0226786a5da76",
+  "device": "API36 x86_64 emulator, 4 GB RAM, software GLES",
+  "tests": {
+    "selectedCountryFrames": "PASS",
+    "imageImportDecodesSubscriptionBeforeConfirmation": "PASS",
+    "availableUpdateBannerCanBeDismissed": "PASS",
+    "importDialogCanBeCancelled": "PASS",
+    "emptyStateAndNavigation": "PASS",
+    "manualUpdateControlIsReachable": "PASS",
+    "realTunTrafficThroughLocalXhttpReality": "PASS",
+    "encryptedStorageDoesNotContainSubscriptionSecrets": "PASS",
+    "nativeCoreSupportsRequiredShareFormats": "PASS",
+    "realTunTrafficThroughLocalRealityVision": "PASS",
+    "realTunTrafficThroughLocalVlessServer": "PASS",
+    "remnawaveDefaultRenderedTemplate": "PASS",
+    "masqueHttp3ConnectIp": "PASS",
+    "remnawaveAutoBalancer": "PASS",
+    "masqueHttp2ConnectIp": "PASS",
+    "xdriveTemplate": "PASS",
+    "remnawaveSplitRules": "PASS"
+  },
+  "counts": {
+    "PASS": 17,
+    "FAIL": 0,
+    "SKIPPED": 0
+  },
+  "matrix": [
+    {
+      "dp": [
+        360,
+        640
+      ],
+      "fontScale": 1.0,
+      "connectVisible": "PASS",
+      "screenshot": "360x640-font-1.0.png"
+    },
+    {
+      "dp": [
+        393,
+        851
+      ],
+      "fontScale": 1.0,
+      "connectVisible": "PASS",
+      "screenshot": "393x851-font-1.0.png"
+    },
+    {
+      "dp": [
+        412,
+        915
+      ],
+      "fontScale": 1.0,
+      "connectVisible": "PASS",
+      "screenshot": "412x915-font-1.0.png"
+    },
+    {
+      "dp": [
+        600,
+        960
+      ],
+      "fontScale": 1.0,
+      "connectVisible": "PASS",
+      "screenshot": "600x960-font-1.0.png"
+    },
+    {
+      "dp": [
+        800,
+        1280
+      ],
+      "fontScale": 1.0,
+      "connectVisible": "PASS",
+      "screenshot": "800x1280-font-1.0.png"
+    },
+    {
+      "dp": [
+        640,
+        360
+      ],
+      "fontScale": 1.0,
+      "connectVisible": "PASS",
+      "screenshot": "640x360-font-1.0.png"
+    },
+    {
+      "dp": [
+        360,
+        640
+      ],
+      "fontScale": 1.3,
+      "connectVisible": "PASS",
+      "screenshot": "360x640-font-1.3.png"
+    }
+  ],
+  "debugActiveVpnPssKiB": [
+    {
+      "case": "masque-h2",
+      "pssKiB": 207709
+    },
+    {
+      "case": "masque-h3",
+      "pssKiB": 206642
+    },
+    {
+      "case": "remnawave-auto",
+      "pssKiB": 207085
+    },
+    {
+      "case": "remnawave-default",
+      "pssKiB": 204515
+    },
+    {
+      "case": "remnawave-split",
+      "pssKiB": 211360
+    },
+    {
+      "case": "xdrive",
+      "pssKiB": 210637
+    }
+  ],
+  "releaseHomePssKiB": 41199,
+  "memoryScope": "Single snapshots, debug instrumentation/VPN/UI closed versus release Home/VPN stopped. Not comparable app-wide bounds or soak proof.",
+  "lastAnr": "ACTIVITY MANAGER LAST ANR (dumpsys activity lastanr)\n  <no ANR has occurred since boot>",
+  "releaseVpnE2E": "NOT RUN; native TUN suite uses Debug, release is installed and responsive UI tested."
+}

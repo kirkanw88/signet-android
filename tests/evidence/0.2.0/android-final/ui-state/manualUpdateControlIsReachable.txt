@@ -1,0 +1,346 @@
+Printing with useUnmergedTree = 'true'
+Node #732 at (l=0.0, t=0.0, r=720.0, b=1280.0)px
+ |-Node #733 at (l=0.0, t=0.0, r=720.0, b=1280.0)px
+   IsContainer = 'true'
+    |-Node #781 at (l=44.0, t=64.0, r=204.0, b=160.0)px
+    | ContentDescription = '[Signet VPN]'
+    | Role = 'Image'
+    |-Node #782 at (l=297.0, t=88.0, r=488.0, b=136.0)px
+    | Text = '[VPN / ANDROID]'
+    | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |-Node #783 at (l=588.0, t=72.0, r=668.0, b=152.0)px
+    | Focused = 'false'
+    | Role = 'Button'
+    | Actions = [OnClick, RequestFocus]
+    | MergeDescendants = 'true'
+    |  |-Node #784 at (l=604.0, t=88.0, r=652.0, b=136.0)px
+    |    ContentDescription = '[Настройки]'
+    |    Role = 'Image'
+    |-Node #809 at (l=0.0, t=176.0, r=720.0, b=1072.0)px
+    | IsTraversalGroup = 'true'
+    | VerticalScrollAxisRange = 'ScrollAxisRange(value=354.0, maxValue=3170.0, reverseScrolling=false)'
+    | Actions = [ScrollBy, ScrollByOffset]
+    |  |-Node #811 at (l=44.0, t=-162.0, r=332.0, b=-96.0)px
+    |  | Text = '[Настройки]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #812 at (l=44.0, t=-84.0, r=475.0, b=-36.0)px
+    |  | Text = '[Соединение под вашим контролем]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #813 at (l=44.0, t=28.0, r=549.0, b=108.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Button'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #815 at (l=68.0, t=48.0, r=525.0, b=88.0)px
+    |  |    Text = '[Аккаунт Signet · войти и продлить]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #817 at (l=44.0, t=160.0, r=572.0, b=208.0)px
+    |  | Text = '[Подключаться при открытии]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #818 at (l=572.0, t=152.0, r=676.0, b=216.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Switch'
+    |  | ToggleableState = 'Off'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |-Node #821 at (l=44.0, t=280.0, r=572.0, b=328.0)px
+    |  | Text = '[Переподключаться при смене сети]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #822 at (l=572.0, t=272.0, r=676.0, b=336.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Switch'
+    |  | ToggleableState = 'On'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |-Node #824 at (l=44.0, t=372.0, r=676.0, b=484.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Button'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #826 at (l=68.0, t=388.0, r=652.0, b=468.0)px
+    |  |    Text = '[Системные Always-on и блокировка без VPN]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #827 at (l=44.0, t=500.0, r=676.0, b=612.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Button'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #829 at (l=68.0, t=516.0, r=652.0, b=596.0)px
+    |  |    Text = '[Настроить Ping · режим, адрес и интервалы]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #830 at (l=44.0, t=636.0, r=674.0, b=716.0)px
+    |  | Role = 'Button'
+    |  | [Disabled]
+    |  | Actions = [OnClick]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #832 at (l=68.0, t=656.0, r=650.0, b=696.0)px
+    |  |    Text = '[Проверить шаблон Remnawave / Xray JSON]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #833 at (l=44.0, t=784.0, r=402.0, b=832.0)px
+    |  | Text = '[ОБНОВЛЕНИЯ ПРИЛОЖЕНИЯ]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #835 at (l=44.0, t=868.0, r=572.0, b=964.0)px
+    |  | Text = '[Проверять обновления автоматически]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #836 at (l=572.0, t=884.0, r=676.0, b=948.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Switch'
+    |  | ToggleableState = 'On'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |-Node #838 at (l=44.0, t=992.0, r=454.0, b=1072.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Button'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #840 at (l=92.0, t=1012.0, r=406.0, b=1052.0)px
+    |  |    Text = '[Проверить обновление]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #841 at (l=44.0, t=1140.0, r=362.0, b=1188.0)px
+    |  | Text = '[DNS И МАРШРУТИЗАЦИЯ]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #842 at (l=44.0, t=1220.0, r=676.0, b=1388.0)px
+    |  | ContentDataType = 'AndroidContentDataType(androidAutofillType=1)'
+    |  | EditableText = '1.1.1.1'
+    |  | Focused = 'false'
+    |  | ImeAction = 'Default'
+    |  | InputText = '1.1.1.1'
+    |  | IsEditable = 'true'
+    |  | TextSelectionRange = 'TextRange(0, 0)'
+    |  | Actions = [GetTextLayoutResult, InsertTextAtCursor, OnAutofillText, OnClick, OnLongClick, PasteText, PerformImeAction, RequestFocus, SetSelection, SetText]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #851 at (l=76.0, t=1220.0, r=311.0, b=1252.0)px
+    |  |  | Text = '[Резервный DNS · IP]'
+    |  |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |  |-Node #853 at (l=76.0, t=1356.0, r=593.0, b=1388.0)px
+    |  |    Text = '[DNS из полного Xray-профиля сохраняется]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #854 at (l=44.0, t=1412.0, r=298.0, b=1492.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Button'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #856 at (l=68.0, t=1432.0, r=274.0, b=1472.0)px
+    |  |    Text = '[Сохранить DNS]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #857 at (l=44.0, t=1516.0, r=395.0, b=1564.0)px
+    |  | Text = '[Приложения через VPN]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #859 at (l=44.0, t=1596.0, r=158.0, b=1660.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Checkbox'
+    |  | Selected = 'true'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #862 at (l=76.0, t=1608.0, r=126.0, b=1648.0)px
+    |  |    Text = '[Все]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #863 at (l=170.0, t=1596.0, r=322.0, b=1660.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Checkbox'
+    |  | Selected = 'false'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #866 at (l=202.0, t=1608.0, r=290.0, b=1648.0)px
+    |  |    Text = '[Кроме]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #867 at (l=334.0, t=1596.0, r=493.0, b=1660.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Checkbox'
+    |  | Selected = 'false'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #870 at (l=366.0, t=1608.0, r=461.0, b=1648.0)px
+    |  |    Text = '[Только]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #871 at (l=44.0, t=1700.0, r=430.0, b=1780.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Button'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #873 at (l=68.0, t=1720.0, r=406.0, b=1760.0)px
+    |  |    Text = '[Выбрать приложения (0)]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #874 at (l=44.0, t=1804.0, r=676.0, b=1900.0)px
+    |  | Text = '[Изменения маршрутизации применяются при следующем подключении.]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #875 at (l=44.0, t=1924.0, r=625.0, b=2004.0)px
+    |  | Role = 'Button'
+    |  | [Disabled]
+    |  | Actions = [OnClick]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #877 at (l=68.0, t=1944.0, r=601.0, b=1984.0)px
+    |  |    Text = '[Редактор маршрутов и DNS · Xray JSON]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #878 at (l=44.0, t=2036.0, r=545.0, b=2116.0)px
+    |  | Role = 'Button'
+    |  | [Disabled]
+    |  | Actions = [OnClick]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #880 at (l=68.0, t=2056.0, r=521.0, b=2096.0)px
+    |  |    Text = '[Восстановить исходный профиль]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #881 at (l=44.0, t=2184.0, r=160.0, b=2232.0)px
+    |  | Text = '[ПЛАНЕТА]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #882 at (l=44.0, t=2264.0, r=676.0, b=2360.0)px
+    |  | Focused = 'false'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #883 at (l=68.0, t=2288.0, r=116.0, b=2336.0)px
+    |  |  | Focused = 'false'
+    |  |  | Role = 'RadioButton'
+    |  |  | Selected = 'false'
+    |  |  | Actions = [OnClick, RequestFocus]
+    |  |  | MergeDescendants = 'true'
+    |  |  |-Node #884 at (l=140.0, t=2288.0, r=467.0, b=2336.0)px
+    |  |    Text = '[Качество · 60 кадров/с]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #885 at (l=44.0, t=2376.0, r=676.0, b=2472.0)px
+    |  | Focused = 'false'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #886 at (l=68.0, t=2400.0, r=116.0, b=2448.0)px
+    |  |  | Focused = 'false'
+    |  |  | Role = 'RadioButton'
+    |  |  | Selected = 'true'
+    |  |  | Actions = [OnClick, RequestFocus]
+    |  |  | MergeDescendants = 'true'
+    |  |  |-Node #887 at (l=140.0, t=2400.0, r=437.0, b=2448.0)px
+    |  |    Text = '[Баланс · 30 кадров/с]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #888 at (l=44.0, t=2488.0, r=676.0, b=2584.0)px
+    |  | Focused = 'false'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #889 at (l=68.0, t=2512.0, r=116.0, b=2560.0)px
+    |  |  | Focused = 'false'
+    |  |  | Role = 'RadioButton'
+    |  |  | Selected = 'false'
+    |  |  | Actions = [OnClick, RequestFocus]
+    |  |  | MergeDescendants = 'true'
+    |  |  |-Node #890 at (l=140.0, t=2512.0, r=478.0, b=2560.0)px
+    |  |    Text = '[Экономия · 10 кадров/с]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #892 at (l=44.0, t=2628.0, r=572.0, b=2676.0)px
+    |  | Text = '[Уменьшить движение]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #893 at (l=572.0, t=2620.0, r=676.0, b=2684.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Switch'
+    |  | ToggleableState = 'Off'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |-Node #895 at (l=44.0, t=2720.0, r=676.0, b=2864.0)px
+    |  | Text = '[В фоне графика останавливается. Логи трафика не сохраняются, кеш ответов не создаётся. Размер каждой подписки ограничен 4 МБ.]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #896 at (l=44.0, t=2924.0, r=183.0, b=2972.0)px
+    |  | Text = '[ПОДПИСКА]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #898 at (l=44.0, t=3032.0, r=572.0, b=3080.0)px
+    |  | Text = '[Передавать HWID установки]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #899 at (l=572.0, t=3024.0, r=676.0, b=3088.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Switch'
+    |  | ToggleableState = 'Off'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |-Node #901 at (l=44.0, t=3124.0, r=676.0, b=3268.0)px
+    |  | Text = '[Включайте, если подписка требует контроль устройств. Передаётся случайный ID этой установки, версия Android и модель устройства.]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #902 at (l=44.0, t=3284.0, r=676.0, b=3412.0)px
+    |  | ContentDataType = 'AndroidContentDataType(androidAutofillType=1)'
+    |  | EditableText = 'https://signet-cab.com'
+    |  | Focused = 'false'
+    |  | ImeAction = 'Default'
+    |  | InputText = 'https://signet-cab.com'
+    |  | IsEditable = 'true'
+    |  | TextSelectionRange = 'TextRange(0, 0)'
+    |  | Actions = [GetTextLayoutResult, InsertTextAtCursor, OnAutofillText, OnClick, OnLongClick, PasteText, PerformImeAction, RequestFocus, SetSelection, SetText]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #911 at (l=76.0, t=3284.0, r=454.0, b=3316.0)px
+    |  |    Text = '[HTTPS адрес личного кабинета]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #912 at (l=44.0, t=3436.0, r=321.0, b=3516.0)px
+    |  | Focused = 'false'
+    |  | Role = 'Button'
+    |  | Actions = [OnClick, RequestFocus]
+    |  | MergeDescendants = 'true'
+    |  |  |-Node #914 at (l=68.0, t=3456.0, r=297.0, b=3496.0)px
+    |  |    Text = '[Сохранить адрес]'
+    |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #915 at (l=44.0, t=3584.0, r=231.0, b=3632.0)px
+    |  | Text = '[ДИАГНОСТИКА]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #916 at (l=44.0, t=3664.0, r=371.0, b=3712.0)px
+    |  | Text = '[Signet 0.2.0 · libXray 26.11.9]'
+    |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |  |-Node #917 at (l=44.0, t=3736.0, r=453.0, b=3816.0)px
+    |    Focused = 'false'
+    |    Role = 'Button'
+    |    Actions = [OnClick, RequestFocus]
+    |    MergeDescendants = 'true'
+    |     |-Node #919 at (l=92.0, t=3756.0, r=405.0, b=3796.0)px
+    |       Text = '[Проверить соединение]'
+    |       Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |-Node #740 at (l=0.0, t=1072.0, r=720.0, b=1280.0)px
+      IsContainer = 'true'
+       |-Node #741 at (l=0.0, t=1072.0, r=720.0, b=1232.0)px
+         [SelectableGroup]
+          |-Node #742 at (l=0.0, t=1072.0, r=168.0, b=1232.0)px
+          | Focused = 'false'
+          | Role = 'Tab'
+          | Selected = 'false'
+          | Actions = [OnClick, RequestFocus]
+          | MergeDescendants = 'true'
+          |  |-Node #750 at (l=38.0, t=1168.0, r=130.0, b=1200.0)px
+          |  | Text = '[Главная]'
+          |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+          |  |-Node #747 at (l=60.0, t=1104.0, r=108.0, b=1152.0)px
+          |    ClearAndSetSemantics = 'true'
+          |     |-Node #748 at (l=60.0, t=1104.0, r=108.0, b=1152.0)px
+          |       ContentDescription = '[Главная]'
+          |       Role = 'Image'
+          |-Node #751 at (l=184.0, t=1072.0, r=352.0, b=1232.0)px
+          | Focused = 'false'
+          | Role = 'Tab'
+          | Selected = 'false'
+          | Actions = [OnClick, RequestFocus]
+          | MergeDescendants = 'true'
+          |  |-Node #759 at (l=218.0, t=1168.0, r=318.0, b=1200.0)px
+          |  | Text = '[Серверы]'
+          |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+          |  |-Node #756 at (l=244.0, t=1104.0, r=292.0, b=1152.0)px
+          |    ClearAndSetSemantics = 'true'
+          |     |-Node #757 at (l=244.0, t=1104.0, r=292.0, b=1152.0)px
+          |       ContentDescription = '[Серверы]'
+          |       Role = 'Image'
+          |-Node #760 at (l=368.0, t=1072.0, r=536.0, b=1232.0)px
+          | Focused = 'false'
+          | Role = 'Tab'
+          | Selected = 'false'
+          | Actions = [OnClick, RequestFocus]
+          | MergeDescendants = 'true'
+          |  |-Node #768 at (l=396.0, t=1168.0, r=508.0, b=1200.0)px
+          |  | Text = '[Подписки]'
+          |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+          |  |-Node #765 at (l=428.0, t=1104.0, r=476.0, b=1152.0)px
+          |    ClearAndSetSemantics = 'true'
+          |     |-Node #766 at (l=428.0, t=1104.0, r=476.0, b=1152.0)px
+          |       ContentDescription = '[Подписки]'
+          |       Role = 'Image'
+          |-Node #769 at (l=552.0, t=1072.0, r=720.0, b=1232.0)px
+            Focused = 'false'
+            Role = 'Tab'
+            Selected = 'true'
+            Actions = [OnClick, RequestFocus]
+            MergeDescendants = 'true'
+             |-Node #777 at (l=575.0, t=1168.0, r=696.0, b=1200.0)px
+             | Text = '[Настройки]'
+             | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+             |-Node #774 at (l=612.0, t=1104.0, r=660.0, b=1152.0)px
+               ClearAndSetSemantics = 'true'
+                |-Node #775 at (l=612.0, t=1104.0, r=660.0, b=1152.0)px
+                  ContentDescription = '[Настройки]'
+                  Role = 'Image'

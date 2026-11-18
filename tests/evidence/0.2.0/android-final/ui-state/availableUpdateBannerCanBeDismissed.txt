@@ -1,0 +1,124 @@
+Printing with useUnmergedTree = 'true'
+Node #108 at (l=0.0, t=0.0, r=720.0, b=1280.0)px
+ |-Node #109 at (l=0.0, t=0.0, r=720.0, b=1280.0)px
+   IsContainer = 'true'
+    |-Node #157 at (l=44.0, t=64.0, r=204.0, b=160.0)px
+    | ContentDescription = '[Signet VPN]'
+    | Role = 'Image'
+    |-Node #158 at (l=297.0, t=88.0, r=488.0, b=136.0)px
+    | Text = '[VPN / ANDROID]'
+    | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |-Node #159 at (l=588.0, t=72.0, r=668.0, b=152.0)px
+    | Focused = 'false'
+    | Role = 'Button'
+    | Actions = [OnClick, RequestFocus]
+    | MergeDescendants = 'true'
+    |  |-Node #160 at (l=604.0, t=88.0, r=652.0, b=136.0)px
+    |    ContentDescription = '[Настройки]'
+    |    Role = 'Image'
+    |-Node #162 at (l=180.0, t=176.0, r=541.0, b=234.0)px
+    | Text = '[Не подключено]'
+    | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |-Node #164 at (l=32.0, t=234.0, r=688.0, b=514.0)px
+    | MergeDescendants = 'true'
+    |-Node #166 at (l=145.0, t=514.0, r=209.0, b=578.0)px
+    | ContentDescription = '[Страна не указана]'
+    | Role = 'Image'
+    |-Node #167 at (l=229.0, t=522.0, r=576.0, b=570.0)px
+    | Text = '[Мир пока не выбран]'
+    | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |-Node #170 at (l=32.0, t=618.0, r=393.0, b=666.0)px
+    | Text = '[Локации]'
+    | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |-Node #171 at (l=393.0, t=602.0, r=509.0, b=682.0)px
+    | Role = 'Button'
+    | [Disabled]
+    | Actions = [OnClick]
+    | MergeDescendants = 'true'
+    |  |-Node #173 at (l=422.0, t=622.0, r=481.0, b=662.0)px
+    |    Text = '[Ping]'
+    |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |-Node #174 at (l=509.0, t=602.0, r=688.0, b=682.0)px
+    | Focused = 'false'
+    | Role = 'Button'
+    | Actions = [OnClick, RequestFocus]
+    | MergeDescendants = 'true'
+    |  |-Node #176 at (l=533.0, t=622.0, r=664.0, b=662.0)px
+    |    Text = '[Обновить]'
+    |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |-Node #177 at (l=32.0, t=690.0, r=688.0, b=944.0)px
+    | CollectionInfo = 'androidx.compose.ui.semantics.CollectionInfo@6ecc302'
+    | IsTraversalGroup = 'true'
+    | VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+    | Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+    |  |-Node #184 at (l=32.0, t=738.0, r=688.0, b=834.0)px
+    |    Text = '[Добавьте подписку, чтобы увидеть серверы]'
+    |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |-Node #178 at (l=32.0, t=944.0, r=688.0, b=1056.0)px
+    | Focused = 'false'
+    | Role = 'Button'
+    | Actions = [OnClick, RequestFocus]
+    | MergeDescendants = 'true'
+    |  |-Node #181 at (l=260.0, t=980.0, r=525.0, b=1020.0)px
+    |    Text = '[Добавить подписку]'
+    |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+    |-Node #116 at (l=0.0, t=1072.0, r=720.0, b=1280.0)px
+      IsContainer = 'true'
+       |-Node #117 at (l=0.0, t=1072.0, r=720.0, b=1232.0)px
+         [SelectableGroup]
+          |-Node #118 at (l=0.0, t=1072.0, r=168.0, b=1232.0)px
+          | Focused = 'false'
+          | Role = 'Tab'
+          | Selected = 'true'
+          | Actions = [OnClick, RequestFocus]
+          | MergeDescendants = 'true'
+          |  |-Node #126 at (l=38.0, t=1168.0, r=130.0, b=1200.0)px
+          |  | Text = '[Главная]'
+          |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+          |  |-Node #123 at (l=60.0, t=1104.0, r=108.0, b=1152.0)px
+          |    ClearAndSetSemantics = 'true'
+          |     |-Node #124 at (l=60.0, t=1104.0, r=108.0, b=1152.0)px
+          |       ContentDescription = '[Главная]'
+          |       Role = 'Image'
+          |-Node #127 at (l=184.0, t=1072.0, r=352.0, b=1232.0)px
+          | Focused = 'false'
+          | Role = 'Tab'
+          | Selected = 'false'
+          | Actions = [OnClick, RequestFocus]
+          | MergeDescendants = 'true'
+          |  |-Node #135 at (l=218.0, t=1168.0, r=318.0, b=1200.0)px
+          |  | Text = '[Серверы]'
+          |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+          |  |-Node #132 at (l=244.0, t=1104.0, r=292.0, b=1152.0)px
+          |    ClearAndSetSemantics = 'true'
+          |     |-Node #133 at (l=244.0, t=1104.0, r=292.0, b=1152.0)px
+          |       ContentDescription = '[Серверы]'
+          |       Role = 'Image'
+          |-Node #136 at (l=368.0, t=1072.0, r=536.0, b=1232.0)px
+          | Focused = 'false'
+          | Role = 'Tab'
+          | Selected = 'false'
+          | Actions = [OnClick, RequestFocus]
+          | MergeDescendants = 'true'
+          |  |-Node #144 at (l=396.0, t=1168.0, r=508.0, b=1200.0)px
+          |  | Text = '[Подписки]'
+          |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+          |  |-Node #141 at (l=428.0, t=1104.0, r=476.0, b=1152.0)px
+          |    ClearAndSetSemantics = 'true'
+          |     |-Node #142 at (l=428.0, t=1104.0, r=476.0, b=1152.0)px
+          |       ContentDescription = '[Подписки]'
+          |       Role = 'Image'
+          |-Node #145 at (l=552.0, t=1072.0, r=720.0, b=1232.0)px
+            Focused = 'false'
+            Role = 'Tab'
+            Selected = 'false'
+            Actions = [OnClick, RequestFocus]
+            MergeDescendants = 'true'
+             |-Node #153 at (l=575.0, t=1168.0, r=696.0, b=1200.0)px
+             | Text = '[Настройки]'
+             | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+             |-Node #150 at (l=612.0, t=1104.0, r=660.0, b=1152.0)px
+               ClearAndSetSemantics = 'true'
+                |-Node #151 at (l=612.0, t=1104.0, r=660.0, b=1152.0)px
+                  ContentDescription = '[Настройки]'
+                  Role = 'Image'

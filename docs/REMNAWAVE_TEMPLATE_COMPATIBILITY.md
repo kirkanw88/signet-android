@@ -1,5 +1,7 @@
 # Xray JSON-шаблоны Remnawave и Android
 
+Финальный Android API36 run 44288047516 SUCCESS: default/AUTO/split проходят настоящий TUN; split подтверждает GeoIP private/direct, geosite Google/gstatic block, domain block, TCP/HTTPS/UDP DNS. Переданный JSON после probe остаётся тем же. Scope — типовые loopback fixtures, Debug APK; не production и не все возможные шаблоны.
+
 Аудит upstream Remnawave backend: commit `6853666801d6d1925b6aec55824106100485777a`, generator `src/modules/subscription-template/generators/xray-json.generator.service.ts` и `RemnawaveInjectorSchema`. Это не утверждение о версии production-панели Signet. Production templates / пользовательская подписка не предоставлены и не извлекались с помощью административных credentials.
 
 ## Что получает клиент

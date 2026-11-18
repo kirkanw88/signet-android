@@ -85,3 +85,9 @@ CI 44279067809/7431ea5: clean build SUCCESS. Android 17 tests: 16 PASS/1 FAIL. �
 CI 44284290353/291e4ce: clean build SUCCESS; runtime 13 PASS/4 FAIL. Все четыре UI теста остановились в setup ожидания фокуса: screenshot подтверждает системный ANR-dialog `System UI isn't responding` поверх приложения. Сам Signet не указан в диалоге. RU кадр теперь действительно отрисован, виден контрастный marker; но снимок с ANR-overlay не принимается как финальный UI результат. Сводка runtime-third.json сохранена.
 
 Runner меняется без ослабления проверок: 4 GB AVD, compiler daemon освобождается до загрузки; UI/Globe/QR 6 tests выполняются на свежем процессе до серии VPN-перезапусков, затем release responsive matrix, затем отдельные native 11 tests. Проверяются оба итога, lastanr также проверяется на ANR. Notification/VPN permissions явно выдаются fixture, реальные permission dialogs этим не объявляются проверенными. Home import regression теперь сам показывает временное сообщение и проверяет физическое касание CTA при нём. Test APK compile strict PASS, 25s; основной APK не изменён.
+
+## Итог — 93769e7
+
+CI 44288047516 SUCCESS, оба job. 42 JVM tests/0 failed/skipped; app JVM NO-SOURCE; Lint 0 errors/39 warnings; strict fresh-cache Debug/Release и APK checks PASS. Android 6 UI/QR/graphics + 11 native = 17 PASS/0 skipped. Release Home matrix 7/7 PASS. Последний ANR report: no ANR since boot. Все пять country frames просмотрены после real GL readiness, screenshots не содержат системного overlay. История предыдущих неудач выше сохранена.
+
+Active Debug VPN PSS 204515–211360 KiB; Release Home/VPN off PSS 41199 KiB. Это отдельные snapshots, не soak guarantee. runtime-final.json и android-final/* содержат evidence. Документация после этого результата не меняет код APK; signing/source/public-channel/physical limitations перечислены в TEST_REPORT.

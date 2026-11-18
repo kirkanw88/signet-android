@@ -1,42 +1,54 @@
-# Signet 0.2.0 — 18.11.2026
+# Signet Android 0.2.0 — итог проверки 18.11.2026
 
-Ветка `feature/android-0.2.0`, база `fc4f885`. Только Android repository, production и main не менялись. Ниже этой секции сохранены исторические результаты 0.1.0.
+Проверенный commit `93769e7`, функциональный код APK — `291e4ce`. Ветка `feature/android-0.2.0`, база `fc4f885`. [GitHub Actions 44288047516 — SUCCESS](https://github.com/kirkanw88/signet-android/actions/runs/44288047516): оба job завершились успешно. Production Signet, соседний кабинет и main не изменялись. Ниже сохранён исторический отчёт 0.1.0.
 
-| Проверка | Результат 0.2.0 |
+| Проверка | Фактический итог |
 |---|---|
-| Strict Gradle Dependency Verification | PASS, не отключалась, метаданные доверия в 0.2.0 не расширялись |
-| Core JVM | 42 tests, 0 failures/errors |
-| app JVM | NO-SOURCE, не отдельный тест |
-| Lint Debug | PASS, 0 errors; warnings в HTML/XML |
-| Debug и Release/R8 | PASS, stage-G-routing-final.log, 2m 3s |
-| Instrumentation APK | Strict compile PASS, 29s; это не runtime PASS |
-| Release signature/ABI/identity | PASS, 0.2.0/code 2, все 3 ABI, Signature v2, zip/ELF 16 KB alignment |
-| Точные GLES shaders | WebGL1 compile/link PASS; не Android FPS benchmark |
-| Host transport e2e | 9/9 конфигураций PASS, transport-host.json |
-| Android native TUN/UI 0.2.0 | Runtime job добавлен, результат обновляется после выполнения |
-| Физические устройства, камера, мобильная сеть, soak | NOT RUN |
+| Dependency Verification | STRICT, чистый Gradle cache Ubuntu, без restore и без исключений |
+| Core JVM | 42 tests, 0 failures/errors/skipped |
+| app JVM | NO-SOURCE, не засчитывается отдельным тестом |
+| Android Lint Debug | PASS, 0 errors / 39 warnings |
+| Debug / Release | PASS, R8 и resource shrinking включены |
+| APK integrity | Три ABI, versionName 0.2.0/code 2, Signature v2, zip/ELF 16 KB alignment, корректный ELF machine |
+| Android API36 x86_64 | 17/17 PASS: 6 UI/QR/graphics + 11 native/storage/format tests, без skipped |
+| Release install / responsive | PASS, 7/7 размеров/шрифтов; основной CTA внутри экрана |
+| Страны RU/DE/FI/JP/TR | Готовые GL-кадры сохранены и просмотрены; uniform fill, контрастный city marker |
+| GLES shaders | Точные строки compile/link WebGL1 PASS; Android кадры также получены |
+| Host Xray | 9/9 e2e fixtures PASS |
+| Emulator ANR | `no ANR has occurred since boot`; проверяется workflow |
+| Физические ARM телефоны / soak | NOT RUN |
 
-Чистый Ubuntu build job [44267311710](https://github.com/kirkanw88/signet-android/actions/runs/44267311710) для 280c5f4: SUCCESS, без restore Gradle cache; APK/report artifacts сохранены. В этом commit было 40 core tests; последующие default/locale tests дают 42 локально. Runtime того же run не исполнял тесты: emulator не нашёл AVD. Исправлен явный путь AVD, повтор выполняется отдельно. Предыдущая попытка 44265924197 остановилась на отсутствующем adb PATH. Ни один из этих инфраструктурных сбоев не выдаётся за тест приложения.
+Доказательства: [CI build summary](../tests/evidence/0.2.0/ci-build.json), [Android summary](../tests/evidence/0.2.0/runtime-final.json), [инструментальный вывод](../tests/evidence/0.2.0/android-final/instrumentation.txt), [снимки](../tests/evidence/0.2.0/android-final/), [локальные APK SHA/signature/ABI](../tests/evidence/0.2.0/apk-verification.json). CI использует собственный development key; его APK hashes отличаются от выдаваемых локальных файлов.
 
-Текущий код 23a65fb также прошёл чистый Linux build job [44269709962](https://github.com/kirkanw88/signet-android/actions/runs/44269709962): 42 tests/0 failures/errors/skipped, Lint 0 errors/39 warnings, Debug/Release/R8 и APK checks SUCCESS. Проверены выгруженные XML/JSON artifacts, сводка — `tests/evidence/0.2.0/ci-build.json`. Runtime этого run загрузил emulator; его отдельный результат ожидается. После этого изменены только instrumentation/workflow/docs, устанавливаемое приложение не менялось.
+## Что подтверждено
 
-Уточнение следующих изменений: Android runtime [44272504746](https://github.com/kirkanw88/signet-android/actions/runs/44272504746) завершил 15 тестов: 12 PASS, 3 FAIL. VLESS/REALITY/XHTTP/XDrive/MASQUE h2/h3/default/AUTO прошли настоящий TUN; split остановился на HTTPS health URL gstatic, запрещённом его geosite:google. Два UI failure — отсутствующая ручная кнопка обновлений и timeout отмены импорта (на screenshot System UI ANR). Детали без замалчивания — runtime-first.json. UI привязки исправлены, health fixture использует разрешённый example.com, VM уменьшена до 720×1280, добавлены UI diagnostics. Правила/сертификаты/verification не ослаблялись; новый runtime ожидается. Основной APK после UI исправлений пересобран и проверен локально: strict tests/Lint/Debug/Release PASS, 2m 38s, instrumented compile 28s.
+Настоящий Android VpnService TUN: VLESS TCP, REALITY Vision, XHTTP REALITY, XDrive template, MASQUE HTTP/2 и HTTP/3 CONNECT-IP. Проверяются CONNECTED после HTTPS, передача TCP/HTTPS, UDP DNS, изолированная проверка ядром при работающем VPN и неизменность исходного JSON. Native API/форматы и encrypted Room storage также прошли проверки. Hysteria2 подтверждён только conversion-тестом, его e2e NOT RUN.
 
-Подписи локальных 0.1.0/0.2.0 совпадают (local-upgrade-signature.json). Это проверка локальных development APK, не ключей случайного GitHub runner. Активная debug-память, RU/DE/FI/JP/TR frames, release responsive matrix и banner show/dismiss теперь включены в следующий instrumentation job; до его завершения они NOT RUN.
+По выбору пользователя проверены типовые Remnawave конфигурации: upstream default после добавления host outbound, AUTO с balancer и split direct/proxy/block. Android split проверяет GeoIP private/direct, geosite Google/gstatic block и явный domain block. Production-подписки не запрашивались. Исправлен перенос ingress sniffing в TUN/probe; правила, DNS, outbounds и balancers сохраняются. IPIfNonMatch + catch-all диагностируется предупреждением, без переписывания политики. Raw injector template не выдаётся за сформированную подписку.
 
-Размеры APK: arm64-v8a 41,907,511 bytes; armeabi-v7a 41,183,517; x86_64 44,284,718. Устанавливаемые development releases с debug certificate; production key не задан. Хеши — `tests/evidence/0.2.0/apk-verification.json`.
+Выявлена практическая причина отказа split health check: geosite:google блокирует gstatic. Fixture теперь явно выбирает разрешённый HTTPS example.com, сохраняя блокировки; пользователь может выбрать адрес в Ping settings. Проверка TLS/HTTPS не отключалась. Подробности — REMNAWAVE_TEMPLATE_COMPATIBILITY.md.
 
-Повтор 44279067809/7431ea5: build SUCCESS, Android 16/17 PASS. Все transport/template проверки, включая split GeoIP/direct и Google/gstatic block, прошли. Manual update button и available-banner dismiss PASS. Остался timeout первого Home import tap: Snackbar перекрывал CTA; исправлено расположение/потребление сообщений, добавлено ожидание фокуса окна. Неуспешный результат сохранён в runtime-second.json; проверка не удалена. Последняя локальная сборка всех задач strict, включая test APK: PASS, 2m 32s; следующий runtime ожидается.
+UI тесты подтверждают навигацию/recreate, реальное касание основной кнопки при временном уведомлении, открытие/отмену импорта, доступность «Проверить обновление», показ и скрытие баннера доступного выпуска на контролируемых metadata. QR PNG действительно декодируется. Ручные Settings actions привязаны к update client, Ping, template checker и account. Snackbar поднят над основным CTA и не переигрывает старое сообщение после disposal. Permission dialogs в fixture предвыданы, поэтому первый пользовательский consent-flow не объявляется проверенным.
 
-Получены active debug VPN PSS 216–227 MiB (221610–232000 KiB), scope: instrumentation/JUnit process, UI closed, шесть профилей. Raw meminfo — tests/evidence/0.2.0/memory-debug-active. Это не релизный лимит и не проверка утечки. Снимки DE/FI/JP/TR просмотрены; ранний RU был пуст до завершения GL, поэтому сохранение теперь ждёт готовый кадр выбранной страны. Release responsive и физический connected zoom/FPS ещё не приняты.
+Release устанавливается после Debug и проверяется на 360×640, 393×851, 412×915, 600×960, 800×1280, 640×360 и 360×640/font 1.3. Это проверка Home/CTA и снимков, не полная приёмка каждого экрана во всех состояниях. Страновые кадры сняты в DISCONNECTED: connected zoom/FPS на телефоне отдельно NOT RUN. Native TUN suite выполняется в Debug; именно Release VPN e2e отдельно NOT RUN.
 
-По выбору пользователя проверены типовые Remnawave templates, без production-подписки. AUTO/balancer и split GeoIP/geosite прошли host TCP/HTTPS/UDP-DNS/domain-DNS/block проверки. Исправлено отсутствие переноса ingress sniffing в TUN/probe, добавлен unit-тест. IPIfNonMatch + catch-all диагностируется без изменения политики.
+## Память и файлы
 
-Официальный Xray 26.11.9: VLESS TCP, REALITY Vision, XHTTP REALITY, XDrive template, MASQUE h2/h3, AUTO и split. В каждом host случае подтверждены TCP, HTTPS с доверенной тестовой CA/правильным именем, UDP DNS и отказ неправильного TLS имени. Private CA/server keys остаются в игнорируемом `.gradle/transport-lab`. Реальный Google OAuth, S3/Yandex providers, публичный MASQUE, IPv6 egress и packet-loss/MTU: NOT RUN.
+APK: arm64 41,907,511 bytes; ARMv7 41,183,517; x86_64 44,284,718. Устанавливается один файл нужной архитектуры. Локальные 0.1.0/0.2.0 имеют одинаковый сертификат; [проверка](../tests/evidence/0.2.0/local-upgrade-signature.json).
 
-Проверка обновлений/баннер реализованы; публичный Release пока недоступен из-за private GitHub repository. Токен в APK не встроен, visibility не менялась. Native account/session/payment API отсутствует: browser кабинет реализован, native часть BLOCKED; контракт — API_CONTRACTS.md. Production не менялся, реальные платежи/входы не выполнялись.
+Изолированный debug instrumentation с активным VPN и закрытым UI: 204515–211360 KiB PSS (около 200–206 MiB), шесть профилей. Release Home без VPN: 41199 KiB PSS (около 40.2 MiB). Это разные сценарии; один снимок не задаёт предел RAM и не доказывает отсутствие утечки. [Raw snapshots](../tests/evidence/0.2.0/android-final/vpn-memory/), [Release Home](../tests/evidence/0.2.0/android-final/meminfo-release.txt).
 
-Лимиты данных, ленивые списки и текстуры ограничивают память; нет traffic log, HTTP disk cache, probe history и auto APK download. Это не доказательство отсутствия утечек: финальный физический PSS/soak не получен. См. PERFORMANCE.md и ANDROID_TEST_MATRIX.md.
+Ограничения: 4 MB import, 8 subscriptions/500 profiles/8 MB рабочих configs; QR 16 MB input с downsampling до ~1536 px; metrics 512 KB; update metadata 512 KB с одним compact cache. Probes максимум 5 параллельно/1–3 попытки, результаты не пишутся на диск. Нет traffic file logs, HTTP disk cache и auto-download APK. Ночная GPU texture 1024×512 RGB565, bitmap освобождается; GL приостанавливается в фоне. Source zip содержит только tracked files, без локальных ключей, AAR и Gradle cache. Подробности — PERFORMANCE.md.
+
+## Границы выпуска
+
+- Public GitHub updater реализован, но репозиторий закрыт и публичного Release нет. Availability BLOCKED до публикации владельцем; токен в APK не встроен, visibility не менялась. Следующий APK обязан иметь тот же signing key.
+- Native account/session/billing API отсутствует. Работают переходы в существующий browser кабинет/Google/Яндекс OAuth/оплату/поддержку; native часть BLOCKED, не имитируется. Предложенный контракт API_CONTRACTS.md не развёрнут.
+- Реальный Google Drive OAuth/S3/provider XDrive, публичный MASQUE, IPv6 egress, MTU/loss, физическая камера/launcher matrix, per-app/work-profile acceptance, Wi-Fi/mobile/reboot/lockdown, батарея/FPS и длительный soak: NOT RUN.
+- Development certificate, loopback metrics без UID isolation и доверие произвольному provider JSON остаются ограничениями. Formal CVE/pentest audit не выполнен. Нет обещаний универсального обхода DPI.
+
+История неудачных попыток сохранена в STAGE_RESULTS_0_2_0.md и runtime-first/second/third.json. Ошибки включали adb PATH, AVD lookup, запрещённый health URL, непривязанные UI actions и System UI ANR малой VM. Последний прогон разделяет UI/release и native stress, использует 4 GB AVD, освобождает compiler RAM и проверяет отсутствие ANR. Проверки не удалялись и не подменялись успешными результатами.
+
 
 ## Исторический отчёт Signet 0.1.0 — 17.11.2026
 

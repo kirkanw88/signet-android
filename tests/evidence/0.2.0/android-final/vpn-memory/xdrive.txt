@@ -1,0 +1,69 @@
+Debug instrumentation process, VPN active, UI closed. Not release/soak proof.
+Applications Memory Usage (in Kilobytes):
+Uptime: 230887 Realtime: 230887
+
+** MEMINFO in pid 5547 [com.signet.client] **
+                   Pss  Private  Private     Swap      Rss     Heap     Heap     Heap
+                 Total    Dirty    Clean    Dirty    Total     Size    Alloc     Free
+                ------   ------   ------   ------   ------   ------   ------   ------
+  Native Heap     4657     4616        0        0     8484    13776     7364     2414
+  Dalvik Heap     2391     2280        0        0    10048     4826     3620     1206
+ Dalvik Other     6811     2712        0        0    11540                           
+        Stack     2156     2156        0        0     2160                           
+       Ashmem        8        0        0        0      580                           
+    Other dev        8        0        8        0      280                           
+     .so mmap      919      308        0        0    29884                           
+    .jar mmap     1810        0       24        0    44208                           
+    .apk mmap    32691     3372    29048        0    33740                           
+    .dex mmap       33        0        0        0     1000                           
+    .oat mmap       26        0        0        0     1864                           
+    .art mmap     9219     8864        0        0    32148                           
+   Other mmap     2248       12       72        0     5716                           
+      Unknown   147660   147476      180        0   148672                           
+        TOTAL   210637   171796    29332        0   330324    18602    10984     3620
+ 
+ App Summary
+                       Pss(KB)                        Rss(KB)
+                        ------                         ------
+           Java Heap:    11144                          42196
+         Native Heap:     4616                           8484
+                Code:    32856                         118980
+               Stack:     2156                           2160
+            Graphics:        0                              0
+       Private Other:   150356
+              System:     9509
+             Unknown:                                  158504
+ 
+           TOTAL PSS:   210637            TOTAL RSS:   330324      TOTAL SWAP (KB):        0
+ 
+ Objects
+               Views:        0         ViewRootImpl:        0
+         AppContexts:        7           Activities:        0
+              Assets:       22        AssetManagers:        0
+       Local Binders:       21        Proxy Binders:       40
+       Parcel memory:        8         Parcel count:       35
+    Death Recipients:        0             WebViews:        0
+ 
+ Native Allocations
+                         Count                       Total(kB)
+                        ------                         ------
+    Other (malloced):      287                             25
+ Other (nonmalloced):       66                             47
+ 
+ SQL
+         MEMORY_USED:      440
+  PAGECACHE_OVERFLOW:      146          MALLOC_SIZE:       46
+ 
+ DATABASES
+      pgsz     dbsz   Lookaside(b) cache hits cache misses cache size  Dbname
+PER CONNECTION STATS
+         4      104            114     8    67     7  /data/user/0/com.signet.client/no_backup/androidx.work.workdb
+         4        8                    0     0     0    (attached) temp
+         4      104             57     7    36     6  /data/user/0/com.signet.client/no_backup/androidx.work.workdb (1)
+         4       20             32   130   176     3  /data/user/0/com.signet.client/databases/signet.db
+         4        8                    0     0     0    (attached) temp
+         4       20             38     3    33     4  /data/user/0/com.signet.client/databases/signet.db (1)
+POOL STATS
+     cache hits  cache misses    cache size  Dbname
+             15           107           122  /data/user/0/com.signet.client/no_backup/androidx.work.workdb
+            133           213           346  /data/user/0/com.signet.client/databases/signet.db

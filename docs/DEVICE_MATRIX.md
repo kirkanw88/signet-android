@@ -1,5 +1,7 @@
 # Совместимость
 
+Финальная 0.2.0: Linux KVM/API36/x86_64/4 GB/software GLES, 17 Android tests и 7/7 release responsive сценариев PASS, runtime-final.json. Основной CTA доступен при 360×640/font 1.3 и landscape. Физические ARM устройства, camera/first-consent и connected zoom/FPS остаются NOT RUN.
+
 Текущая 0.2.0 матрица — ANDROID_TEST_MATRIX.md. Исторические снимки ниже относятся к 0.1.0 и не подтверждают 0.2.0. Локальный Windows API36 emulator не загружается; новый CI использует Ubuntu KVM/API36. ARM APK компилируются, что не заменяет испытание на телефоне.
 
 Единственное фактически использованное устройство — Android Emulator API 36, Google APIs, x86_64, GLES через SwiftShader. Это не проверка физического ARM-телефона.

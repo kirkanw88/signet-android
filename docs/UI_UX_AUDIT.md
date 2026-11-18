@@ -1,5 +1,7 @@
 # UI/UX 0.2.0
 
+Финальный API36 runtime: 6/6 UI/QR/graphics tests PASS; manual update, banner show/dismiss, import open/cancel при временном уведомлении, navigation/recreate. Release Home responsive 7/7 PASS, включая landscape и font 1.3. RU/DE/FI/JP/TR кадры после actual GL readiness просмотрены; uniform fill и контрастный marker видны. Эти кадры DISCONNECTED и не доказывают connected zoom/FPS. Свежий AVD 4 GB завершил полный прогон без System UI ANR; физические устройства не проверены.
+
 Главная: компактная 3D Земля, вертикальный LazyColumn локаций и доступная кнопка соединения; landscape — две колонки. Страны сворачиваются, есть поиск, избранное, сортировка, Ping/Refresh. Флаги — локальные assets; название отделено от description/transport/probe state. AUTO имеет отдельный значок и появляется только из подписки. Opaque ID/source остаются неизменными.
 
 Параметры проб, приложения, шаблон и аккаунт — полноэкранные панели с прокруткой. Per-app: поиск name/package, системные приложения, иконки видимых строк, три режима, select all/clear, JSON preview с отсутствующими пакетами. Видимость ограничена Android profile/PackageManager, QUERY_ALL_PACKAGES не добавлен.
