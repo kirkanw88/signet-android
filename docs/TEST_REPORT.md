@@ -1,6 +1,9 @@
 # Signet Android 0.2.3 — проверка 18.11.2026
 
-Изменения: [RELEASE_0_2_3](RELEASE_0_2_3.md). Работа выполнена в `feature/android-0.2.0`; main и производственная инфраструктура не изменялись. Проверки ограничены изменёнными сценариями по просьбе пользователя; долгие эмуляторные/CI прогоны и cold-cache сборка не повторялись. Новых зависимостей нет, verification-metadata не менялся, Gradle Dependency Verification STRICT.
+Изменения: [RELEASE_0_2_3](RELEASE_0_2_3.md).
+
+[Публичный выпуск v0.2.3](https://github.com/kirkanw88/signet-android/releases/tag/v0.2.3) опубликован из `e4c1232`. Три ABI APK, исходники и SHA256SUMS доступны; digest каждого asset совпал с локальным SHA-256. Точный endpoint приложения `/releases/latest` без Authorization вернул `v0.2.3`, draft=false/prerelease=false. [Подтверждение публикации](../tests/evidence/0.2.3/public-release.json). ARM64: 42 617 267 байт, SHA-256 `b0f78dbc0b0eb6a2917df9583fa04122b608005302ee90e222336d62bdbd781f`.
+ Работа выполнена в `feature/android-0.2.0`; main и производственная инфраструктура не изменялись. Проверки ограничены изменёнными сценариями по просьбе пользователя; долгие эмуляторные/CI прогоны и cold-cache сборка не повторялись. Новых зависимостей нет, verification-metadata не менялся, Gradle Dependency Verification STRICT.
 
 | Проверка | Итог 0.2.3 |
 |---|---|

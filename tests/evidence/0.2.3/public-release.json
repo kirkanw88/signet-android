@@ -1,0 +1,39 @@
+{
+  "publicEndpoint": "https://api.github.com/repos/kirkanw88/signet-android/releases/latest",
+  "anonymousAccess": "PASS",
+  "release": "https://github.com/kirkanw88/signet-android/releases/tag/v0.2.3",
+  "tag": "v0.2.3",
+  "sourceCommit": "e4c1232a8098da3af21bafa2581348d04b05064d",
+  "assets": [
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 380,
+      "digest": "sha256:89aba8432606500552feaa6c1dfa09bda41d810ffa143b64ec0acf7e6fc6c255",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.3/SHA256SUMS.txt"
+    },
+    {
+      "name": "signet-0.2.3-arm64-v8a.apk",
+      "size": 42617267,
+      "digest": "sha256:b0f78dbc0b0eb6a2917df9583fa04122b608005302ee90e222336d62bdbd781f",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.3/signet-0.2.3-arm64-v8a.apk"
+    },
+    {
+      "name": "signet-0.2.3-armeabi-v7a.apk",
+      "size": 41893273,
+      "digest": "sha256:6ac3b09b86366e1e453dfe30477b7bb1331acbaf0d6684c4778249a124e693fc",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.3/signet-0.2.3-armeabi-v7a.apk"
+    },
+    {
+      "name": "signet-0.2.3-x86_64.apk",
+      "size": 44994474,
+      "digest": "sha256:6d5959d90865a3c4756eada7bf56f3295f77fee47b9057b5036b29e24970f3f3",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.3/signet-0.2.3-x86_64.apk"
+    },
+    {
+      "name": "signet-android-0.2.3-source.zip",
+      "size": 8325010,
+      "digest": "sha256:ad6a2dee0455fc371b3a167232b2f03085c0e4abd6be112cd1d29647805813e0",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.3/signet-android-0.2.3-source.zip"
+    }
+  ]
+}
