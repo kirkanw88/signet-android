@@ -1,3 +1,38 @@
+# Signet Android 0.2.4 — проверка 18.11.2026
+
+Изменения: [RELEASE_0_2_4](RELEASE_0_2_4.md), [mobile API](MOBILE_API_CLIENT.md). Android-код остаётся в `feature/android-0.2.0`. По последующему прямому запросу пользователя также подготовлен customer API в локальном веб-кабинете. **Production API ещё не развёрнут; БД production, VPN infrastructure и main не менялись.** Backend bundle предоставляется отдельно локально, без публикации существующего закрытого кода кабинета в Android GitHub.
+
+| Проверка | Итог 0.2.4 |
+|---|---|
+| Core JVM | 29/29 PASS, failures/errors/skipped=0: импорт списков, старые display/routing checks, zoom, PKCE callback, release/ABI/security, bounded updater stream |
+| Backend PostgreSQL / API / regression | 27/27 PASS: 14 новых API tests + existing support/payment-return, 6.036 s; disposable local PostgreSQL 17 остановлен |
+| Debug / Release | PASS, STRICT Dependency Verification, R8/resource shrinking |
+| Android test compilation | PASS; выполнение не заявляется |
+| Android Lint | 0 errors / 48 warnings, lintVitalRelease PASS |
+| GLSL ES shaders | PASS compile/link WebGL1; не Android GPU/FPS |
+| Флаги | 257 статических PNG references: файлы присутствуют, 160×120; специальный AUTO рисуется нативно |
+| 8K карты | SHA-256 и размеры 8192×4096 подтверждены; только bounded runtime crop 2048×2048 RGB565 |
+| APK package/signature/alignment | PASS 0.2.4/code 6, три ABI, v2 signature, zip/ELF 16 KB |
+| Cold cache / long CI / emulator / physical phone | NOT RUN в 0.2.4 по просьбе ограничить проверки |
+| Реальный PackageInstaller self-update cycle | NOT RUN; проверены pure stream/hash/size/URL branches и Android compilation |
+| Production OAuth/API, live subscription/devices/bot delivery | NOT RUN; отдельное развёртывание и smoke ещё нужны |
+
+Финальная Android сборка после изменений очистки installer session: 1m 9s. Lint warnings не подавлялись: рекомендации KTX/обновлений зависимостей и прежние замечания. Synchronous commit выполняется в Dispatchers.IO с проверкой результата до передачи управления установщику. Global verification exclusions/off не использовались, новые Maven зависимости не добавлялись.
+
+Импорт исправлен: прежний parser принимал только Signet schemaVersion/type JSON; Happ/Incy экспорт пользователя — пакет на строку. Новый parser принимает этот формат, CSV/JSON array и документированные per-app headers, сохраняет strict validation собственного JSON. Повреждённая последняя строка с `22:01` показывается в preview исключённых строк, а не исправляется догадкой. Для plain list режим выбирается явно. Полный пользовательский app inventory не публиковался.
+
+Account API проверяет owner через существующий billing_identity для Telegram-only и OAuth-only без обязательной Telegram-привязки; linked identity заново разрешается после подтверждённой привязки. Используются общие cabinet/bot rows и support services; fake balance/user ID из payload не принимаются. SQL tests проверяют idempotent autopay и чтение той же строки bot_data reader, token hashing, PKCE, one-time codes, refresh replay/concurrency, чужие subscriptions, общий support request_id и browser payment-return regression. Android хранит account credentials отдельно в AES-GCM/Keystore vault; новая серверная миграция содержит только две mobile таблицы. [Backend bundle summary](../tests/evidence/0.2.4/backend-api.json).
+
+Self-update: один public ABI asset, HTTPS redirect allowlist, size и SHA-256 перед commit в PackageInstaller session. Системный installer проверяет expected package/signature/update и требует пользовательское подтверждение. APK-файла в Downloads/files/cache приложения нет; системная временная запись всё равно требуется. Abandon на отмене/ошибке; MY_PACKAGE_REPLACED и startup recovery очищают metadata/orphan sessions. Системные permissions/Play Protect не обходятся. Работоспособность полного жизненного цикла на физическом Android не заявлена.
+
+Память: full 8K bitmap не загружается, два bounded GPU detail regions заменяются; CPU crop освобождается, cache коллекции стран нет. Фото увеличивает фиксированный размер APK примерно на 7.7 MB. Chat держит страницу 50 сообщений и одно фото, HTTP disk cache отсутствует; журнал остаётся 200 строк RAM. Профили/баланс/поддержка не копируются между отдельными базами; backend использует ту же БД кабинета/бота. Длительный profiler/soak не выполнялся.
+
+Основные файлы: UI `SignetScreen`, `Preferences`, `RoutingAndProbeScreens`, `LocationList`, `CountryFlag`, `JsonEditor`, `MobileAccountScreen`, `UpdateWindow`; `MobileAccount`, `NativeUpdater`, `Vault`, manifest/activity/application/viewmodel; core `AppRoutingTransfer`, `MobileAuth`, `UpdateTransfer`, `AppRelease`, `GlobeGeometry`; `GlobeView`, 8K day/night assets и attribution; тесты/документация. Backend files и deployment guide перечислены в локальном `signet_cabinet/docs/MOBILE_API_V1.md`.
+
+[Проверки](../tests/evidence/0.2.4/checks.json), [APK](../tests/evidence/0.2.4/apk-verification.json), [флаги](../tests/evidence/0.2.4/flags.json), [шейдеры](../tests/evidence/0.2.4/glsl-check.json). Локальный development-сертификат совпадает с 0.2.1–0.2.3: SHA-256 `8158ed1e88c0d5e485abed87d63209f295021a482fc6c51d108e44fdce0448b1`. Это не production signing и не гарантия отсутствия предупреждения Play Protect.
+
+---
+
 # Signet Android 0.2.3 — проверка 18.11.2026
 
 Изменения: [RELEASE_0_2_3](RELEASE_0_2_3.md).

@@ -1,0 +1,8 @@
+Earth day and night detail maps: Solar System Scope / INOVE, based on NASA imagery.
+Source: https://www.solarsystemscope.com/textures/
+8K originals: https://www.solarsystemscope.com/textures/download/8k_earth_daymap.jpg
+https://www.solarsystemscope.com/textures/download/8k_earth_nightmap.jpg
+License: Creative Commons Attribution 4.0 International
+https://creativecommons.org/licenses/by/4.0/
+Changes: runtime crops a 2048x2048 region and blends it into the globe at country zoom.
+No endorsement is implied. Exact SHA-256 values: assets/earth-detail-source.json in the source distribution.

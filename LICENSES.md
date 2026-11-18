@@ -19,3 +19,5 @@ NASA Black Marble 2016 night lights: NASA Earth Observatory / Black Marble team,
 
 
 Capital locations and English names: Natural Earth populated places, public domain. Offline selection and source checksum: assets/capitals-source.json; derived data: app/src/main/assets/capitals.json. Marker represents the geographic capital, not a measured server location.
+
+Earth 8K detail day/night maps: Solar System Scope / INOVE, NASA-derived, https://www.solarsystemscope.com/textures/, CC BY 4.0 https://creativecommons.org/licenses/by/4.0/. Runtime crops and blends a selected region. Notice is bundled at app/src/main/assets/licenses/earth-detail-CC-BY-4.0.txt; exact sources/hashes: assets/earth-detail-source.json.

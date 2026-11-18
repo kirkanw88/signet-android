@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); consume(intent) }
     override fun onStop(){model.cancelAutoProbes();super.onStop()}
     private fun consume(intent: Intent?) {
+        intent?.data?.takeIf{it.scheme=="com.signet.client"&&it.host=="oauth"&&it.path=="/callback"}?.let{pendingAccount.value=it;intent.data=null;return}
         val raw = if(intent?.action == Intent.ACTION_SEND) intent.getStringExtra(Intent.EXTRA_TEXT) else intent?.data?.let {
             if(it.scheme == "signet" && it.host == "import") it.getQueryParameter("url") else it.toString()
         }
@@ -40,5 +41,5 @@ class MainActivity : ComponentActivity() {
         val prepare = VpnService.prepare(this)
         if(prepare != null) permission.launch(prepare) else model.start()
     }
-    companion object { val pendingImport = mutableStateOf<String?>(null) }
+    companion object { val pendingImport = mutableStateOf<String?>(null);val pendingAccount=mutableStateOf<android.net.Uri?>(null) }
 }

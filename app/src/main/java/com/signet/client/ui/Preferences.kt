@@ -106,7 +106,7 @@ private val Accent=Color(0xFF8AD9FF)
                 }
                 SettingsCard {
                     MenuItem(Icons.Outlined.FactCheck,"Проверить шаблон","Совместимость Remnawave и Xray JSON",{template=true},state.server!=null)
-                    MenuItem(Icons.Outlined.Code,"Редактор маршрутов и DNS","Полная конфигурация Xray",{routeText=state.server?.config.orEmpty();editor=true},state.server!=null)
+                    MenuItem(Icons.Outlined.Code,"Редактор маршрутов и DNS","Полная конфигурация Xray",{routeText=prettyJson(state.server?.config.orEmpty());editor=true},state.server!=null)
                     MenuItem(Icons.Outlined.Restore,"Восстановить профиль","Отменить локальные изменения",{scope.launch{state.server?.id?.let{model.repository.restore(it)};model.repository.notify("Исходный профиль восстановлен")}},state.server!=null)
                 }
             }
@@ -149,7 +149,7 @@ private val Accent=Color(0xFF8AD9FF)
             "account"->{
                 SettingsCard {
                     MenuItem(Icons.Outlined.PersonOutline,"Аккаунт Signet","Вход, покупка и продление",{account=true})
-                    MenuItem(Icons.Outlined.SupportAgent,"Поддержка","Написать в Telegram",{openHttps(context,com.signet.core.SignetLinks.SUPPORT)})
+                    MenuItem(Icons.Outlined.SupportAgent,"Поддержка","Написать в Telegram",{model.openAccount("support")})
                 }
 
             }
@@ -160,7 +160,11 @@ private val Accent=Color(0xFF8AD9FF)
     if(probes)ProbePreferences(model){probes=false}
     if(template)state.server?.let{TemplateScreen(it){template=false}}
     if(account)AccountScreen(model){account=false}
-    if(editor)AlertDialog(onDismissRequest={editor=false},title={Text("Конфигурация Xray")},text={Column{Text("Содержит ключи доступа. Не публикуйте конфигурацию.",color=SecondaryInk);OutlinedTextField(routeText,{if(it.length<=512*1024)routeText=it},modifier=Modifier.fillMaxWidth().heightIn(max=300.dp),maxLines=12)}},confirmButton={TextButton(onClick={scope.launch(Dispatchers.IO){if(VpnState.status.value.phase!=VpnPhase.DISCONNECTED)model.repository.notify("Для проверки остановите VPN")else runCatching{NativeCore.call("testXray",org.json.JSONObject().put("xrayJson",routeText));state.server?.id?.let{model.repository.edit(it,routeText)};model.repository.notify("Проверено ядром и сохранено");withContext(Dispatchers.Main){editor=false}}.onFailure{model.repository.notify("Конфигурация не прошла проверку")}}}){Text("Проверить и сохранить")}},dismissButton={TextButton(onClick={editor=false}){Text("Закрыть")}})
+    if(editor)JsonEditor(routeText,{routeText=it},{scope.launch(Dispatchers.IO){
+        if(VpnState.status.value.phase!=VpnPhase.DISCONNECTED)model.repository.notify("Для проверки остановите VPN")
+        else runCatching{NativeCore.call("testXray",org.json.JSONObject().put("xrayJson",routeText));state.server?.id?.let{model.repository.edit(it,routeText)};model.repository.notify("Проверено ядром и сохранено");withContext(Dispatchers.Main){editor=false}}
+            .onFailure{model.repository.notify("Конфигурация не прошла проверку")}
+    }},{editor=false})
 }
 
 @Composable private fun SettingsCard(content:@Composable ColumnScope.()->Unit){

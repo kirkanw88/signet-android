@@ -8,7 +8,7 @@ object GlobeGeometry {
         val a=Math.toRadians(center.lat);val b=Math.toRadians(p.lat);val delta=Math.toRadians(p.lon-center.lon)
         Math.toDegrees(acos((sin(a)*sin(b)+cos(a)*cos(b)*cos(delta)).coerceIn(-1.0,1.0)))
     }.maxOrNull()?:180.0
-    fun zoom(radius:Double):Float=when {radius<=12->2.7f;radius>=35->2.05f;else->(2.7-(radius-12)/23*.65).toFloat()}
+    fun zoom(radius:Double):Float=when {radius<=12->3.15f;radius>=35->2.6f;else->(3.15-(radius-12)/23*.55).toFloat()}
     /** Densify planar JTS triangles onto the sphere so their chords don't disappear below Earth. */
     fun appendTriangle(a:MapPoint,b:MapPoint,c:MapPoint,out:MutableList<Float>,depth:Int=0) {
         fun distance(p:MapPoint,q:MapPoint):Double {val x=(p.lon-q.lon)*cos(Math.toRadians((p.lat+q.lat)/2));return x*x+(p.lat-q.lat).pow(2)}

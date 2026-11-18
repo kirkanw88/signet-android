@@ -2,7 +2,7 @@ package com.signet.core
 
 object SignetLinks {
     const val CABINET="https://signet-cab.com"
-    const val SUPPORT="https://t.me/cyber_goos"
+    const val SUPPORT="$CABINET/cabinet#help"
 }
 
 /** Remnawave's documented client-type override is /{shortUuid}/json, not an Accept-only negotiation. */

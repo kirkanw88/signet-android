@@ -1,4 +1,6 @@
-# API-контракты Signet Android 0.2.0
+# API-контракты Signet Android 0.2.4
+
+Новый customer API подготовлен в backend, но **не развёрнут**; текущий Android контракт и ограничения — [MOBILE_API_CLIENT](MOBILE_API_CLIENT.md). Ниже сохранены исторические наблюдения 0.2.0–0.2.3; прежнее предложение native API не является путями реализации v1.
 
 ## Подтверждённые действующие поверхности
 
@@ -28,7 +30,7 @@ Android использует реальные браузерные `/auth/google
 
 ## Публичные обновления APK
 
-Выбран пользователем GitHub Releases. GET `https://api.github.com/repos/kirkanw88/signet-android/releases/latest`, без Authorization/HWID/cookies, stable published releases only. SemVer сравнивается численно, артефакт выбирается локально по supported ABI, допускаются только HTTPS URL этого repository на github.com. Нет автоматического скачивания/установки или понижения версии.
+Выбран пользователем GitHub Releases. GET `https://api.github.com/repos/kirkanw88/signet-android/releases/latest`, без Authorization/HWID/cookies, stable published releases only. SemVer сравнивается численно, артефакт выбирается локально по supported ABI, допускаются только HTTPS URL этого repository на github.com. В 0.2.4 после явного нажатия файл потоково передаётся системному установщику с размером/SHA-256, без browser download; установку и подпись подтверждает Android. Понижение версии не запрашивается.
 
 Автопроверка только при открытии, не чаще 24 часов; ETag/304, компактный единственный cache, ручная проверка с защитой от повторного запроса в течение минуты. В настройках можно отключить автоматическую проверку. Доступная новая версия отображается баннером; «Позже» запоминается для конкретной версии. Сеть/404/private repository показывают понятную ошибку при ручной проверке, не фиктивное обновление.
 

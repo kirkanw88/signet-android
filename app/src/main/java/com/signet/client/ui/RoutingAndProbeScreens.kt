@@ -79,9 +79,9 @@ private data class VisibleApp(val info:ApplicationInfo,val name:String,val syste
     var query by remember{mutableStateOf("")};var systems by remember{mutableStateOf(false)}
     var selected by remember{mutableStateOf(model.state.value.settings.packages)}
     var mode by remember{mutableStateOf(model.state.value.settings.appMode)}
-    var preview by remember{mutableStateOf<AppRouting?>(null)};var error by remember{mutableStateOf<String?>(null)}
+    var preview by remember{mutableStateOf<ImportedApps?>(null)};var error by remember{mutableStateOf<String?>(null)}
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")){uri->if(uri!=null)scope.launch(Dispatchers.IO){runCatching{context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use{it.write(AppRouting(mode,selected).json())}}.onFailure{model.repository.notify("Не удалось сохранить настройки")}}}
-    val import=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)scope.launch(Dispatchers.IO){runCatching{val raw=context.contentResolver.openInputStream(uri)!!.use{String(it.readLimited(256*1024),Charsets.UTF_8)};AppRouting.parse(raw)}.onSuccess{withContext(Dispatchers.Main){preview=it}}.onFailure{withContext(Dispatchers.Main){error="Не удалось прочитать схему маршрутизации"}}}}
+    val import=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)scope.launch(Dispatchers.IO){runCatching{val raw=context.contentResolver.openInputStream(uri)!!.use{String(it.readLimited(256*1024),Charsets.UTF_8)};AppRoutingTransfer.parse(raw)}.onSuccess{withContext(Dispatchers.Main){preview=it}}.onFailure{withContext(Dispatchers.Main){error="Не удалось прочитать схему маршрутизации"}}}}
     LaunchedEffect(Unit){apps=withContext(Dispatchers.IO){context.packageManager.getInstalledApplications(0).filter{it.packageName!=context.packageName}.map { VisibleApp(it,runCatching{it.loadLabel(context.packageManager).toString()}.getOrDefault(it.packageName),it.flags and ApplicationInfo.FLAG_SYSTEM!=0) }.sortedBy{it.name.lowercase()}};loaded=true}
     val filtered=apps.filter{(systems||!it.system||it.info.packageName in selected)&&(it.name.contains(query,true)||it.info.packageName.contains(query,true))}
     FullScreenPanel("Приложения через VPN",close) {
@@ -89,11 +89,23 @@ private data class VisibleApp(val info:ApplicationInfo,val name:String,val syste
         OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),label={Text("Название или package name")},singleLine=true)
         Row(verticalAlignment=Alignment.CenterVertically){Checkbox(systems,{systems=it});Text("Системные приложения");Spacer(Modifier.weight(1f));Text("${selected.size} выбрано")}
         Row{TextButton(onClick={selected=selected+filtered.map{it.info.packageName}}){Text("Выбрать все")};TextButton(onClick={selected=emptySet()}){Text("Снять выбор")}}
-        Row(verticalAlignment=Alignment.CenterVertically){
-            IconButton(onClick={export.launch("signet-routing-v1.json")}){Icon(Icons.Outlined.SaveAlt,"Экспорт в файл")}
-            IconButton(onClick={import.launch(arrayOf("application/json","text/*"))}){Icon(Icons.Outlined.FileOpen,"Импорт из файла")}
-            IconButton(onClick={ClipboardTransfers.copy(context,"Signet apps",AppRouting(mode,selected).json());model.repository.notify("Список приложений скопирован")}){Icon(Icons.Outlined.ContentCopy,"Копировать список приложений")}
-            IconButton(onClick={runCatching{AppRouting.parse(ClipboardTransfers.read(context,256*1024))}.onSuccess{preview=it;error=null}.onFailure{error="В буфере нет корректного списка приложений Signet"}}){Icon(Icons.Outlined.ContentPaste,"Импортировать список из буфера")}
+        var importMenu by remember{mutableStateOf(false)};var exportMenu by remember{mutableStateOf(false)}
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
+            Box(Modifier.weight(1f)){
+                GlassButton(onClick={importMenu=true},modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.FileDownload,null);Text("Импорт",Modifier.padding(start=8.dp))}
+                DropdownMenu(importMenu,{importMenu=false}){
+                    DropdownMenuItem(text={Text("Из буфера обмена")},onClick={importMenu=false;runCatching{AppRoutingTransfer.parse(ClipboardTransfers.read(context,256*1024))}.onSuccess{preview=it;error=null}.onFailure{error="Не удалось распознать список пакетов Android"}})
+                    DropdownMenuItem(text={Text("Из файла")},onClick={importMenu=false;import.launch(arrayOf("application/json","text/*"))})
+                }
+            }
+            Box(Modifier.weight(1f)){
+                GlassButton(onClick={exportMenu=true},modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.FileUpload,null);Text("Экспорт",Modifier.padding(start=8.dp))}
+                DropdownMenu(exportMenu,{exportMenu=false}){
+                    DropdownMenuItem(text={Text("В буфер: список для Happ / Incy")},onClick={exportMenu=false;ClipboardTransfers.copy(context,"Android apps",AppRoutingTransfer.plain(selected));model.repository.notify("Список приложений скопирован")})
+                    DropdownMenuItem(text={Text("В буфер: настройки Signet")},onClick={exportMenu=false;ClipboardTransfers.copy(context,"Signet apps",AppRouting(mode,selected).json());model.repository.notify("Настройки скопированы")})
+                    DropdownMenuItem(text={Text("В файл JSON")},onClick={exportMenu=false;export.launch("signet-routing-v1.json")})
+                }
+            }
         }
         Text("Доступны приложения текущего профиля, которые разрешает показывать Android. Для рабочего профиля используйте Signet внутри него.",style=MaterialTheme.typography.bodySmall)
         error?.let{Text(it,color=MaterialTheme.colorScheme.error)}
@@ -113,6 +125,15 @@ private data class VisibleApp(val info:ApplicationInfo,val name:String,val syste
     }
     preview?.let { routing->
         val missing=routing.packages-apps.map{it.info.packageName}.toSet()
-        AlertDialog(onDismissRequest={preview=null},title={Text("Импорт маршрутизации")},text={Text("Режим: ${routing.mode}\nПриложений: ${routing.packages.size}\nНе найдены или скрыты Android: ${missing.size}\nНастройки применятся после сохранения и переподключения.")},confirmButton={TextButton(onClick={mode=routing.mode;selected=routing.packages;preview=null}){Text("Применить")}},dismissButton={TextButton(onClick={preview=null}){Text("Отмена")}})
+        var importedMode by remember(routing){mutableStateOf(routing.mode)}
+        AlertDialog(onDismissRequest={preview=null},title={Text("Импорт приложений")},text={Column(Modifier.verticalScroll(rememberScrollState())){
+            Text("Приложений: ${routing.packages.size}\nНе найдены или скрыты Android: ${missing.size}")
+            if(routing.mode==null)Text("В списке нет режима. Выберите, как использовать приложения:")
+            listOf("include" to "Только эти через VPN","exclude" to "Эти без VPN","all" to "Все через VPN").forEach{(key,label)->
+                Row(Modifier.fillMaxWidth().clickable{importedMode=key},verticalAlignment=Alignment.CenterVertically){RadioButton(importedMode==key,{importedMode=key});Text(label)}
+            }
+            if(routing.rejected.isNotEmpty())Text("Не будут импортированы (${routing.rejected.size}):\n"+routing.rejected.take(5).joinToString("\n"){it.take(100)},color=MaterialTheme.colorScheme.error)
+            Text("Настройки применятся после сохранения и переподключения.")
+        }},confirmButton={TextButton(onClick={mode=importedMode!!;selected=routing.packages;preview=null},enabled=importedMode!=null){Text("Применить")}},dismissButton={TextButton(onClick={preview=null}){Text("Отмена")}})
     }
 }

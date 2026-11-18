@@ -1,0 +1,70 @@
+{
+  "version": "0.2.4",
+  "versionCode": 6,
+  "dependencyVerification": "STRICT; no new dependencies or trust exceptions",
+  "tests": [
+    {
+      "name": "com.signet.core.AppReleaseTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.signet.core.AppRoutingTransferTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.signet.core.DisplayAndSettingsTest",
+      "tests": "10",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.signet.core.GlobeGeometryTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.signet.core.MobileAuthTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.signet.core.UpdateTransferTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "totalJvmTests": 29,
+  "backendTests": 27,
+  "build": {
+    "Debug": "PASS",
+    "Release": "PASS",
+    "instrumentationCompilation": "PASS",
+    "finalTime": "1m 9s"
+  },
+  "lint": {
+    "Error": 0,
+    "Fatal": 0,
+    "Warning": 48
+  },
+  "shaderCompileLink": "PASS WebGL1",
+  "photos": "8192x4096 source checksums PASS; runtime bounded region decoder compiled only",
+  "installer": "Bounded transfer/digest/redirect tests PASS; PackageInstaller lifecycle NOT RUN on Android",
+  "phone": "NOT RUN",
+  "productionApiDeployment": "NOT RUN; code and migration prepared",
+  "coldCache": "NOT REPEATED",
+  "emulator": "NOT RUN by user request",
+  "signingCertificateSha256": "8158ed1e88c0d5e485abed87d63209f295021a482fc6c51d108e44fdce0448b1"
+}

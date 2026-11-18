@@ -19,13 +19,14 @@ data class VaultEntry(@PrimaryKey val id: Int = 1, val encrypted: ByteArray)
 @Database(entities = [VaultEntry::class], version = 1, exportSchema = false)
 abstract class VaultDatabase : RoomDatabase() { abstract fun vault(): VaultDao }
 
-class Vault(context: Context) {
-    private val db = Room.databaseBuilder(context, VaultDatabase::class.java, "signet.db").build()
+class Vault(context: Context, name:String="signet.db",private val alias:String="signet.profiles.v1") {
+    private val db = Room.databaseBuilder(context, VaultDatabase::class.java, name).build()
+    fun close()=db.close()
     private fun key(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        (store.getKey("signet.profiles.v1", null) as? SecretKey)?.let { return it }
+        (store.getKey(alias, null) as? SecretKey)?.let { return it }
         return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").apply {
-            init(KeyGenParameterSpec.Builder("signet.profiles.v1", KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+            init(KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).setRandomizedEncryptionRequired(true).build())
         }.generateKey()
     }

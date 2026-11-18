@@ -1,0 +1,14 @@
+{
+  "artifact": "signet-mobile-api-v1-source.zip",
+  "bytes": 18247,
+  "sha256": "641cbea55c2c101e47d101a35248a2576fe73b0f838479d2a3b1f7d299eaff6b",
+  "backendTests": {
+    "total": 27,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 6.036,
+    "postgres": "17; disposable local schemas, stopped after tests"
+  },
+  "productionDeployment": "NOT RUN",
+  "scope": "API code and migration local; no server credentials or existing backend source tree in public Android release"
+}

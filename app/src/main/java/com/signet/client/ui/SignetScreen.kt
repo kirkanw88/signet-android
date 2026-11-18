@@ -62,13 +62,21 @@ private val Error=Color(0xFFFF657A)
     var showServers by rememberSaveable { mutableStateOf(false) }
     var openDiagnostics by rememberSaveable { mutableStateOf(false) }
     androidx.activity.compose.BackHandler(enabled=page!=0){page=if(page==2)3 else 0}
-    var showAccount by rememberSaveable{mutableStateOf(false)}
     var add by rememberSaveable { mutableStateOf(false) }
+    var addMenu by rememberSaveable{mutableStateOf(false)}
     var input by remember { mutableStateOf("") }
     var ageKey by remember { mutableStateOf("") }
     var oauthConsent by remember{mutableStateOf(false)}
+    var offeredUpdate by rememberSaveable{mutableStateOf("")}
     val context=LocalContext.current
     val scope=rememberCoroutineScope()
+    LaunchedEffect(update.available?.version,update.dismissed){
+        update.available?.takeIf{it.version.toString()!=update.dismissed&&it.version.toString()!=offeredUpdate}?.let{offeredUpdate=it.version.toString();model.installer.offer(it)}
+    }
+    val accountPage by model.accountPage.collectAsStateWithLifecycle()
+    val accountCallback=MainActivity.pendingAccount.value
+    LaunchedEffect(accountCallback){accountCallback?.let{uri->try{if(model.accountPage.value==null)model.openAccount();model.account.callback(uri)}finally{MainActivity.pendingAccount.value=null}}}
+
     val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(state.ready,state.settings.probes,vpn.phase) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -86,22 +94,8 @@ private val Error=Color(0xFFFF657A)
     } }
     LaunchedEffect(state.ready,state.settings.automaticUpdates){if(state.ready&&state.settings.automaticUpdates)model.checkUpdates(automatic=true)}
     LaunchedEffect(state.ready) { if(state.ready && state.settings.autoConnect && state.server != null && vpn.phase==VpnPhase.DISCONNECTED) connect() }
-    val file=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if(uri != null) scope.launch(Dispatchers.IO) {
-            runCatching {
-                val bytes=context.contentResolver.openInputStream(uri)!!.use { stream -> stream.readLimited(4*1024*1024) }
-                require(bytes.size <= 4*1024*1024)
-                withContext(Dispatchers.Main) { input=String(bytes,Charsets.UTF_8); add=true }
-            }.onFailure { model.repository.notify("Не удалось прочитать файл (максимум 4 МБ)") }
-        }
-    }
     val qr=rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         result.data?.getStringExtra("content")?.let { input=it;add=true }
-    }
-    val qrImage=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if(uri!=null)scope.launch(Dispatchers.IO) { runCatching { QrImage.decode(context,uri) }
-            .onSuccess { text -> withContext(Dispatchers.Main) {input=text;add=true} }
-            .onFailure { model.repository.notify("На изображении не найден поддерживаемый QR-код") } }
     }
     MaterialTheme(colorScheme=darkColorScheme(primary=Primary, secondary=Color(0xFF62F4E8), background=Background, surface=Surface, onSurface=Color.White, error=Error)) {
         SpaceBackdrop(Modifier.fillMaxSize()) {
@@ -112,15 +106,15 @@ private val Error=Color(0xFFFF657A)
                     else IconButton(onClick={page=if(page==2)3 else 0}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=Color.White)}
                     if(page!=0)Text(if(page==3)"Настройки"else"Подписки",color=Color.White,fontSize=20.sp,fontWeight=FontWeight.Medium)
                     Row {
-                        IconButton(onClick={openHttps(context,com.signet.core.SignetLinks.SUPPORT)}){Icon(Icons.Outlined.SupportAgent,"Техническая поддержка",tint=Color(0xFFCFDBEB))}
+                        IconButton(onClick={model.openAccount("support")}){Icon(Icons.Outlined.SupportAgent,"Техническая поддержка",tint=Color(0xFFCFDBEB))}
                         IconButton(onClick={page=if(page==3)0 else 3}) { Icon(if(page==3)Icons.Outlined.Close else Icons.Outlined.Settings,if(page==3)"Закрыть настройки"else"Настройки",tint=Color(0xFFCFDBEB)) }
                     }
                 }
                 SnackbarHost(snackbar,Modifier.fillMaxWidth()){data->Snackbar(data,containerColor=Surface,contentColor=Color.White,shape=RoundedCornerShape(16.dp),modifier=Modifier.padding(horizontal=16.dp))}
                 update.available?.takeIf{it.version.toString()!=update.dismissed}?.let{UpdateBanner(it,model)}
                 when(page) {
-                    0 -> Home(state,vpn,model,connect,{page=2;add=true},{showServers=true})
-                    2 -> Subscriptions(state,{input="";add=true},{file.launch(arrayOf("text/*","application/json","application/octet-stream"))},{qr.launch(Intent(context,QrScannerActivity::class.java))},{qrImage.launch("image/*")},model::remove,model::refresh,{showAccount=true},{
+                    0 -> Home(state,vpn,model,connect,{page=2;addMenu=true},{showServers=true})
+                    2 -> Subscriptions(state,{addMenu=true},model::remove,model::refresh,model::openAccount,model.account, {
                         runCatching{ClipboardTransfers.read(context,16*1024).also{require(com.signet.core.SubscriptionMetadata.safeLink(it)!=null)}}
                             .onSuccess{input=it;ageKey="";oauthConsent=false;add=true}.onFailure{model.repository.notify("В буфере нет корректной HTTPS ссылки подписки")}
                     })
@@ -136,7 +130,15 @@ private val Error=Color(0xFFFF657A)
                     Modifier.fillMaxWidth().fillMaxHeight(.88f).padding(horizontal=20.dp),activeProbes=activeProbes)
             }
         }
-        if(showAccount)AccountScreen(model){showAccount=false}
+        if(accountPage!=null)MobileAccountScreen(model,accountPage!!){model.accountPage.value=null}
+        UpdateWindow(model)
+        if(addMenu)ModalBottomSheet(onDismissRequest={addMenu=false},containerColor=Surface,contentColor=Color.White){
+            Column(Modifier.fillMaxWidth().padding(horizontal=20.dp).padding(bottom=24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+                Text("Добавить подписку",fontSize=24.sp,fontWeight=FontWeight.SemiBold)
+                GlassButton(onClick={addMenu=false;runCatching{ClipboardTransfers.read(context,16*1024).also{require(com.signet.core.SubscriptionMetadata.safeLink(it)!=null)}}.onSuccess{input=it;ageKey="";oauthConsent=false;add=true}.onFailure{model.repository.notify("В буфере нет корректной ссылки подписки")}},modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.ContentPaste,null);Text("Вставить из буфера обмена",Modifier.padding(start=10.dp))}
+                GlassButton(onClick={addMenu=false;qr.launch(Intent(context,QrScannerActivity::class.java))},modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.QrCodeScanner,null);Text("Отсканировать QR-код",Modifier.padding(start=10.dp))}
+            }
+        }
         if(add) AlertDialog(onDismissRequest={add=false;input="";ageKey="";oauthConsent=false},title={Text("Добавить подписку")},text={
             Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                 Text("HTTPS ссылка, VLESS / Hysteria2 или полный Xray JSON. Ссылки подписки содержат ваш ключ доступа.",color=Muted)
@@ -206,33 +208,42 @@ private val Error=Color(0xFFFF657A)
     }
 }
 
-@Composable private fun Subscriptions(state:AppState,add:()->Unit,file:()->Unit,qr:()->Unit,image:()->Unit,remove:(String)->Unit,refresh:()->Unit,account:()->Unit,paste:()->Unit){
+@Composable private fun Subscriptions(state:AppState,add:()->Unit,remove:(String)->Unit,refresh:()->Unit,account:(String)->Unit,mobile:MobileAccount,paste:()->Unit){
     val context=LocalContext.current
-    Column(Modifier.fillMaxSize().padding(horizontal=22.dp)){
-        Title("Подписки","Ваш доступ к Signet")
-        Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){GlassButton(onClick=add){Icon(Icons.Outlined.Add,null);Text("Добавить")};GlassButton(onClick=qr){Icon(Icons.Outlined.QrCodeScanner,"QR-код")};GlassButton(onClick=file){Icon(Icons.Outlined.FileOpen,"Из файла")}}
-        Row(verticalAlignment=Alignment.CenterVertically){
-            TextButton(onClick=image){Text("QR из изображения")}
-            IconButton(onClick=paste){Icon(Icons.Outlined.ContentPaste,"Добавить ссылку из буфера")}
-        }
-        TextButton(onClick=account){Text("Аккаунт Signet · подписки и оплата")}
-        IconButton(onClick=refresh,enabled=!state.busy){if(state.busy)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Refresh,"Обновить подписки")}
-        if(state.busy)LinearProgressIndicator(Modifier.fillMaxWidth())
-        LazyColumn(verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=20.dp)){
-            if(state.subscriptions.isEmpty())item{Empty("Добро пожаловать","Добавьте ссылку из личного кабинета Signet или импортируйте конфигурацию. Данные хранятся на устройстве в зашифрованном виде.")}
-            items(state.subscriptions,key={it.id}){s->Card(colors=CardDefaults.cardColors(containerColor=Surface)){
-                Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
-                    Row(verticalAlignment=Alignment.CenterVertically){Text(com.signet.core.SubscriptionMetadata.text(s.title,200),Modifier.weight(1f),fontWeight=FontWeight.SemiBold);s.url?.let{url->IconButton(onClick={ClipboardTransfers.copy(context,"Signet subscription",url);android.widget.Toast.makeText(context,"Ссылка скопирована",android.widget.Toast.LENGTH_SHORT).show()}){Icon(Icons.Outlined.ContentCopy,"Копировать ссылку подписки",tint=Muted)}};IconButton(onClick={remove(s.id)}){Icon(Icons.Outlined.DeleteOutline,"Удалить подписку",tint=Muted)}}
-                    Text("${s.servers.size} серверов · ${if(s.url!=null)"Автообновление" else "Локальный профиль"}",color=Muted,fontSize=12.sp)
-                    Text(if(s.format=="XRAY_JSON")"Xray JSON · DNS и маршрутизация сохранены"else"URI-подписка · исходного Xray JSON-шаблона в ней нет",color=Muted,fontSize=12.sp)
-                    if(s.metadata.announcement.isNotBlank())Text(s.metadata.announcement,color=Primary,fontSize=13.sp)
-                    s.error?.let{Text(it,color=Warning,fontSize=12.sp)}
-                    s.metadata.webPage?.let{url->TextButton(onClick={openHttps(context,url)}){Text("Страница подписки")}}
-                    s.metadata.support?.let{url->TextButton(onClick={openHttps(context,url)}){Text("Поддержка подписки")}}
-                    SubscriptionUsage(s)
-                    if(state.settings.cabinet.startsWith("https://"))TextButton(onClick={context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(state.settings.cabinet)))}){Text("Продлить в кабинете")}
+    val remote by mobile.state.collectAsStateWithLifecycle()
+    LaunchedEffect(remote.loggedIn){if(remote.loggedIn)mobile.refresh()}
+    val current=state.subscriptions.firstOrNull{sub->sub.servers.any{it.id==state.selected}}?:state.subscriptions.firstOrNull()
+    var confirmRemove by remember{mutableStateOf(false)}
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+        Text("Текущая подписка",fontSize=26.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.padding(top=8.dp,bottom=4.dp))
+        if(current==null)Text("Добавьте подписку из личного кабинета",color=Muted)
+        else Card(colors=CardDefaults.cardColors(containerColor=Surface)){
+            Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+                Text("Signet VPN",fontSize=20.sp,fontWeight=FontWeight.SemiBold)
+                SubscriptionUsage(current)
+                current.error?.let{Text(it,color=Warning,fontSize=13.sp)}
+                GlassButton(onClick=refresh,enabled=!state.busy,modifier=Modifier.fillMaxWidth()){
+                    if(state.busy)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Refresh,null)
+                    Text("Обновить подписку",Modifier.padding(start=10.dp))
                 }
-            }}
+            }
+        }
+        AccountAction(Icons.Outlined.AccountBalanceWallet,remote.account?.let{"Баланс: ${it.optLong("balance_rub")} ₽"}?:"Баланс и пополнение",{account("balance")})
+        AccountAction(Icons.Outlined.Devices,"Управление устройствами",{account("devices")})
+        AccountAction(Icons.Outlined.Tune,"Настройки подписки",{account("settings")})
+        AccountAction(Icons.Outlined.Add,"Добавить подписку",add)
+        AccountAction(Icons.Outlined.FileDownload,"Импорт ссылки из буфера",paste)
+        current?.url?.let{url->AccountAction(Icons.Outlined.FileUpload,"Экспорт ссылки в буфер",{ClipboardTransfers.copy(context,"Signet subscription",url);android.widget.Toast.makeText(context,"Ссылка скопирована",android.widget.Toast.LENGTH_SHORT).show()})}
+        if(current!=null)AccountAction(Icons.Outlined.DeleteOutline,"Удалить с устройства",{confirmRemove=true})
+        Spacer(Modifier.height(20.dp))
+    }
+    if(confirmRemove&&current!=null)AlertDialog(onDismissRequest={confirmRemove=false},title={Text("Удалить подписку с устройства?")},text={Text("Подписка и устройства в кабинете сохранятся.")},confirmButton={TextButton(onClick={remove(current.id);confirmRemove=false}){Text("Удалить")}},dismissButton={TextButton(onClick={confirmRemove=false}){Text("Отмена")}})
+}
+
+@Composable private fun AccountAction(icon:androidx.compose.ui.graphics.vector.ImageVector,title:String,click:()->Unit){
+    Surface(onClick=click,color=Color(0xDC101B2D),shape=RoundedCornerShape(18.dp),border=BorderStroke(1.dp,Color.White.copy(alpha=.12f)),modifier=Modifier.fillMaxWidth()){
+        Row(Modifier.padding(horizontal=16.dp,vertical=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)){
+            Icon(icon,null,tint=Primary,modifier=Modifier.size(23.dp));Text(title,Modifier.weight(1f),fontSize=16.sp);Icon(Icons.Outlined.ChevronRight,null,tint=Muted)
         }
     }
 }

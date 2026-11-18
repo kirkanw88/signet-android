@@ -10,4 +10,5 @@ class AppReleaseTest {
     @Test fun noIncompatibleFallback(){assertNull(AppRelease.parse(release().toString(),listOf("unknown-cpu")).apk)}
     @Test fun rejectsExternalOrUnsafeUpdateLocations(){assertFails{AppRelease.parse(release().put("html_url","https://evil.example/release").toString(),listOf("arm64-v8a"))};val j=release();j.getJSONArray("assets").getJSONObject(1).put("browser_download_url","http://github.com/${AppRelease.REPOSITORY}/releases/download/v0.3.0/signet-arm64-v8a.apk");assertNull(AppRelease.parse(j.toString(),listOf("arm64-v8a")).apk)}
     @Test fun draftAndPrereleaseAreNotPublicUpdates(){assertFails{AppRelease.parse(release().put("draft",true).toString(),listOf("arm64-v8a"))};assertFails{AppRelease.parse(release().put("prerelease",true).toString(),listOf("arm64-v8a"))}}
+    @Test fun assetsFromADifferentReleaseCannotBeUsed(){val j=release();j.getJSONArray("assets").getJSONObject(1).put("browser_download_url","https://github.com/${AppRelease.REPOSITORY}/releases/download/v0.2.0/signet-arm64-v8a.apk");assertNull(AppRelease.parse(j.toString(),listOf("arm64-v8a")).apk)}
 }

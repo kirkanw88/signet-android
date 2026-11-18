@@ -2,6 +2,8 @@ package com.signet.client.graphics
 
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.graphics.BitmapRegionDecoder
+import android.graphics.Rect
 import android.opengl.*
 import android.view.MotionEvent
 import com.signet.core.Geography
@@ -74,6 +76,9 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     @Volatile var renderedCountry:String?=null
         private set
     private var program = 0; private var texture = 0;private var nightTexture=0;private var spaceTexture=0
+    private var detailDay=0;private var detailNight=0;private var detailReady=false
+    private var detailKey:String?=null
+    private val detailRect=floatArrayOf(0f,0f,1f,1f)
     private val skyVertex=floats(floatArrayOf(-1f,-1f,.999f,1f,-1f,.999f,-1f,1f,.999f,1f,1f,.999f))
     private var skyUv=floats(floatArrayOf(0f,1f,1f,1f,0f,0f,1f,0f))
     private var skyAspect=2f
@@ -110,12 +115,14 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             focusLat=lat;focusLon=lon;targetYaw = lon?.toFloat()?.unaryMinus(); targetPitch = lat?.toFloat() ?: 12f
             markerCoords=capital?.let{it.getDouble("latitude") to it.getDouble("longitude")}
             buildCountry()
+            if(program!=0)loadDetail()
         }
         if(focusConnection){manual=false;targetYaw=focusLon?.toFloat()?.unaryMinus();targetPitch=focusLat?.toFloat()?:12f}
         if(state!=VpnPhase.CONNECTED){capitalRevealed=false;markerState.value=CapitalMarker()}
     }
     fun drag(dx: Float, dy: Float) { manual=true;yaw += dx; pitch = (pitch + dy).coerceIn(-85f, 85f); targetYaw = null }
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        detailReady=false;detailKey=null
         frameReady=false;renderedCountry=null
         // Context can be recreated after backgrounding. Every GPU object is owned by this context.
         GLES20.glClearColor(5f/255, 8f/255, 22f/255, 1f)
@@ -129,7 +136,13 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             void main(){ vUv=aUv; vScreen=aPosition.xy*0.5+0.5; vNormal=mat3(uModel)*normalize(aPosition); gl_Position=uMvp*vec4(aPosition,1.0); gl_PointSize=6.0; }
         """.trimIndent())
         val fs = shader(GLES20.GL_FRAGMENT_SHADER, """
-            precision mediump float; uniform sampler2D uTexture; uniform sampler2D uNight; uniform mediump int uMode; uniform vec4 uColor; uniform vec3 uSun;
+            #ifdef GL_FRAGMENT_PRECISION_HIGH
+            precision highp float;
+            #else
+            precision mediump float;
+            #endif
+            uniform sampler2D uTexture; uniform sampler2D uNight; uniform sampler2D uDetailDay; uniform sampler2D uDetailNight;
+            uniform vec4 uDetailRect; uniform float uDetailBlend; uniform mediump int uMode; uniform vec4 uColor; uniform vec3 uSun;
             varying vec2 vUv; varying vec3 vNormal; varying vec2 vScreen;
             void main(){
                 if(uMode==0){
@@ -138,8 +151,13 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
                     float incidence=dot(normal,sun);
                     float sunlight=max(incidence,0.0);
                     vec3 earth=texture2D(uTexture,vUv).rgb;
+                    vec2 detailUv=(vUv-uDetailRect.xy)/uDetailRect.zw;
+                    vec2 edge=min(detailUv,vec2(1.0)-detailUv);
+                    float detailWeight=uDetailBlend*smoothstep(0.0,0.08,min(edge.x,edge.y));
+                    earth=mix(earth,texture2D(uDetailDay,clamp(detailUv,0.0,1.0)).rgb,detailWeight);
                     float rim=pow(1.0-max(normal.z,0.0),4.5);
                     vec3 night=texture2D(uNight,vUv).rgb;
+                    night=mix(night,texture2D(uDetailNight,clamp(detailUv,0.0,1.0)).rgb,detailWeight);
                     float darkness=1.0-smoothstep(-0.08,0.12,incidence);
                     vec3 linear=pow(earth,vec3(2.2))*(0.008+0.98*sunlight);
                     float city=max(night.r,max(night.g,night.b));
@@ -167,6 +185,9 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         val linked = IntArray(1); GLES20.glGetProgramiv(program, GLES20.GL_LINK_STATUS, linked, 0)
         check(linked[0] != 0) { GLES20.glGetProgramInfoLog(program) }
         GLES20.glDeleteShader(vs); GLES20.glDeleteShader(fs)
+        val detailIds=IntArray(2);GLES20.glGenTextures(2,detailIds,0);detailDay=detailIds[0];detailNight=detailIds[1]
+        // Complete tiny textures even before a country is selected (all sampler uniforms must be valid).
+        for(id in detailIds){GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,id);GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D,0,GLES20.GL_RGB,1,1,0,GLES20.GL_RGB,GLES20.GL_UNSIGNED_SHORT_5_6_5,ByteBuffer.allocateDirect(2));GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER,GLES20.GL_LINEAR)}
         mesh()
         val ids = IntArray(1); GLES20.glGenTextures(1, ids, 0); texture = ids[0]
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture)
@@ -203,6 +224,7 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         capital?.let{focusLat=it.getDouble("latitude");focusLon=it.getDouble("longitude");markerCoords=focusLat!! to focusLon!!;if(!manual){targetYaw=focusLon!!.toFloat().unaryMinus();targetPitch=focusLat!!.toFloat()}}
         if(targetYaw==null && countryData!=null && !manual){targetYaw=countryData!!.optDouble("lon").toFloat().unaryMinus();targetPitch=countryData!!.optDouble("lat").toFloat()}
         buildCountry()
+        loadDetail()
         lastFrame = System.nanoTime()
     }
     override fun onSurfaceChanged(gl: GL10?, w: Int, h: Int) {
@@ -242,6 +264,11 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         Matrix.multiplyMV(sunWorld,0,model,0,sunEarth,0);GLES20.glUniform3fv(GLES20.glGetUniformLocation(program,"uSun"),1,sunWorld,0)
         GLES20.glActiveTexture(GLES20.GL_TEXTURE1);GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,nightTexture);GLES20.glUniform1i(GLES20.glGetUniformLocation(program,"uNight"),1)
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture); GLES20.glUniform1i(GLES20.glGetUniformLocation(program,"uTexture"),0)
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE2);GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,detailDay);GLES20.glUniform1i(GLES20.glGetUniformLocation(program,"uDetailDay"),2)
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE3);GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,detailNight);GLES20.glUniform1i(GLES20.glGetUniformLocation(program,"uDetailNight"),3)
+        GLES20.glUniform4fv(GLES20.glGetUniformLocation(program,"uDetailRect"),1,detailRect,0)
+        GLES20.glUniform1f(GLES20.glGetUniformLocation(program,"uDetailBlend"),if(detailReady)((zoom-1.1f)/.9f).coerceIn(0f,1f)else 0f)
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         setBuffers(vertex, uv); mode(0); GLES20.glDrawElements(GLES20.GL_TRIANGLES,count,GLES20.GL_UNSIGNED_SHORT,indices)
         if (quality != "Battery Saver") {
             Matrix.scaleM(scaledModel,0,model,0,1.025f,1.025f,1.025f)
@@ -305,6 +332,36 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         countryZoom=if(polys==null)1f else GlobeGeometry.zoom(GlobeGeometry.angularRadius(center,allPoints))
         borders = lines; fill = triangles.takeIf { it.isNotEmpty() }?.let { floats(it.toFloatArray()) }
         marker = markerCoords?.let { floats(Geography.point(it.first,it.second,1.015)) }
+    }
+    private fun loadDetail(){
+        val lat=focusLat;val lon=focusLon
+        if(lat==null||lon==null||capital==null){detailReady=false;return}
+        val left=(((lon+180)/360*8192)-1024).toInt().coerceIn(0,8192-2048)
+        val top=(((90-lat)/180*4096)-1024).toInt().coerceIn(0,4096-2048)
+        val key="$left:$top";if(detailReady&&detailKey==key)return
+        detailReady=false;detailKey=key
+        detailRect[0]=left/8192f;detailRect[1]=top/4096f;detailRect[2]=2048/8192f;detailRect[3]=2048/4096f
+        val limit=IntArray(1);GLES20.glGetIntegerv(GLES20.GL_MAX_TEXTURE_SIZE,limit,0)
+        var sample=1;while(2048/sample>limit[0].coerceAtLeast(64))sample*=2
+        detailReady=runCatching{
+            for((asset,id) in listOf("earth-day-8k.jpg" to detailDay,"earth-night-8k.jpg" to detailNight)){
+                context.assets.open(asset).use{stream->
+                    val decoder=BitmapRegionDecoder.newInstance(stream,false)!!
+                    try{
+                        val crop=decoder.decodeRegion(Rect(left,top,left+2048,top+2048),BitmapFactory.Options().apply{inPreferredConfig=android.graphics.Bitmap.Config.RGB_565;inSampleSize=sample})!!
+                        try{
+                            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,id)
+                            GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,crop,0)
+                            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER,GLES20.GL_LINEAR)
+                            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MAG_FILTER,GLES20.GL_LINEAR)
+                            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_S,GLES20.GL_CLAMP_TO_EDGE)
+                            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_T,GLES20.GL_CLAMP_TO_EDGE)
+                        }finally{crop.recycle()}
+                    }finally{decoder.recycle()}
+                }
+            }
+            true
+        }.getOrDefault(false)
     }
     private fun mesh() {
         val positions = ArrayList<Float>(); val tex = ArrayList<Float>(); val idx = ArrayList<Short>()
