@@ -29,22 +29,34 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun favorite(id: String) { viewModelScope.launch { repository.favorite(id) } }
     fun remove(id: String) { viewModelScope.launch { repository.remove(id) } }
     fun refresh() { viewModelScope.launch(Dispatchers.IO) { repository.refreshAll() } }
-    fun save(s: Settings) { viewModelScope.launch { repository.settings(s) } }
+    fun save(s: Settings) { viewModelScope.launch { runCatching { s.probes.validated();repository.settings(s) }.onFailure { repository.notify("Проверьте настройки: HTTPS URL, таймаут и допустимые ограничения") } } }
     fun start() { getApplication<Application>().startForegroundService(Intent(getApplication(), SignetVpnService::class.java)) }
     fun stop() { getApplication<Application>().startService(Intent(getApplication(), SignetVpnService::class.java).setAction("STOP")) }
-    fun measure(auto: Boolean = false) {
+    private var automaticProbe=false
+    fun cancelAutoProbes(){if(automaticProbe)probeJob?.cancel()}
+    fun measure(onlySelected: Boolean = false,automatic:Boolean=false) {
         if (_probing.value) { probeJob?.cancel(); return }
+        automaticProbe=automatic
         probeJob = viewModelScope.launch(Dispatchers.IO) {
             _probing.value = true
             try {
-                for(batch in state.value.servers.chunked(5)) {
-                    val results = Probes.measure(getApplication(), batch)
-                    results.forEach { (id, delay) -> repository.measurement(id, delay) }
+                val options=state.value.settings.probes.validated()
+                val targets=if(onlySelected)listOfNotNull(state.value.server)else state.value.servers.filter{it.enabled}
+                for(batch in targets.chunked(options.parallelism)) {
+                    val samples=batch.associate{it.id to mutableListOf<Long>()};val statuses=mutableMapOf<String,String>()
+                    repeat(options.attempts) { attempt->
+                        Probes.measureDetailed(getApplication(),batch,options).forEach { (id,result)->
+                            result.delay?.let { samples.getValue(id).add(it) };statuses[id]=result.status
+                        }
+                        if(attempt<options.attempts-1)delay(options.intervalMs.toLong())
+                    }
+                    batch.forEach { server->val values=samples.getValue(server.id).sorted();repository.measurement(server.id,values.getOrNull(values.size/2),options.mode.name,if(values.isEmpty())statuses[server.id]else"OK") }
+                    delay(200)
                 }
                 // A probe NEVER changes the selection or the server's AUTO configuration.
             } catch(e: CancellationException) { throw e }
             catch(e: Exception) { repository.notify("Не удалось измерить задержку") }
-            finally { _probing.value = false }
+            finally { _probing.value = false;automaticProbe=false }
         }
     }
     fun diagnostics() {

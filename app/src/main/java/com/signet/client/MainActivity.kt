@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
         setContent { SignetScreen(model, ::connect) }
     }
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); consume(intent) }
+    override fun onStop(){model.cancelAutoProbes();super.onStop()}
     private fun consume(intent: Intent?) {
         val raw = if(intent?.action == Intent.ACTION_SEND) intent.getStringExtra(Intent.EXTRA_TEXT) else intent?.data?.let {
             if(it.scheme == "signet" && it.host == "import") it.getQueryParameter("url") else it.toString()

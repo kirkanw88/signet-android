@@ -13,7 +13,7 @@ data class Server(
     val latencyMs: Long? = null, val checkedAt: Long = 0, val available: Boolean? = null,
     val favorite: Boolean = false, val successes: Int = 0, val originalConfig: String = config,
     val isAuto: Boolean = false, val description: String? = null, val profileKey: String? = null,
-    val enabled: Boolean = true, val probeMode: String? = null
+    val enabled: Boolean = true, val probeMode: String? = null, val probeMessage:String?=null
 ) {
     val countryName: String get() = countryCode?.let { Locale("ru", it).displayCountry } ?: "Локация не указана"
     val flag: String get() = if(isAuto) "AUTO" else countryCode.orEmpty()
@@ -80,7 +80,7 @@ object Profiles {
         val inbounds = JSONArray()
         val originalTag = config.optJSONArray("inbounds")?.optJSONObject(0)?.optString("tag")?.takeIf { it.isNotBlank() } ?: "signet-tun"
         inbounds.put(JSONObject().put("tag", originalTag).put("protocol", "tun").put("settings", JSONObject().put("name", "signet").put("MTU", 1500)))
-        inbounds.put(JSONObject().put("tag", "signet-check").put("listen", "127.0.0.1").put("port", socksPort).put("protocol", "socks").put("settings", JSONObject().put("udp", true)))
+        inbounds.put(JSONObject().put("tag", "signet-check").put("listen", "127.0.0.1").put("port", socksPort).put("protocol", "socks").put("settings", JSONObject().put("auth","password").put("accounts",JSONArray().put(JSONObject().put("user","signet").put("pass",java.util.UUID.randomUUID().toString())))))
         config.put("inbounds", inbounds)
         if (!config.has("dns")) config.put("dns", JSONObject().put("servers", JSONArray().put(dns)))
         config.put("log", JSONObject().put("loglevel", "none"))
@@ -90,6 +90,14 @@ object Profiles {
         val system = policy.optJSONObject("system") ?: JSONObject()
         system.put("statsOutboundUplink", true).put("statsOutboundDownlink", true)
         policy.put("system", system); config.put("policy", policy)
+        return config
+    }
+    fun probeRuntime(server:Server,port:Int,assets:String,secret:String):JSONObject {
+        val config=JSONObject(server.config)
+        val tag=config.optJSONArray("inbounds")?.optJSONObject(0)?.optString("tag")?.takeIf{it.isNotBlank()}?:"signet-probe"
+        config.put("inbounds",JSONArray().put(JSONObject().put("tag",tag).put("listen","127.0.0.1").put("port",port).put("protocol","http").put("settings",JSONObject().put("accounts",JSONArray().put(JSONObject().put("user","signet").put("pass",secret))))))
+        val env=config.optJSONObject("env")?:JSONObject();env.remove("xray.tun.fd");env.put("xray.location.asset",assets);config.put("env",env)
+        config.remove("metrics");config.remove("api");config.put("log",JSONObject().put("loglevel","none"))
         return config
     }
 }

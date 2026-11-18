@@ -56,6 +56,15 @@ private val Error=Color(0xFFFF657A)
     var ageKey by remember { mutableStateOf("") }
     val context=LocalContext.current
     val scope=rememberCoroutineScope()
+    val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(state.ready,state.settings.probes) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            if(state.ready&&state.settings.probes.automatic)while(true){
+                if(model.state.value.server!=null&&!model.probing.value)model.measure(onlySelected=true,automatic=true)
+                delay(state.settings.probes.autoMinutes*60_000L)
+            }
+        }
+    }
     val snackbar=remember { SnackbarHostState() }
     val pending=MainActivity.pendingImport.value
     LaunchedEffect(pending) { if(pending != null) { input=pending; add=true; MainActivity.pendingImport.value=null } }
@@ -93,8 +102,8 @@ private val Error=Color(0xFFFF657A)
                     IconButton(onClick={page=3}) { Icon(Icons.Outlined.Settings,"Настройки",tint=Muted) }
                 }
                 when(page) {
-                    0 -> Home(state,vpn,connect,model::stop,{page=2;add=true},model::select,model::selectAuto,probing)
-                    1 -> Servers(state,probing,model::select,model::favorite,{model.measure()},model::refresh)
+                    0 -> Home(state,vpn,model,connect,{page=2;add=true})
+                    1 -> LocationList(state,vpn,probing,model::select,model::favorite,{model.measure()},model::refresh,Modifier.fillMaxSize().padding(horizontal=16.dp))
                     2 -> Subscriptions(state,{input="";add=true},{file.launch(arrayOf("text/*","application/json","application/octet-stream"))},{qr.launch(Intent(context,QrScannerActivity::class.java))},{qrImage.launch("image/*")},model::remove,model::refresh)
                     3 -> Preferences(state,model)
                 }
@@ -110,55 +119,32 @@ private val Error=Color(0xFFFF657A)
     }
 }
 
-@Composable private fun Home(state: AppState,vpn: VpnStatus,connect:()->Unit,stop:()->Unit,add:()->Unit,select:(String)->Unit,auto:()->Unit,probing:Boolean) {
+@Composable private fun Home(state:AppState,vpn:VpnStatus,model:MainViewModel,connect:()->Unit,add:()->Unit) {
     val phase=vpn.phase
     val active=phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING)
-    val status=when(phase){VpnPhase.CONNECTED->"Защищено";VpnPhase.CONNECTING->"Подключение";VpnPhase.RECONNECTING->"Переподключение";VpnPhase.ERROR->"Ошибка подключения";VpnPhase.DISCONNECTING->"Отключение";else->"Не подключено"}
-    val server=if(phase==VpnPhase.CONNECTED)state.servers.firstOrNull { it.id==vpn.serverId } else state.server
-    val configuration=LocalConfiguration.current
-    if(configuration.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE){
-        Row(Modifier.fillMaxSize().padding(horizontal=22.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(18.dp)){
-            Globe(server,phase,state.settings,Modifier.weight(1f).fillMaxHeight())
-            Column(Modifier.weight(1f).fillMaxHeight(),verticalArrangement=Arrangement.Center){
-                Text(status,color=if(phase==VpnPhase.CONNECTED)Green else Color.White,fontSize=22.sp)
-                Text(server?.let{"${it.flag} ${it.countryName}"}?:"Добавьте вашу подписку",color=Muted,modifier=Modifier.padding(vertical=10.dp),maxLines=2)
-                Button(onClick={if(active)stop()else if(server==null)add()else connect()},modifier=Modifier.fillMaxWidth().heightIn(min=52.dp)){Text(if(active)"Отключиться"else if(server==null)"Добавить подписку"else"Подключиться")}
-            }
+    val server=if(phase==VpnPhase.CONNECTED)state.servers.firstOrNull{it.id==vpn.serverId}else state.server
+    val display=server?.let{com.signet.core.ServerDisplayModel.from(it)}
+    val status=when(phase){VpnPhase.CONNECTED->"????????";VpnPhase.CONNECTING->"???????????";VpnPhase.RECONNECTING->"???????????????";VpnPhase.ERROR->"?????? ???????????";VpnPhase.DISCONNECTING->"??????????";else->"?? ??????????"}
+    val probing by model.probing.collectAsStateWithLifecycle()
+    val landscape=LocalConfiguration.current.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    @Composable fun connectionButton() {
+        Button(onClick={if(active)model.stop()else if(server==null)add()else connect()},enabled=phase!=VpnPhase.DISCONNECTING,modifier=Modifier.fillMaxWidth().heightIn(min=56.dp),shape=RoundedCornerShape(18.dp)) {
+            if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Background)else Icon(Icons.Outlined.PowerSettingsNew,null)
+            Text(if(phase==VpnPhase.DISCONNECTING)"???????????"else if(active)"???????????"else if(server==null)"???????? ????????"else"????????????",Modifier.padding(start=8.dp),maxLines=2)
         }
-        return
+        if(phase==VpnPhase.ERROR)TextButton(onClick=model::stop){Text("?????????? VPN")}
     }
-    var elapsed by remember { mutableLongStateOf(0) }
-    LaunchedEffect(vpn.since,phase) { while(phase==VpnPhase.CONNECTED){elapsed=(android.os.SystemClock.elapsedRealtime()-vpn.since)/1000;delay(1000)} }
-    Column(Modifier.fillMaxSize().padding(horizontal=22.dp),horizontalAlignment=Alignment.CenterHorizontally) {
-      Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),horizontalAlignment=Alignment.CenterHorizontally){
-        Text("ВАШ ЛИЧНЫЙ МАРШРУТ",color=Muted,fontSize=10.sp,letterSpacing=3.sp,modifier=Modifier.padding(top=14.dp))
-        Row(verticalAlignment=Alignment.CenterVertically,modifier=Modifier.padding(top=8.dp)) {
-            Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(if(phase==VpnPhase.CONNECTED)Green else Muted))
-            Text(status,color=if(phase==VpnPhase.CONNECTED)Green else Color.White,fontSize=26.sp,fontWeight=FontWeight.Light,modifier=Modifier.padding(start=10.dp))
-        }
-        Text(if(phase==VpnPhase.CONNECTED) "%02d:%02d:%02d".format(elapsed/3600,elapsed/60%60,elapsed%60) else "Свобода соединения. В любой точке мира.",color=Muted,fontSize=12.sp,modifier=Modifier.padding(top=8.dp))
-        val globeHeight=(configuration.screenHeightDp-(if(state.servers.isEmpty())380 else 530)).coerceIn(150,380).dp
-        Box(Modifier.fillMaxWidth().height(globeHeight),contentAlignment=Alignment.Center) {
-            Globe(state.server,phase,state.settings,Modifier.fillMaxSize())
-        }
-        Text(server?.let{"${it.flag}  ${it.countryName}"} ?: "Весь мир на связи",fontSize=20.sp,fontWeight=FontWeight.Medium)
-        Text(server?.city ?: server?.name ?: "Добавьте вашу подписку Signet",color=Muted,fontSize=12.sp,maxLines=2,overflow=TextOverflow.Ellipsis,modifier=Modifier.padding(top=6.dp,bottom=20.dp))
-        if(vpn.error!=null) Text(vpn.error,color=Error,fontSize=12.sp,modifier=Modifier.padding(bottom=12.dp))
-      }
-        Button(onClick={if(active)stop() else if(server==null)add() else connect()},enabled=phase!=VpnPhase.DISCONNECTING,shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth().heightIn(min=60.dp),colors=ButtonDefaults.buttonColors(containerColor=if(phase==VpnPhase.CONNECTED)Green else Primary,contentColor=Background)) {
-            if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING)) CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp,color=Background)
-            else Icon(Icons.Outlined.PowerSettingsNew,null,Modifier.size(22.dp))
-            Text(if(phase==VpnPhase.DISCONNECTING)"Отключение…" else if(active)"Отключиться" else if(server==null)"Добавить подписку" else "Подключиться",fontSize=16.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.padding(start=12.dp))
-        }
-        if(phase==VpnPhase.CONNECTED) Row(Modifier.fillMaxWidth().padding(top=12.dp),horizontalArrangement=Arrangement.SpaceEvenly){Text("↑ ${bytes(vpn.uploaded)}",color=Muted,fontSize=12.sp);Text("↓ ${bytes(vpn.downloaded)}",color=Muted,fontSize=12.sp)}
-        if(state.servers.isNotEmpty()) {
-            Row(Modifier.fillMaxWidth().padding(top=12.dp,bottom=8.dp),horizontalArrangement=Arrangement.SpaceBetween){Text("ЛОКАЦИИ",color=Muted,fontSize=10.sp,letterSpacing=2.sp);Text("HTTP · ms",color=Muted,fontSize=10.sp)}
-            LazyRow(horizontalArrangement=Arrangement.spacedBy(10.dp),modifier=Modifier.fillMaxWidth().padding(bottom=8.dp)) {
-                if(state.servers.any{it.isAuto}) item { Surface(onClick=auto,shape=RoundedCornerShape(18.dp),color=Surface,modifier=Modifier.width(136.dp).height(90.dp)) {Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.SpaceBetween){Text("AUTO",color=Primary,fontWeight=FontWeight.Bold);Text("Автоматическая маршрутизация",color=Muted,fontSize=11.sp)}} }
-                items(state.servers,key={it.id}){s -> Surface(onClick={select(s.id)},shape=RoundedCornerShape(18.dp),color=Surface,border=if(s.id==state.selected)BorderStroke(1.dp,Primary)else null,modifier=Modifier.width(164.dp).height(90.dp)){Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.SpaceBetween){Text("${s.flag} ${s.countryName}",fontSize=13.sp,maxLines=1);Text(s.city?:s.name,color=Muted,fontSize=11.sp,maxLines=1,overflow=TextOverflow.Ellipsis);Latency(s)}} }
-            }
-        }
-        else Spacer(Modifier.height(12.dp))
+    if(landscape) Row(Modifier.fillMaxSize().padding(horizontal=16.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.weight(1f),horizontalAlignment=Alignment.CenterHorizontally){Text(status,fontSize=22.sp,color=if(phase==VpnPhase.CONNECTED)Green else Color.White);Globe(server,phase,state.settings,Modifier.weight(1f).fillMaxWidth());Text(display?.title?:"???? ??? ?? ?????",maxLines=2,overflow=TextOverflow.Ellipsis)}
+        Column(Modifier.weight(1f)){LocationList(state,vpn,probing,model::select,model::favorite,{model.measure()},model::refresh,Modifier.weight(1f),compact=true);connectionButton()}
+    } else Column(Modifier.fillMaxSize().padding(horizontal=16.dp),horizontalAlignment=Alignment.CenterHorizontally) {
+        Text(status,fontSize=24.sp,fontWeight=FontWeight.Light,color=if(phase==VpnPhase.CONNECTED)Green else Color.White,maxLines=1)
+        Box(Modifier.fillMaxWidth().height(if(LocalConfiguration.current.screenHeightDp<720)140.dp else 200.dp),contentAlignment=Alignment.Center){Globe(server,phase,state.settings,Modifier.fillMaxSize())}
+        Row(verticalAlignment=Alignment.CenterVertically,modifier=Modifier.padding(bottom=8.dp)) {CountryFlag(display?.country,display?.isAuto?:false);Text(display?.title?:"???? ??? ?? ?????",Modifier.padding(start=10.dp),fontSize=17.sp,maxLines=1,overflow=TextOverflow.Ellipsis)}
+        vpn.error?.let{Text(it,color=Warning,fontSize=11.sp,maxLines=2,overflow=TextOverflow.Ellipsis)}
+        LocationList(state,vpn,probing,model::select,model::favorite,{model.measure()},model::refresh,Modifier.weight(1f),compact=true)
+        connectionButton()
+        if(phase==VpnPhase.CONNECTED)Text("? ${bytes(vpn.uploaded)}    ? ${bytes(vpn.downloaded)}",color=Muted,fontSize=11.sp,modifier=Modifier.padding(vertical=4.dp))else Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -171,21 +157,6 @@ private val Error=Color(0xFFFF657A)
         onDispose { lifecycle.removeObserver(observer);view.onPause() }
     }
     AndroidView(factory={view},modifier=modifier,update={it.update(server,phase,settings.graphics,settings.reduceMotion)})
-}
-
-@Composable private fun Servers(state:AppState,probing:Boolean,select:(String)->Unit,favorite:(String)->Unit,measure:()->Unit,refresh:()->Unit){
-    var query by rememberSaveable{mutableStateOf("")};var favorites by rememberSaveable{mutableStateOf(false)};var sort by rememberSaveable{mutableStateOf(false)}
-    Column(Modifier.fillMaxSize().padding(horizontal=22.dp)){
-        Title("Локации","Ваши серверы по всему миру")
-        OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),placeholder={Text("Страна, город или сервер")},leadingIcon={Icon(Icons.Outlined.Search,null)},singleLine=true,shape=RoundedCornerShape(16.dp))
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){FilterChip(favorites,{favorites=!favorites},label={Text("Избранное")});FilterChip(sort,{sort=!sort},label={Text("По задержке")})}
-        Row{TextButton(onClick=measure,enabled=state.servers.isNotEmpty()){Text(if(probing)"Отменить проверку" else "Измерить HTTP")};TextButton(onClick=refresh,enabled=!state.busy){Text("Обновить")}}
-        val list=state.servers.filter{(!favorites||it.favorite)&&"${it.name} ${it.city} ${it.countryName}".contains(query,true)}.let{if(sort)it.sortedBy{it.latencyMs?:Long.MAX_VALUE}else it.sortedBy{it.countryName}}
-        LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp),contentPadding=PaddingValues(bottom=20.dp)){
-            if(list.isEmpty())item{Empty("Здесь пока нет серверов","Добавьте подписку на вкладке «Подписки».")}
-            items(list,key={it.id}){s->Card(onClick={select(s.id)},colors=CardDefaults.cardColors(containerColor=Surface),border=if(s.id==state.selected)BorderStroke(1.dp,Primary)else null){Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically){Text(s.flag,fontSize=24.sp);Column(Modifier.weight(1f).padding(horizontal=12.dp)){Text(s.countryName,fontSize=15.sp);Text(s.city?:s.name,color=Muted,fontSize=12.sp,maxLines=2);Latency(s)};IconButton(onClick={favorite(s.id)}){Icon(if(s.favorite)Icons.Outlined.Star else Icons.Outlined.StarOutline,"Избранное",tint=if(s.favorite)Warning else Muted)}}}}
-        }
-    }
 }
 
 @Composable private fun Subscriptions(state:AppState,add:()->Unit,file:()->Unit,qr:()->Unit,image:()->Unit,remove:(String)->Unit,refresh:()->Unit){
@@ -216,7 +187,8 @@ private val Error=Color(0xFFFF657A)
     val s=state.settings;val context=LocalContext.current;val scope=rememberCoroutineScope();val report by model.diagnostic.collectAsStateWithLifecycle()
     var dns by remember(s.dns){mutableStateOf(s.dns)};var cabinet by remember(s.cabinet){mutableStateOf(s.cabinet)}
     var showApps by rememberSaveable{mutableStateOf(false)}
-    var packages by remember(s.packages){mutableStateOf(s.packages)}
+    var showProbeSettings by rememberSaveable{mutableStateOf(false)}
+    val probing by model.probing.collectAsStateWithLifecycle()
     var routeText by remember{mutableStateOf("")};var routeDialog by remember{mutableStateOf(false)}
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")){uri->if(uri!=null)scope.launch(Dispatchers.IO){runCatching{context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use{it.write(report)}}}}
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=22.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
@@ -248,11 +220,8 @@ private val Error=Color(0xFFFF657A)
         if(report.isNotBlank()){Text(report,color=Muted,fontSize=12.sp);TextButton(onClick={export.launch("signet-diagnostics.txt")}){Text("Экспорт без ключей и адресов серверов")}}
         Spacer(Modifier.height(24.dp))
     }
-    if(showApps){
-        var apps by remember{mutableStateOf(emptyList<Pair<String,String>>())};var query by remember{mutableStateOf("")}
-        LaunchedEffect(Unit){apps=withContext(Dispatchers.IO){context.packageManager.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER),0).map{it.activityInfo.packageName to it.loadLabel(context.packageManager).toString()}.distinctBy{it.first}.sortedBy{it.second}}}
-        AlertDialog(onDismissRequest={showApps=false},title={Text("Приложения")},text={Column{OutlinedTextField(query,{query=it},label={Text("Поиск")});LazyColumn(Modifier.heightIn(max=360.dp)){items(apps.filter{it.second.contains(query,true)},key={it.first}){(pkg,label)->Row(Modifier.fillMaxWidth().clickable{packages=if(pkg in packages)packages-pkg else packages+pkg},verticalAlignment=Alignment.CenterVertically){Checkbox(pkg in packages,{checked->packages=if(checked)packages+pkg else packages-pkg});Text(label,fontSize=13.sp)}}}}},confirmButton={TextButton(onClick={model.save(s.copy(packages=packages));showApps=false}){Text("Сохранить")}},dismissButton={TextButton(onClick={showApps=false}){Text("Отмена")}})
-    }
+    if(showApps)ApplicationsScreen(model){showApps=false}
+    if(showProbeSettings)ProbePreferences(model){showProbeSettings=false}
     if(routeDialog)AlertDialog(onDismissRequest={routeDialog=false},title={Text("Конфигурация Xray")},text={Column{Text("Конфигурация содержит секретные ключи. Не публикуйте её. Изменения заменяются при обновлении подписки.",color=Warning,fontSize=12.sp);OutlinedTextField(routeText,{if(it.length<=512*1024)routeText=it},modifier=Modifier.fillMaxWidth().heightIn(max=300.dp),maxLines=12)}},confirmButton={TextButton(onClick={scope.launch(Dispatchers.IO){if(VpnState.status.value.phase!=VpnPhase.DISCONNECTED)model.repository.notify("Для проверки остановите VPN")else runCatching{NativeCore.call("testXray",org.json.JSONObject().put("xrayJson",routeText));state.server?.id?.let{model.repository.edit(it,routeText)};model.repository.notify("Проверено ядром и сохранено");withContext(Dispatchers.Main){routeDialog=false}}.onFailure{model.repository.notify("Конфигурация не прошла проверку")}}}){Text("Проверить и сохранить")}},dismissButton={TextButton(onClick={routeDialog=false}){Text("Закрыть")}})
 }
 

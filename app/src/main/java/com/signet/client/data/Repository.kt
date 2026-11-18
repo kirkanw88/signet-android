@@ -138,5 +138,5 @@ class Repository(private val context: Context, private val vault: Vault, private
         finally { _state.update { it.copy(busy = false) } }
     }
     suspend fun refreshAll() { awaitReady(); state.value.subscriptions.filter { it.url != null }.forEach { import(it.url!!, it.id) } }
-    suspend fun measurement(id: String, delay: Long?) = updateServers(persistent = false) { if (it.id == id) it.copy(latencyMs = delay, available = delay != null, checkedAt = System.currentTimeMillis()) else it }
+    suspend fun measurement(id: String, delay: Long?,mode:String="OUTBOUND",status:String?=null) = updateServers(persistent = false) { if (it.id == id) it.copy(latencyMs = delay, available = if(status=="UNSUPPORTED")null else delay != null, checkedAt = System.currentTimeMillis(),probeMode=mode,probeMessage=status) else it }
 }
