@@ -6,6 +6,7 @@ import android.net.*
 import android.os.*
 import com.signet.core.*
 import com.signet.client.data.awaitResponse
+import com.signet.client.data.readLimited
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -29,10 +30,10 @@ class ProbeService:Service() {
     }
     override fun onCreate(){super.onCreate();libXray.LibXray.registerDialerController(controller)}
     private val incoming=Messenger(Handler(Looper.getMainLooper()){message->
-        val raw=message.data.getString("request")?:return@Handler true
+        val fd=message.data.getParcelable<ParcelFileDescriptor>("requestFd")?:return@Handler true
         val reply=message.replyTo
         scope.launch {
-            val result=lock.withLock { runCatching { execute(JSONObject(raw)) }.getOrDefault(JSONObject()) }
+            val result=lock.withLock { runCatching { val raw=ParcelFileDescriptor.AutoCloseInputStream(fd).use{String(it.readLimited(16*1024*1024),Charsets.UTF_8)};execute(JSONObject(raw)) }.getOrDefault(JSONObject()) }
             runCatching{reply.send(Message.obtain(null,1).apply{data=Bundle().apply{putString("result",result.toString())}})}
         };true
     })
@@ -42,7 +43,9 @@ class ProbeService:Service() {
         val array=request.getJSONArray("servers");require(array.length() in 1..5)
         val servers=(0 until array.length()).map { i->val s=array.getJSONObject(i);Profiles.parseJson(s.getString("config")).single().copy(id=s.getString("id")) }
         val out=JSONArray()
-        if(options.mode==ProbeMode.TCP||options.mode==ProbeMode.HTTPS) {
+        if(request.optBoolean("validateOnly")) {
+            for(server in servers)out.put(fullProfile(server,options,validateOnly=true))
+        } else if(options.mode==ProbeMode.TCP||options.mode==ProbeMode.HTTPS) {
             val result=coroutineScope {servers.map{s->async { direct(s,options) }}.awaitAll()}
             result.forEach(out::put)
         } else if(options.mode==ProbeMode.OUTBOUND && servers.none{it.isAuto}) {
@@ -82,7 +85,7 @@ class ProbeService:Service() {
             JSONObject().put("id",server.id).put("delay",SystemClock.elapsedRealtime()-started).put("status","OK")
         }.getOrElse {JSONObject().put("id",server.id).put("status","FAILED")}
     }
-    private suspend fun fullProfile(server:Server,options:ProbeSettings):JSONObject {
+    private suspend fun fullProfile(server:Server,options:ProbeSettings,validateOnly:Boolean=false):JSONObject {
         val started=SystemClock.elapsedRealtime()
         val assetsDir=File(filesDir,"geo").apply{mkdirs()}
         listOf("geoip.dat","geosite.dat").forEach{name->val target=File(assetsDir,name);if(!target.exists())assets.open(name).use{input->target.outputStream().use(input::copyTo)}}
@@ -92,6 +95,7 @@ class ProbeService:Service() {
         var client:OkHttpClient?=null
         return try {
             NativeCore.call("testXray",JSONObject().put("xrayJson",config.toString()))
+            if(validateOnly)return JSONObject().put("id",server.id).put("status","VALID")
             NativeCore.call("runXray",JSONObject().put("xrayJson",config.toString()))
             client=OkHttpClient.Builder().proxy(java.net.Proxy(java.net.Proxy.Type.HTTP,InetSocketAddress("127.0.0.1",port)))
                 .proxyAuthenticator { _,response->if(response.request.header("Proxy-Authorization")!=null)null else response.request.newBuilder().header("Proxy-Authorization",Credentials.basic("signet",secret)).build() }
@@ -108,11 +112,14 @@ class ProbeService:Service() {
 data class ProbeMeasurement(val delay:Long?,val status:String)
 object Probes {
     suspend fun measure(context:Context,servers:List<Server>):Map<String,Long?> = measureDetailed(context,servers,ProbeSettings()).mapValues{it.value.delay}
-    suspend fun measureDetailed(context:Context,servers:List<Server>,options:ProbeSettings):Map<String,ProbeMeasurement> = withTimeout((options.timeoutMs.toLong()+5000)*servers.size.coerceAtLeast(1)+5000) {
+    suspend fun validate(context:Context,server:Server):Boolean=measureDetailed(context,listOf(server),ProbeSettings(mode=ProbeMode.XRAY,timeoutMs=15000),validateOnly=true)[server.id]?.status=="VALID"
+    suspend fun measureDetailed(context:Context,servers:List<Server>,options:ProbeSettings,validateOnly:Boolean=false):Map<String,ProbeMeasurement> = withTimeout((options.timeoutMs.toLong()+5000)*servers.size.coerceAtLeast(1)+5000) {
         options.validated();require(servers.size in 1..5)
         val array=JSONArray();servers.forEach{array.put(JSONObject().put("id",it.id).put("config",it.config))}
-        val request=JSONObject().put("servers",array).put("options",options.json()).toString()
-        require(request.toByteArray().size<600_000){"Конфигурация слишком велика для измерения"}
+        val request=JSONObject().put("servers",array).put("options",options.json()).put("validateOnly",validateOnly).toString().toByteArray()
+        require(request.size<=16*1024*1024){"Конфигурация слишком велика для измерения"}
+        val pipe=ParcelFileDescriptor.createPipe()
+        val writer=CoroutineScope(currentCoroutineContext()).launch(Dispatchers.IO){runCatching{ParcelFileDescriptor.AutoCloseOutputStream(pipe[1]).use{it.write(request)}}}
         var connection:ServiceConnection?=null
         try {
             suspendCancellableCoroutine { continuation->
@@ -124,11 +131,11 @@ object Probes {
                     if(continuation.isActive)continuation.resume(result);true
                 })
                 connection=object:ServiceConnection {
-                    override fun onServiceConnected(name:ComponentName?,binder:IBinder?){runCatching{Messenger(binder).send(Message.obtain(null,1).apply{replyTo=reply;data=Bundle().apply{putString("request",request)}})}.onFailure{if(continuation.isActive)continuation.resume(servers.associate{it.id to ProbeMeasurement(null,"FAILED")})}}
+                    override fun onServiceConnected(name:ComponentName?,binder:IBinder?){runCatching{Messenger(binder).send(Message.obtain(null,1).apply{replyTo=reply;data=Bundle().apply{putParcelable("requestFd",pipe[0])}});pipe[0].close()}.onFailure{if(continuation.isActive)continuation.resume(servers.associate{it.id to ProbeMeasurement(null,"FAILED")})}}
                     override fun onServiceDisconnected(name:ComponentName?){if(continuation.isActive)continuation.resume(servers.associate{it.id to ProbeMeasurement(null,"FAILED")})}
                 }
                 if(!context.bindService(Intent(context,ProbeService::class.java),connection!!,Context.BIND_AUTO_CREATE))continuation.resume(servers.associate{it.id to ProbeMeasurement(null,"FAILED")})
             }
-        } finally {connection?.let{runCatching{context.unbindService(it)}}}
+        } finally {connection?.let{runCatching{context.unbindService(it)}};writer.cancel();pipe.forEach{runCatching{it.close()}}}
     }
 }

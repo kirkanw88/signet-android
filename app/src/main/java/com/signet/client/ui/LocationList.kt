@@ -23,10 +23,13 @@ import com.signet.core.*
 @Composable fun LocationList(state:AppState,vpn:VpnStatus,probing:Boolean,select:(String)->Unit,favorite:(String)->Unit,ping:()->Unit,refresh:()->Unit,modifier:Modifier=Modifier,compact:Boolean=false) {
     var query by rememberSaveable{mutableStateOf("")};var favoriteOnly by rememberSaveable{mutableStateOf(false)}
     var sort by rememberSaveable{mutableStateOf(false)};var collapsed by rememberSaveable{mutableStateOf(listOf<String>())}
+    var notice by remember{mutableStateOf(false)}
+    val announcements=state.subscriptions.map{it.metadata.announcement}.filter{it.isNotBlank()}.distinct().joinToString("\n\n")
     val displays=remember(state.servers){state.servers.associate{it.id to ServerDisplayModel.from(it)}}
     val filtered=state.servers.filter { s->(!favoriteOnly||s.favorite)&&("${displays[s.id]?.title} ${s.countryName} ${displays[s.id]?.description} ${displays[s.id]?.transport}").contains(query,true) }
     val groups=filtered.filterNot{it.isAuto}.groupBy{displays.getValue(it.id).group}.toSortedMap()
     Column(modifier) {
+        if(announcements.isNotBlank())Text(announcements,Modifier.fillMaxWidth().clickable{notice=true}.padding(vertical=8.dp),color=Color(0xFF39C8FF),fontSize=12.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
             Text("Локации",Modifier.weight(1f),fontWeight=FontWeight.SemiBold,fontSize=18.sp)
             TextButton(onClick=ping,enabled=state.servers.isNotEmpty()){if(probing)CircularProgressIndicator(Modifier.size(12.dp),strokeWidth=1.5.dp);Text(if(probing)" Стоп"else"Ping")}
@@ -50,6 +53,7 @@ import com.signet.core.*
             if(filtered.isEmpty())item{Text(if(state.servers.isEmpty())"Добавьте подписку, чтобы увидеть серверы"else"Ничего не найдено",Modifier.padding(vertical=24.dp),color=Color(0xFF9BAAC2))}
         }
     }
+    if(notice)FullScreenPanel("Сообщение подписки",{notice=false}){Column(Modifier.weight(1f).verticalScroll(rememberScrollState())){Text(announcements)}}
 }
 
 @Composable private fun ServerRow(server:Server,display:ServerDisplayModel,state:AppState,vpn:VpnStatus,select:(String)->Unit,favorite:(String)->Unit) {

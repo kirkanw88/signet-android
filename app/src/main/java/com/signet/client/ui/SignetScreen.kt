@@ -173,6 +173,11 @@ private val Error=Color(0xFFFF657A)
                 Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
                     Row(verticalAlignment=Alignment.CenterVertically){Text(s.title,Modifier.weight(1f),fontWeight=FontWeight.SemiBold);IconButton(onClick={remove(s.id)}){Icon(Icons.Outlined.DeleteOutline,"Удалить подписку",tint=Muted)}}
                     Text("${s.servers.size} серверов · ${if(s.url!=null)"Автообновление" else "Локальный профиль"}",color=Muted,fontSize=12.sp)
+                    Text(if(s.format=="XRAY_JSON")"Xray JSON ? DNS ? ????????????? ?????????"else"URI-???????? ? ?????????? Xray JSON-??????? ? ??? ?? ??????????",color=Muted,fontSize=12.sp)
+                    if(s.metadata.announcement.isNotBlank())Text(s.metadata.announcement,color=Primary,fontSize=13.sp)
+                    s.error?.let{Text(it,color=Warning,fontSize=12.sp)}
+                    s.metadata.webPage?.let{url->TextButton(onClick={context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))}){Text("???????? ????????")}}
+                    s.metadata.support?.let{url->TextButton(onClick={context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))}){Text("????????? ????????")}}
                     val expire=s.info["expire"]?.takeIf{it>0};val total=s.info["total"]?:0;val used=(s.info["upload"]?:0)+(s.info["download"]?:0)
                     if(expire!=null){val remaining=expire*1000-System.currentTimeMillis();val days=remaining/86_400_000;Text(if(remaining<0)"Подписка истекла" else "До ${DateFormat.getDateInstance().format(Date(expire*1000))}",color=if(days<3)Warning else Muted)}
                     if(total>0){LinearProgressIndicator(progress={(used.toFloat()/total).coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth());Text("${bytes(used)} из ${bytes(total)}",color=if(used>=total)Warning else Muted,fontSize=12.sp)}
@@ -188,6 +193,7 @@ private val Error=Color(0xFFFF657A)
     var dns by remember(s.dns){mutableStateOf(s.dns)};var cabinet by remember(s.cabinet){mutableStateOf(s.cabinet)}
     var showApps by rememberSaveable{mutableStateOf(false)}
     var showProbeSettings by rememberSaveable{mutableStateOf(false)}
+    var showTemplate by rememberSaveable{mutableStateOf(false)}
     val probing by model.probing.collectAsStateWithLifecycle()
     var routeText by remember{mutableStateOf("")};var routeDialog by remember{mutableStateOf(false)}
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")){uri->if(uri!=null)scope.launch(Dispatchers.IO){runCatching{context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use{it.write(report)}}}}
@@ -198,7 +204,7 @@ private val Error=Color(0xFFFF657A)
         TextButton(onClick={context.startActivity(Intent(AndroidSettings.ACTION_VPN_SETTINGS))}){Text("Системные Always-on и блокировка без VPN")}
         Section("DNS И МАРШРУТИЗАЦИЯ")
         OutlinedTextField(dns,{dns=it},label={Text("Резервный DNS · IP")},supportingText={Text("DNS из полного Xray-профиля сохраняется")},modifier=Modifier.fillMaxWidth(),singleLine=true)
-        TextButton(onClick={if(dns.matches(Regex("[0-9a-fA-F:.]+")))model.save(s.copy(dns=dns))else model.repository.notify("Укажите IPv4 или IPv6 адрес")}){Text("Сохранить DNS")}
+        TextButton(onClick={if(com.signet.core.TemplateCompatibility.numericAddress(dns))model.save(s.copy(dns=dns))else model.repository.notify("Укажите IPv4 или IPv6 адрес")}){Text("Сохранить DNS")}
         Text("Приложения через VPN",fontSize=15.sp)
         Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("all" to "Все","exclude" to "Кроме","include" to "Только").forEach{(mode,label)->FilterChip(s.appMode==mode,{model.save(s.copy(appMode=mode))},label={Text(label)})}}
         TextButton(onClick={showApps=true}){Text("Выбрать приложения (${s.packages.size})")}
@@ -222,6 +228,7 @@ private val Error=Color(0xFFFF657A)
     }
     if(showApps)ApplicationsScreen(model){showApps=false}
     if(showProbeSettings)ProbePreferences(model){showProbeSettings=false}
+    if(showTemplate)state.server?.let{TemplateScreen(it){showTemplate=false}}
     if(routeDialog)AlertDialog(onDismissRequest={routeDialog=false},title={Text("Конфигурация Xray")},text={Column{Text("Конфигурация содержит секретные ключи. Не публикуйте её. Изменения заменяются при обновлении подписки.",color=Warning,fontSize=12.sp);OutlinedTextField(routeText,{if(it.length<=512*1024)routeText=it},modifier=Modifier.fillMaxWidth().heightIn(max=300.dp),maxLines=12)}},confirmButton={TextButton(onClick={scope.launch(Dispatchers.IO){if(VpnState.status.value.phase!=VpnPhase.DISCONNECTED)model.repository.notify("Для проверки остановите VPN")else runCatching{NativeCore.call("testXray",org.json.JSONObject().put("xrayJson",routeText));state.server?.id?.let{model.repository.edit(it,routeText)};model.repository.notify("Проверено ядром и сохранено");withContext(Dispatchers.Main){routeDialog=false}}.onFailure{model.repository.notify("Конфигурация не прошла проверку")}}}){Text("Проверить и сохранить")}},dismissButton={TextButton(onClick={routeDialog=false}){Text("Закрыть")}})
 }
 

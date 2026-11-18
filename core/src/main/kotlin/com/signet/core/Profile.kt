@@ -16,7 +16,6 @@ data class Server(
     val enabled: Boolean = true, val probeMode: String? = null, val probeMessage:String?=null
 ) {
     val countryName: String get() = countryCode?.let { Locale("ru", it).displayCountry } ?: "Локация не указана"
-    val flag: String get() = if(isAuto) "AUTO" else countryCode.orEmpty()
 }
 
 object Profiles {
@@ -44,7 +43,7 @@ object Profiles {
                 meta?.optString("city")?.takeIf { it.isNotBlank() },
                 meta?.let { if (it.has("latitude")) it.getDouble("latitude") else null },
                 meta?.let { if (it.has("longitude")) it.getDouble("longitude") else null },
-                isAuto = isAuto, description = meta?.optString("description")?.takeIf { it.isNotBlank() },
+                isAuto = isAuto, description = (meta?.optString("description")?.takeIf { it.isNotBlank() } ?: config.optJSONObject("meta")?.optString("serverDescription")?.takeIf { it.isNotBlank() }),
                 profileKey = meta?.optString("profileId")?.takeIf { it.isNotBlank() }, enabled = meta?.optBoolean("enabled", true) ?: true)
         }
     }
@@ -64,7 +63,7 @@ object Profiles {
 
     fun userInfo(header: String?): Map<String, Long> = header.orEmpty().split(';').mapNotNull {
         val p = it.trim().split('=', limit = 2)
-        if (p.size == 2) p[1].toLongOrNull()?.let { value -> p[0] to value } else null
+        if (p.size == 2) p[1].toLongOrNull()?.takeIf{it>=0}?.let { value -> p[0] to value } else null
     }.toMap()
 
     /** AUTO is a delivered profile. No generated AUTO, scoring, fallback, or local balancing. */
@@ -78,7 +77,7 @@ object Profiles {
         config.put("env", env)
         // Imported external listeners are not exposed. Routing, DNS, transport and opaque fields remain untouched.
         val inbounds = JSONArray()
-        val originalTag = config.optJSONArray("inbounds")?.optJSONObject(0)?.optString("tag")?.takeIf { it.isNotBlank() } ?: "signet-tun"
+        val originalTag = TemplateCompatibility.inboundTag(config)
         inbounds.put(JSONObject().put("tag", originalTag).put("protocol", "tun").put("settings", JSONObject().put("name", "signet").put("MTU", 1500)))
         inbounds.put(JSONObject().put("tag", "signet-check").put("listen", "127.0.0.1").put("port", socksPort).put("protocol", "socks").put("settings", JSONObject().put("auth","password").put("accounts",JSONArray().put(JSONObject().put("user","signet").put("pass",java.util.UUID.randomUUID().toString())))))
         config.put("inbounds", inbounds)
@@ -94,7 +93,7 @@ object Profiles {
     }
     fun probeRuntime(server:Server,port:Int,assets:String,secret:String):JSONObject {
         val config=JSONObject(server.config)
-        val tag=config.optJSONArray("inbounds")?.optJSONObject(0)?.optString("tag")?.takeIf{it.isNotBlank()}?:"signet-probe"
+        val tag=TemplateCompatibility.inboundTag(config)
         config.put("inbounds",JSONArray().put(JSONObject().put("tag",tag).put("listen","127.0.0.1").put("port",port).put("protocol","http").put("settings",JSONObject().put("accounts",JSONArray().put(JSONObject().put("user","signet").put("pass",secret))))))
         val env=config.optJSONObject("env")?:JSONObject();env.remove("xray.tun.fd");env.put("xray.location.asset",assets);config.put("env",env)
         config.remove("metrics");config.remove("api");config.put("log",JSONObject().put("loglevel","none"))

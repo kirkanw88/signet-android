@@ -19,3 +19,11 @@ Strict verification, 21 core tests, app JVM (NO-SOURCE), Lint (0 errors, 37 warn
 Четыре режима проб: TCP/HTTPS — отдельная доступность endpoint; Xray — полный профиль; outbound — изолированный pingBatch. AUTO всегда проверяется полным профилем с исходными DNS/routing/balancers. Пробы не меняют выбранный сервер. Таймаут, попытки, интервал, лимит параллельности, URL и opt-in проверки выбранного сервера на переднем плане; отмена освобождает процесс. Реальная сеть новых режимов ещё требует runtime-регрессии.
 
 Список приложений: видимые PackageManager приложения, иконки только видимых строк, название/package search, системные, сортировка, выбор всех/снятие, три режима. Расширены адресные queries, включая Яндекс, QUERY_ALL_PACKAGES не запрошен. Android может скрывать остальные пакеты; рабочий профиль требует экземпляра Signet в этом профиле. Версионированный JSON переносит только режим/package names, с preview и счётчиком отсутствующих; секреты не экспортируются.
+
+## E — Remnawave / маршрутизационные шаблоны (перенесён вперёд по уточнению пользователя)
+
+Strict verification, 26 core tests, app JVM NO-SOURCE, Lint 0 errors / 39 warnings, Debug/Release: PASS, 3m 4s. Локальный журнал stage-E-routing.log.
+
+Добавлены разбор официальных headers (announce, profile-web-page-url, support-url, profile-update-interval, refill-date), meta.serverDescription и безопасный текст/HTTPS links; сообщения над списком, формат JSON/URI, ошибки обновления без удаления старой подписки. HWID не передаётся на иной host при redirect. Периодическое обновление учитывает интервал, ручное — всегда. Изменения сначала записываются в encrypted vault и затем публикуются в StateFlow, ошибка загрузки vault запрещает его перезапись.
+
+Проверка шаблона — статические refs/tags + isolated native validation. Приём metadata ядром и реальная маршрутизация различаются. Подробный аудит и ограничения — REMNAWAVE_TEMPLATE_COMPATIBILITY.md. Unit проверили сохранение DNS/routing/outbounds/balancers и правильную адаптацию TUN при первом DNS-inbound. Конкретные production-шаблоны Signet пока не предоставлены: NOT RUN.

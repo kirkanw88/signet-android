@@ -19,7 +19,7 @@ class SignetApp : Application() {
 }
 class SubscriptionWorker(context: android.content.Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        org.koin.java.KoinJavaComponent.get<Repository>(Repository::class.java).refreshAll()
+        org.koin.java.KoinJavaComponent.get<Repository>(Repository::class.java).refreshAll(onlyDue=true)
         return Result.success()
     }
 }

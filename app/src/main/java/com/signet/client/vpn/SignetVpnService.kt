@@ -10,6 +10,7 @@ import com.signet.client.R
 import com.signet.client.data.*
 import com.signet.core.Profiles
 import com.signet.core.Server
+import com.signet.core.TemplateCompatibility
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
@@ -81,8 +82,9 @@ class SignetVpnService : VpnService() {
         var startupStage="настройка TUN"
         try {
             val settings = repository.state.value.settings
-            require(settings.dns.matches(Regex("[0-9a-fA-F:.]+"))) { "Укажите IP DNS-сервера" }
-            val dns = InetAddress.getByName(settings.dns).hostAddress ?: error("DNS")
+            val dnsSetting=TemplateCompatibility.deviceDns(selected,settings.dns)
+            require(TemplateCompatibility.numericAddress(dnsSetting)) { "Укажите IP DNS-сервера" }
+            val dns = InetAddress.getByName(dnsSetting).hostAddress ?: error("DNS")
             val assetDir = File(filesDir, "geo").apply { mkdirs() }
             for (asset in listOf("geoip.dat", "geosite.dat")) {
                 val target = File(assetDir, asset)
@@ -119,7 +121,7 @@ class SignetVpnService : VpnService() {
             val proxyClient = OkHttpClient.Builder().proxy(java.net.Proxy.NO_PROXY)
                 .connectTimeout(12, TimeUnit.SECONDS).readTimeout(12, TimeUnit.SECONDS).callTimeout(20, TimeUnit.SECONDS).build()
             try {
-                proxyClient.newCall(Request.Builder().url("https://www.gstatic.com/generate_204").build()).awaitResponse().use {
+                proxyClient.newCall(Request.Builder().url(settings.probes.url).build()).awaitResponse().use {
                     check(it.isSuccessful) { "Сервер не подтвердил передачу данных" }
                 }
             } finally { proxyClient.connectionPool.evictAll(); proxyClient.dispatcher.executorService.shutdown() }
@@ -145,7 +147,7 @@ class SignetVpnService : VpnService() {
                     break
                 }
                 if(SystemClock.elapsedRealtime()>=nextHealth) {
-                    val reachable=runCatching { health.newCall(Request.Builder().url("https://www.gstatic.com/generate_204").build()).awaitResponse().use { it.isSuccessful } }.getOrDefault(false)
+                    val reachable=runCatching { health.newCall(Request.Builder().url(repository.state.value.settings.probes.url).build()).awaitResponse().use { it.isSuccessful } }.getOrDefault(false)
                     failures=if(reachable)0 else failures+1;nextHealth=SystemClock.elapsedRealtime()+30_000
                     if(reachable)retryCount=0
                     if(failures>=3){stopCore(closeTun=false);fail("VPN перестал передавать HTTPS-трафик");break}
