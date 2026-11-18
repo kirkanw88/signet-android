@@ -176,6 +176,7 @@ private val Error=Color(0xFFFF657A)
         Title("Подписки","Ваш доступ к Signet")
         Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Button(onClick=add){Icon(Icons.Outlined.Add,null);Text("Добавить")};OutlinedButton(onClick=qr){Icon(Icons.Outlined.QrCodeScanner,"QR-код")};OutlinedButton(onClick=file){Icon(Icons.Outlined.FileOpen,"Из файла")}}
         TextButton(onClick=image){Text("QR из изображения")}
+        TextButton(onClick=account){Text("Аккаунт Signet · подписки и оплата")}
         TextButton(onClick=refresh,enabled=!state.busy){Text(if(state.busy)"Обновление…" else "Обновить все подписки")}
         if(state.busy)LinearProgressIndicator(Modifier.fillMaxWidth())
         LazyColumn(verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=20.dp)){
@@ -212,9 +213,19 @@ private val Error=Color(0xFFFF657A)
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")){uri->if(uri!=null)scope.launch(Dispatchers.IO){runCatching{context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use{it.write(report)}}}}
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=22.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
         Title("Настройки","Соединение под вашим контролем")
+        TextButton(onClick={showAccount=true}){Text("Аккаунт Signet · войти и продлить")}
         Toggle("Подключаться при открытии",s.autoConnect){model.save(s.copy(autoConnect=it))}
         Toggle("Переподключаться при смене сети",s.reconnect){model.save(s.copy(reconnect=it))}
         TextButton(onClick={context.startActivity(Intent(AndroidSettings.ACTION_VPN_SETTINGS))}){Text("Системные Always-on и блокировка без VPN")}
+        TextButton(onClick={showProbeSettings=true}){Text("Настроить Ping · режим, адрес и интервалы")}
+        TextButton(onClick={showTemplate=true},enabled=state.server!=null){Text("Проверить шаблон Remnawave / Xray JSON")}
+        Section("ОБНОВЛЕНИЯ ПРИЛОЖЕНИЯ")
+        Toggle("Проверять обновления автоматически",s.automaticUpdates){model.save(s.copy(automaticUpdates=it))}
+        Button(onClick={model.checkUpdates()},enabled=!update.checking){
+            if(update.checking)CircularProgressIndicator(Modifier.size(16.dp).padding(end=4.dp),strokeWidth=2.dp)
+            Text("Проверить обновление")
+        }
+        if(update.message.isNotBlank())Text(update.message,color=Muted,fontSize=12.sp)
         Section("DNS И МАРШРУТИЗАЦИЯ")
         OutlinedTextField(dns,{dns=it},label={Text("Резервный DNS · IP")},supportingText={Text("DNS из полного Xray-профиля сохраняется")},modifier=Modifier.fillMaxWidth(),singleLine=true)
         TextButton(onClick={if(com.signet.core.TemplateCompatibility.numericAddress(dns))model.save(s.copy(dns=dns))else model.repository.notify("Укажите IPv4 или IPv6 адрес")}){Text("Сохранить DNS")}

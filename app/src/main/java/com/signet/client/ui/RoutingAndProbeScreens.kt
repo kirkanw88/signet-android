@@ -51,6 +51,7 @@ import kotlinx.coroutines.*
                 Row(Modifier.fillMaxWidth().clickable{value=value.copy(mode=mode)},verticalAlignment=Alignment.CenterVertically){RadioButton(value.mode==mode,{value=value.copy(mode=mode)});Text(label)}
             }
             Text("TCP и HTTPS не подтверждают работу VPN. AUTO проверяется как полный серверный профиль, без выбора отдельного узла.",style=MaterialTheme.typography.bodySmall)
+            Text("Адрес HTTPS-проверки должен быть разрешён правилами профиля. Он также используется для подтверждения соединения VPN.",style=MaterialTheme.typography.bodySmall)
             OutlinedTextField(value.url,{value=value.copy(url=it)},label={Text("HTTPS URL проверки Xray")},modifier=Modifier.fillMaxWidth(),singleLine=true)
             ProbeNumber("Таймаут, мс · 500–30000",timeout){timeout=it}
             ProbeNumber("Попыток · 1–3",attempts){attempts=it}

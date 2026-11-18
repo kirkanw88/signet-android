@@ -1,0 +1,33 @@
+{
+  "run": "https://github.com/kirkanw88/signet-android/actions/runs/44272504746",
+  "commit": "c9dc588115b6377dc493d02301d91cbb27f4de1e",
+  "scope": "API36 x86_64 real Android TUN; first completed runtime run",
+  "tests": {
+    "realTunTrafficThroughLocalXhttpReality": "PASS",
+    "encryptedStorageDoesNotContainSubscriptionSecrets": "PASS",
+    "nativeCoreSupportsRequiredShareFormats": "PASS",
+    "realTunTrafficThroughLocalRealityVision": "PASS",
+    "realTunTrafficThroughLocalVlessServer": "PASS",
+    "imageImportDecodesSubscriptionBeforeConfirmation": "PASS",
+    "remnawaveDefaultRenderedTemplate": "PASS",
+    "masqueHttp3ConnectIp": "PASS",
+    "remnawaveAutoBalancer": "PASS",
+    "masqueHttp2ConnectIp": "PASS",
+    "xdriveTemplate": "PASS",
+    "remnawaveSplitRules": "FAIL",
+    "importDialogCanBeCancelled": "FAIL",
+    "emptyStateAndNavigation": "PASS",
+    "manualUpdateControlIsReachable": "FAIL"
+  },
+  "counts": {
+    "PASS": 12,
+    "FAIL": 3,
+    "SKIPPED": 0
+  },
+  "diagnoses": {
+    "remnawaveSplitRules": "geosite:google blocks the default gstatic HTTPS health URL; fixture must choose an allowed HTTPS URL",
+    "manualUpdateControlIsReachable": "Update client existed but no Settings button was wired; fixed and awaiting retest",
+    "importDialogCanBeCancelled": "Dialog wait timed out; emulator System UI ANR visible in final screenshot. Lower-resolution runner and UI-state diagnostics added; awaiting retest"
+  },
+  "appGeositeMatchesOfficialHostArchive": true
+}

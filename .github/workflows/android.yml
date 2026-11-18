@@ -79,6 +79,8 @@ jobs:
           echo "${ANDROID_HOME}/platform-tools" >> "$GITHUB_PATH"
           mkdir -p "$ANDROID_AVD_HOME" "$ANDROID_USER_HOME"
           echo no | "${ANDROID_HOME}/cmdline-tools/latest/bin/avdmanager" create avd --force --name signet-test --path "$ANDROID_AVD_HOME/signet-test.avd" --package 'system-images;android-36;google_apis;x86_64' --device pixel_2
+          sed -i -e '/^hw.lcd.width=/d' -e '/^hw.lcd.height=/d' -e '/^hw.lcd.density=/d' -e '/^hw.cpu.ncore=/d' "$ANDROID_AVD_HOME/signet-test.avd/config.ini"
+          printf 'hw.lcd.width=720\nhw.lcd.height=1280\nhw.lcd.density=320\nhw.cpu.ncore=2\n' >> "$ANDROID_AVD_HOME/signet-test.avd/config.ini"
           printf 'avd.ini.encoding=UTF-8\npath=%s/signet-test.avd\ntarget=android-36\n' "$ANDROID_AVD_HOME" > "$ANDROID_AVD_HOME/signet-test.ini"
           "${ANDROID_HOME}/emulator/emulator" -list-avds | grep '^signet-test$'
       - name: Boot Android fixture before compiling
@@ -108,6 +110,8 @@ jobs:
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
+          adb shell cmd window dismiss-keyguard
+          sleep 10
           adb install app/build/outputs/apk/debug/app-x86_64-debug.apk
           adb install app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           adb shell appops set com.signet.client ACTIVATE_VPN allow
@@ -118,6 +122,9 @@ jobs:
           adb pull /sdcard/signet.png tests/evidence/runtime/screen.png
           grep -Eq '^OK \([0-9]+ tests?\)' tests/evidence/runtime/instrumentation.txt
           ! grep -Eq 'FAILURES|INSTRUMENTATION_FAILED|Process crashed' tests/evidence/runtime/instrumentation.txt
+          adb pull /sdcard/Android/data/com.signet.client/files/country-frames tests/evidence/runtime/countries
+          adb pull /sdcard/Android/data/com.signet.client/files/ui-state tests/evidence/runtime/ui-state
+          adb pull /sdcard/Android/data/com.signet.client/files/vpn-memory tests/evidence/runtime/vpn-memory
           adb install -r app/build/outputs/apk/release/app-x86_64-release.apk
           python3 scripts/capture-matrix.py
           adb shell dumpsys meminfo com.signet.client > tests/evidence/runtime/meminfo-release.txt
@@ -127,6 +134,9 @@ jobs:
           mkdir -p tests/evidence/runtime
           cp /tmp/signet-emulator.log tests/evidence/runtime/emulator.txt || true
           timeout 15 adb logcat -d -b crash > tests/evidence/runtime/crash.txt || true
+          timeout 15 adb pull /sdcard/Android/data/com.signet.client/files/ui-state tests/evidence/runtime/ui-state || true
+          timeout 15 adb pull /sdcard/Android/data/com.signet.client/files/country-frames tests/evidence/runtime/countries || true
+          timeout 15 adb pull /sdcard/Android/data/com.signet.client/files/vpn-memory tests/evidence/runtime/vpn-memory || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:

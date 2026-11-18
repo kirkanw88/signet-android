@@ -130,7 +130,11 @@ class SignetVpnService : VpnService() {
             notification("Подключено · ${selected.countryName}")
             monitor = scope.launch { watch(selected) }
         } catch (e: CancellationException) { stopCore(closeTun=false); throw e }
-        catch (e: Exception) { stopCore(closeTun=false); fail("Не удалось подключиться: $startupStage (${e.javaClass.simpleName}). Проверьте подписку и доступность сервера.") }
+        catch (e: Exception) {
+            stopCore(closeTun=false)
+            fail(if(startupStage=="проверка HTTPS")"HTTPS-проверка не прошла. Проверьте сервер и разрешён ли адрес проверки правилами профиля. Адрес можно изменить в настройках Ping."
+                else "Не удалось подключиться: $startupStage (${e.javaClass.simpleName}). Проверьте подписку и доступность сервера.")
+        }
     }
     private suspend fun watch(server: Server) {
         val client = OkHttpClient.Builder().proxy(java.net.Proxy.NO_PROXY).callTimeout(2, TimeUnit.SECONDS).build()

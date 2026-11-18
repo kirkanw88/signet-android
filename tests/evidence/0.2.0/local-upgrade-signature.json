@@ -1,0 +1,6 @@
+{
+  "scope": "Local development APKs only; not GitHub runner keys",
+  "old": "0.1.0-arm64-v8a",
+  "new": "0.2.0-arm64-v8a",
+  "sameSigningCertificate": true
+}

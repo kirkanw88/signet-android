@@ -2,6 +2,7 @@ package com.signet.client
 
 import android.content.Intent
 import android.net.VpnService
+import android.os.ParcelFileDescriptor
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.signet.client.data.Repository
@@ -17,6 +18,7 @@ import java.net.*
 import java.security.KeyStore
 import java.security.cert.CertificateFactory
 import javax.net.ssl.*
+import java.io.File
 
 /** Generated public loopback fixtures only; private CA/server keys never enter the APK. */
 @RunWith(AndroidJUnit4::class)
@@ -37,6 +39,9 @@ class TemplateTransportTest {
         val config=fixtures.getJSONObject("profiles").getJSONObject(name)
         if(name=="masque-h3")config.getJSONArray("outbounds").getJSONObject(0).getJSONObject("settings").put("address","10.0.2.2")
         val repository=get<Repository>(Repository::class.java);repository.awaitReady()
+        val previousSettings=repository.state.value.settings
+        // geosite:google intentionally blocks gstatic; choose an allowed HTTPS health target.
+        repository.settings(previousSettings.copy(probes=previousSettings.probes.copy(url="https://example.com")))
         repository.import(config.toString())
         val sub=repository.state.value.subscriptions.last()
         val server=sub.servers.single();repository.select(server.id)
@@ -64,17 +69,26 @@ class TemplateTransportTest {
                 assertEquals(0x12,response.data[0].toInt());assertEquals(0x34,response.data[1].toInt())
             }
             if(name in setOf("remnawave-auto","remnawave-split"))assertFalse("Sniffed domain must be blocked",runCatching{http("blocked.signet.test").contains("signet-local-lab")}.getOrDefault(false))
+            if(name=="remnawave-split") {
+                for(domain in listOf("google.com","www.gstatic.com"))assertFalse("geosite:google must block $domain",runCatching{http(domain).contains("signet-local-lab")}.getOrDefault(false))
+                assertTrue("GeoIP private must use the physical direct outbound",http("direct.signet.test","10.0.2.2").contains("signet-local-lab"))
+            }
             assertTrue("Validation while TUN is active",Probes.validate(context,server));delay(700)
             assertEquals("Probes must preserve the policy",original,repository.state.value.server!!.config)
             assertTrue("TUN still works after isolated probe",http("allowed.signet.test").contains("signet-local-lab"))
+            val memoryDirectory=File(context.getExternalFilesDir(null),"vpn-memory").apply{mkdirs()}
+            val memory=ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand("dumpsys meminfo com.signet.client")).bufferedReader().use{it.readText()}
+            assertTrue("Active debug-process memory snapshot",memory.contains("TOTAL PSS"))
+            File(memoryDirectory,"$name.txt").writeText("Debug instrumentation process, VPN active, UI closed. Not release/soak proof.\n"+memory)
         } finally {
             context.startService(Intent(context,SignetVpnService::class.java).setAction("STOP"))
             withTimeout(15_000){VpnState.status.first{it.phase==VpnPhase.DISCONNECTED}}
             repository.remove(sub.id)
+            repository.settings(previousSettings)
         }
     }
-    private fun http(host:String):String=Socket().use{socket->
-        socket.connect(InetSocketAddress("198.18.0.1",18480),12_000);socket.soTimeout=5_000
+    private fun http(host:String,address:String="198.18.0.1"):String=Socket().use{socket->
+        socket.connect(InetSocketAddress(address,18480),12_000);socket.soTimeout=5_000
         socket.getOutputStream().write("GET / HTTP/1.1\r\nHost: $host\r\nConnection: close\r\n\r\n".toByteArray())
         socket.getInputStream().bufferedReader().readText().take(65536)
     }
