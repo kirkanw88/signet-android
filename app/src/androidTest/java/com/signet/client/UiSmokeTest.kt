@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.After
+import org.junit.Before
 import org.junit.rules.TestName
 import org.junit.runner.RunWith
 import androidx.test.platform.app.InstrumentationRegistry
@@ -23,6 +24,11 @@ import kotlinx.coroutines.flow.first
 class UiSmokeTest {
     @get:Rule val compose=createAndroidComposeRule<MainActivity>()
     @get:Rule val name=TestName()
+    @Before fun awaitInteractiveWindow(){
+        // A composed tree can exist before WindowManager starts delivering touch events.
+        compose.waitUntil(15_000){compose.activity.hasWindowFocus()}
+        UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).waitForIdle(3000)
+    }
     @After fun saveFixtureUiState(){
         if(InstrumentationRegistry.getArguments().getString("localVpn")!="true")return
         runCatching {

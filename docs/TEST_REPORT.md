@@ -26,6 +26,10 @@
 
 Размеры APK: arm64-v8a 41,907,511 bytes; armeabi-v7a 41,183,517; x86_64 44,284,718. Устанавливаемые development releases с debug certificate; production key не задан. Хеши — `tests/evidence/0.2.0/apk-verification.json`.
 
+Повтор 44279067809/7431ea5: build SUCCESS, Android 16/17 PASS. Все transport/template проверки, включая split GeoIP/direct и Google/gstatic block, прошли. Manual update button и available-banner dismiss PASS. Остался timeout первого Home import tap: Snackbar перекрывал CTA; исправлено расположение/потребление сообщений, добавлено ожидание фокуса окна. Неуспешный результат сохранён в runtime-second.json; проверка не удалена. Последняя локальная сборка всех задач strict, включая test APK: PASS, 2m 32s; следующий runtime ожидается.
+
+Получены active debug VPN PSS 216–227 MiB (221610–232000 KiB), scope: instrumentation/JUnit process, UI closed, шесть профилей. Raw meminfo — tests/evidence/0.2.0/memory-debug-active. Это не релизный лимит и не проверка утечки. Снимки DE/FI/JP/TR просмотрены; ранний RU был пуст до завершения GL, поэтому сохранение теперь ждёт готовый кадр выбранной страны. Release responsive и физический connected zoom/FPS ещё не приняты.
+
 По выбору пользователя проверены типовые Remnawave templates, без production-подписки. AUTO/balancer и split GeoIP/geosite прошли host TCP/HTTPS/UDP-DNS/domain-DNS/block проверки. Исправлено отсутствие переноса ingress sniffing в TUN/probe, добавлен unit-тест. IPIfNonMatch + catch-all диагностируется без изменения политики.
 
 Официальный Xray 26.11.9: VLESS TCP, REALITY Vision, XHTTP REALITY, XDrive template, MASQUE h2/h3, AUTO и split. В каждом host случае подтверждены TCP, HTTPS с доверенной тестовой CA/правильным именем, UDP DNS и отказ неправильного TLS имени. Private CA/server keys остаются в игнорируемом `.gradle/transport-lab`. Реальный Google OAuth, S3/Yandex providers, публичный MASQUE, IPv6 egress и packet-loss/MTU: NOT RUN.

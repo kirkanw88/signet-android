@@ -1,0 +1,71 @@
+Debug instrumentation process, VPN active, UI closed. Not release/soak proof.
+Applications Memory Usage (in Kilobytes):
+Uptime: 179872 Realtime: 179872
+
+** MEMINFO in pid 2523 [com.signet.client] **
+                   Pss  Private  Private  SwapPss      Rss     Heap     Heap     Heap
+                 Total    Dirty    Clean    Dirty    Total     Size    Alloc     Free
+                ------   ------   ------   ------   ------   ------   ------   ------
+  Native Heap    11165    11044      112     1402    12068    26492    19739     2568
+  Dalvik Heap     9833     9816        0      115    10776    10774     8081     2693
+ Dalvik Other    11727     5564       16       36    18220                           
+        Stack     2180     2168       12      444     2184                           
+       Ashmem       10        0        0        0      608                           
+    Other dev        9        0        4        0      308                           
+     .so mmap     3990      328      308       56    33136                           
+    .jar mmap     2418        0      336        0    42980                           
+    .apk mmap    15913      204    15440     1584    17228                           
+    .ttf mmap      982      448      312        0     1444                           
+    .dex mmap       15        0        0        0      868                           
+    .oat mmap       27        0        0        0     1968                           
+    .art mmap     4768     3800      572     4774    19608                           
+   Other mmap     3629       20        0        0     7856                           
+      Unknown    27417    11984    15428   119116    27892                           
+        TOTAL   221610    45376    32540   127527   197144    37266    27820     5261
+ 
+ App Summary
+                       Pss(KB)                        Rss(KB)
+                        ------                         ------
+           Java Heap:    14188                          30384
+         Native Heap:    11044                          12068
+                Code:    17548                         110088
+               Stack:     2168                           2184
+            Graphics:        0                              0
+       Private Other:    32968
+              System:   143694
+             Unknown:                                   42420
+ 
+           TOTAL PSS:   221610            TOTAL RSS:   197144       TOTAL SWAP PSS:   127527
+ 
+ Objects
+               Views:        9         ViewRootImpl:        1
+         AppContexts:        7           Activities:        1
+              Assets:       22        AssetManagers:        0
+       Local Binders:       17        Proxy Binders:       53
+       Parcel memory:       10         Parcel count:       41
+    Death Recipients:        0             WebViews:        0
+ 
+ Native Allocations
+                         Count                       Total(kB)
+                        ------                         ------
+    Other (malloced):      476                             44
+ Other (nonmalloced):       90                             65
+   Bitmap (malloced):       13                            256
+ 
+ SQL
+         MEMORY_USED:      466
+  PAGECACHE_OVERFLOW:      210          MALLOC_SIZE:       46
+ 
+ DATABASES
+      pgsz     dbsz   Lookaside(b) cache hits cache misses cache size  Dbname
+PER CONNECTION STATS
+         4       20             18    54   190     1  /data/user/0/com.signet.client/databases/signet.db
+         4        8                    0     0     0    (attached) temp
+         4       20             18     3    21     1  /data/user/0/com.signet.client/databases/signet.db (1)
+         4      104             14    50   160     1  /data/user/0/com.signet.client/no_backup/androidx.work.workdb
+         4        8                    0     0     0    (attached) temp
+         4      104             20    13    22     1  /data/user/0/com.signet.client/no_backup/androidx.work.workdb (2)
+POOL STATS
+     cache hits  cache misses    cache size  Dbname
+             57           215           272  /data/user/0/com.signet.client/databases/signet.db
+             62           200           262  /data/user/0/com.signet.client/no_backup/androidx.work.workdb

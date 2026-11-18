@@ -15,6 +15,9 @@ import org.junit.Assert.*
 import org.koin.java.KoinJavaComponent.get
 import java.io.File
 import java.util.UUID
+import android.view.View
+import android.view.ViewGroup
+import com.signet.client.graphics.GlobeView
 
 /** Synthetic metadata drives real GLES country frames; never connects to a server. */
 class GlobeVisualTest {
@@ -41,11 +44,18 @@ class GlobeVisualTest {
             repository.import(configs.toString())
             val sub=repository.state.value.subscriptions.single{it.id !in previousIds}
             assertEquals(5,sub.servers.size)
+            compose.mainClock.advanceTimeBy(6000)
+            compose.waitForIdle()
             val directory=File(instrumentation.targetContext.getExternalFilesDir(null),"country-frames").apply{mkdirs()}
             val device=UiDevice.getInstance(instrumentation)
             for((code,city,_) in places) {
                 repository.select(sub.servers.single{it.countryCode==code}.id)
                 compose.waitUntil(10_000){compose.onAllNodesWithText(city).fetchSemanticsNodes().isNotEmpty()}
+                compose.waitUntil(30_000){
+                    var ready=false
+                    compose.activityRule.scenario.onActivity{activity->findGlobe(activity.window.decorView)?.globe?.let{ready=it.frameReady&&it.renderedCountry==code}}
+                    ready
+                }
                 // Allow the actual GL surface and camera interpolation to finish.
                 Thread.sleep(3000)
                 val screenshot=File(directory,"$code.png")
@@ -57,5 +67,10 @@ class GlobeVisualTest {
             before.selected?.let{repository.select(it)}
             repository.settings(before.settings)
         }
+    }
+    private fun findGlobe(view:View):GlobeView? {
+        if(view is GlobeView)return view
+        if(view is ViewGroup)for(i in 0 until view.childCount)findGlobe(view.getChildAt(i))?.let{return it}
+        return null
     }
 }

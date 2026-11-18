@@ -53,6 +53,10 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
 }
 
 class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
+    @Volatile var frameReady=false
+        private set
+    @Volatile var renderedCountry:String?=null
+        private set
     private var program = 0; private var texture = 0;private var nightTexture=0
     private var zoom=1f;private var countryZoom=1f;private var manual=false;private var focusLat:Double?=null;private var focusLon:Double?=null
     private val identity=FloatArray(16).apply{android.opengl.Matrix.setIdentityM(this,0)}
@@ -80,6 +84,7 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         phase = state; quality = graphics; reduced = reduceMotion
         val key=server?.let{"${it.id}:${it.countryCode}:${it.latitude}:${it.longitude}:${it.city}"}
         if (selected != key) {
+            frameReady=false
             selected = key; country = server?.countryCode;manual=false
             countryData = country?.let { geography?.optJSONObject(it) }
             val lat = server?.latitude ?: countryData?.optDouble("lat")?.takeIf { it.isFinite() }
@@ -91,6 +96,7 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     }
     fun drag(dx: Float, dy: Float) { manual=true;yaw += dx; pitch = (pitch + dy).coerceIn(-85f, 85f); targetYaw = null }
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        frameReady=false;renderedCountry=null
         // Context can be recreated after backgrounding. Every GPU object is owned by this context.
         GLES20.glClearColor(5f/255, 8f/255, 22f/255, 1f)
         GLES20.glEnable(GLES20.GL_DEPTH_TEST); GLES20.glEnable(GLES20.GL_BLEND)
@@ -215,8 +221,9 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         fill?.let { setBuffers(it); color(color, 1f); GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,it.capacity()/3) }
         color(color, 1f); GLES20.glLineWidth(2f)
         borders.forEach { setBuffers(it); GLES20.glDrawArrays(GLES20.GL_LINE_STRIP,0,it.capacity()/3) }
-        marker?.let { setBuffers(it); mode(3); color(color,1f); GLES20.glDrawArrays(GLES20.GL_POINTS,0,1) }
+        marker?.let { setBuffers(it); mode(3); color(floatArrayOf(.96f,.98f,1f,1f),1f); GLES20.glDrawArrays(GLES20.GL_POINTS,0,1) }
         GLES20.glDepthMask(true)
+        renderedCountry=country;frameReady=true
         val targetFrame = when { reduced || quality == "Battery Saver" -> 100L; quality == "High" -> 16L; else -> 33L }
         val elapsed = (System.nanoTime()-now)/1_000_000
         if (elapsed < targetFrame) Thread.sleep(targetFrame-elapsed)

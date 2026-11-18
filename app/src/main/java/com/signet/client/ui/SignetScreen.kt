@@ -71,7 +71,9 @@ private val Error=Color(0xFFFF657A)
     val snackbar=remember { SnackbarHostState() }
     val pending=MainActivity.pendingImport.value
     LaunchedEffect(pending) { if(pending != null) { input=pending;ageKey="";oauthConsent=false;add=true; MainActivity.pendingImport.value=null } }
-    LaunchedEffect(state.message) { state.message?.let { snackbar.showSnackbar(it); model.repository.clearMessage() } }
+    LaunchedEffect(state.message) { state.message?.let { message->
+        try{snackbar.showSnackbar(message)}finally{if(model.repository.state.value.message==message)model.repository.clearMessage()}
+    } }
     LaunchedEffect(state.ready,state.settings.automaticUpdates){if(state.ready&&state.settings.automaticUpdates)model.checkUpdates(automatic=true)}
     LaunchedEffect(state.ready) { if(state.ready && state.settings.autoConnect && state.server != null && vpn.phase==VpnPhase.DISCONNECTED) connect() }
     val file=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -92,7 +94,7 @@ private val Error=Color(0xFFFF657A)
             .onFailure { model.repository.notify("На изображении не найден поддерживаемый QR-код") } }
     }
     MaterialTheme(colorScheme=darkColorScheme(primary=Primary, secondary=Color(0xFF62F4E8), background=Background, surface=Surface, onSurface=Color.White, error=Error)) {
-        Scaffold(containerColor=Background, snackbarHost={SnackbarHost(snackbar)}, bottomBar={
+        Scaffold(containerColor=Background, snackbarHost={SnackbarHost(snackbar,Modifier.padding(bottom=80.dp))}, bottomBar={
             NavigationBar(containerColor=Background, tonalElevation=0.dp) {
                 val labels=listOf("Главная","Серверы","Подписки","Настройки")
                 val icons=listOf(Icons.Outlined.Public,Icons.Outlined.Dns,Icons.Outlined.CreditCard,Icons.Outlined.Tune)

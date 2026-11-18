@@ -1,0 +1,53 @@
+{
+  "run": "https://github.com/kirkanw88/signet-android/actions/runs/44279067809",
+  "commit": "7431ea533935bfacff977aacbab496dd1c3a9403",
+  "scope": "Debug instrumentation API36 x86_64",
+  "tests": {
+    "realTunTrafficThroughLocalXhttpReality": "PASS",
+    "encryptedStorageDoesNotContainSubscriptionSecrets": "PASS",
+    "nativeCoreSupportsRequiredShareFormats": "PASS",
+    "realTunTrafficThroughLocalRealityVision": "PASS",
+    "realTunTrafficThroughLocalVlessServer": "PASS",
+    "selectedCountryFrames": "PASS",
+    "imageImportDecodesSubscriptionBeforeConfirmation": "PASS",
+    "remnawaveDefaultRenderedTemplate": "PASS",
+    "masqueHttp3ConnectIp": "PASS",
+    "remnawaveAutoBalancer": "PASS",
+    "masqueHttp2ConnectIp": "PASS",
+    "xdriveTemplate": "PASS",
+    "remnawaveSplitRules": "PASS",
+    "availableUpdateBannerCanBeDismissed": "PASS",
+    "importDialogCanBeCancelled": "FAIL",
+    "emptyStateAndNavigation": "PASS",
+    "manualUpdateControlIsReachable": "PASS"
+  },
+  "memory": [
+    {
+      "case": "masque-h2",
+      "pssKiB": 229718
+    },
+    {
+      "case": "masque-h3",
+      "pssKiB": 232000
+    },
+    {
+      "case": "remnawave-auto",
+      "pssKiB": 229020
+    },
+    {
+      "case": "remnawave-default",
+      "pssKiB": 221610
+    },
+    {
+      "case": "remnawave-split",
+      "pssKiB": 231132
+    },
+    {
+      "case": "xdrive",
+      "pssKiB": 230656
+    }
+  ],
+  "memoryScope": "VPN active, UI closed, debug instrumented process; not release or soak",
+  "failure": "First home Add tap did not reach callback. Snackbar occupies the primary-button area; raised host and added window-focus readiness. Retest pending.",
+  "visualReview": "DE/JP globe visible, first RU frame blank before GL completion; readiness wait added; screenshot file existence alone is not visual acceptance."
+}
