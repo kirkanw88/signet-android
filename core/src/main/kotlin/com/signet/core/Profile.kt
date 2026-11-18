@@ -19,6 +19,17 @@ data class Server(
 }
 
 object Profiles {
+    private val separators=Regex("[^\\p{L}\\p{N}]+")
+    private fun words(value:String)=value.lowercase(Locale.ROOT).replace(Regex("(?<=\\p{L})(?=\\d)")," ").replace(separators," ").trim()
+    private val countryLabels by lazy {
+        (Locale.getISOCountries().flatMap { code->listOf(code,Locale("",code).getDisplayCountry(Locale.ENGLISH),Locale("",code).getDisplayCountry(Locale("ru"))).map{words(it) to code} }+
+            listOf("russia" to "RU","usa" to "US","uk" to "GB","uae" to "AE","south korea" to "KR"))
+            .distinctBy{it.first}.sortedByDescending{it.first.length}
+    }
+    private fun countryFromName(name:String):String? {
+        val text=" ${words(DisplayText.clean(name))} "
+        return countryLabels.firstOrNull{(label,_)->text.contains(" $label ")}?.second
+    }
     fun id(text: String): String = MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).take(12).joinToString("") { "%02x".format(it) }
 
     /** Full configurations remain opaque: do not project them through the share-link converter. */
@@ -37,8 +48,8 @@ object Profiles {
             val name = config.optString("remarks").ifBlank { first.optString("tag").ifBlank { "Профиль ${index + 1}" } }
             val meta = config.optJSONObject("signet") ?: first.optJSONObject("signet")
             val country = meta?.optString("countryCode")?.takeIf { it.matches(Regex("[A-Za-z]{2}")) }?.uppercase()
-                ?: flagCountry(name)
-            val isAuto = meta?.optString("selectionMode") == "auto" || name.trim().equals("AUTO", ignoreCase = true)
+                ?: flagCountry(name) ?: countryFromName(name)
+            val isAuto = meta?.optString("selectionMode") == "auto" || name.trim().equals("AUTO", ignoreCase = true) || Regex("(?i)signet[ _-]+auto(?:\\b|$)").containsMatchIn(name)
             Server(id(config.toString()), name, config.toString(), tag, if(isAuto) null else country,
                 meta?.optString("city")?.takeIf { it.isNotBlank() },
                 meta?.let { if (it.has("latitude")) it.getDouble("latitude") else null },

@@ -49,9 +49,12 @@ class UiSmokeTest {
             }finally {context.settingsStore.edit{if(before==null)it.remove(key)else it[key]=before}}
         }
         compose.onNodeWithText("Не подключено").assertExists()
+        compose.onNodeWithText("Подписки",useUnmergedTree=true).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Настройки").performClick()
         compose.onNodeWithText("Подписки",useUnmergedTree=true).performClick()
         compose.onNodeWithText("Добавить",substring=false).assertExists()
-        compose.onNodeWithText("Настройки",useUnmergedTree=true).performClick()
+        compose.onNodeWithContentDescription("Настройки").performClick()
+        compose.onNodeWithText("Соединение").performClick()
         compose.onNodeWithText("Подключаться при открытии").assertExists()
         compose.activityRule.scenario.recreate()
         compose.onNodeWithText("Подключаться при открытии").assertExists()
@@ -66,7 +69,8 @@ class UiSmokeTest {
         compose.onNodeWithText("Добавить",substring=false).assertExists()
     }
     @Test fun manualUpdateControlIsReachable(){
-        compose.onNodeWithText("Настройки",useUnmergedTree=true).performClick()
+        compose.onNodeWithContentDescription("Настройки").performClick()
+        compose.onNodeWithText("Обновления").performScrollTo().performClick()
         compose.waitUntil(25_000){compose.onAllNodes(hasText("Проверить обновление") and isEnabled()).fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("Проверить обновление").performScrollTo().assertIsEnabled()
     }

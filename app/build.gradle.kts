@@ -11,8 +11,8 @@ android {
         applicationId = "com.signet.client"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.2.1"
+        versionCode = 4
+        versionName = "0.2.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true }
@@ -50,6 +50,7 @@ dependencies {
     kapt("androidx.room:room-compiler:2.7.1")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation(platform("androidx.compose:compose-bom:2025.05.01"))
     androidTestImplementation("androidx.test:runner:1.6.2")

@@ -46,6 +46,7 @@ private val Green=Color(0xFF32E6A1)
 private val Warning=Color(0xFFFFC857)
 private val Error=Color(0xFFFF657A)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable fun SignetScreen(model: MainViewModel, connect: ()->Unit) {
     val storedState by model.state.collectAsStateWithLifecycle()
     val refreshing by model.refreshing.collectAsStateWithLifecycle()
@@ -55,6 +56,9 @@ private val Error=Color(0xFFFF657A)
     val probing by model.probing.collectAsStateWithLifecycle()
     val update by model.updates.state.collectAsStateWithLifecycle()
     var page by rememberSaveable { mutableIntStateOf(0) }
+    var showServers by rememberSaveable { mutableStateOf(false) }
+    var openDiagnostics by rememberSaveable { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled=page!=0){page=if(page==2)3 else 0}
     var showAccount by rememberSaveable{mutableStateOf(false)}
     var add by rememberSaveable { mutableStateOf(false) }
     var input by remember { mutableStateOf("") }
@@ -97,27 +101,28 @@ private val Error=Color(0xFFFF657A)
             .onFailure { model.repository.notify("На изображении не найден поддерживаемый QR-код") } }
     }
     MaterialTheme(colorScheme=darkColorScheme(primary=Primary, secondary=Color(0xFF62F4E8), background=Background, surface=Surface, onSurface=Color.White, error=Error)) {
-        Scaffold(containerColor=Background, snackbarHost={}, bottomBar={
-            NavigationBar(containerColor=Background, tonalElevation=0.dp) {
-                val labels=listOf("Главная","Серверы","Подписки","Настройки")
-                val icons=listOf(Icons.Outlined.Public,Icons.Outlined.Dns,Icons.Outlined.CreditCard,Icons.Outlined.Tune)
-                labels.forEachIndexed { i,label -> NavigationBarItem(selected=page==i,onClick={page=i},icon={Icon(icons[i],label)},label={Text(label,maxLines=1,fontSize=11.sp)},colors=NavigationBarItemDefaults.colors(indicatorColor=Surface,selectedIconColor=Primary,selectedTextColor=Primary,unselectedIconColor=Muted,unselectedTextColor=Muted)) }
-            }
-        }) { insets ->
+        Scaffold(containerColor=Background,snackbarHost={}) { insets ->
             Column(Modifier.fillMaxSize().padding(insets)) {
-                Row(Modifier.fillMaxWidth().padding(horizontal=22.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
-                    Image(painterResource(R.drawable.signet_logo),"Signet VPN",Modifier.width(80.dp).height(48.dp))
-                    Text("VPN / ANDROID",color=Muted,fontSize=10.sp,letterSpacing=2.sp)
-                    IconButton(onClick={page=3}) { Icon(Icons.Outlined.Settings,"Настройки",tint=Muted) }
+                Row(Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
+                    if(page==0)Image(painterResource(R.drawable.signet_logo),"Signet VPN",Modifier.width(80.dp).height(48.dp))
+                    else IconButton(onClick={page=if(page==2)3 else 0}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=Color.White)}
+                    Text(when(page){3->"Настройки";2->"Подписки";else->"VPN / ANDROID"},color=if(page==0)Muted else Color.White,fontSize=if(page==0)11.sp else 20.sp,fontWeight=FontWeight.Medium)
+                    IconButton(onClick={page=if(page==3)0 else 3}) { Icon(if(page==3)Icons.Outlined.Close else Icons.Outlined.Settings,if(page==3)"Закрыть настройки"else"Настройки",tint=Color(0xFFCFDBEB)) }
                 }
-                SnackbarHost(snackbar,Modifier.fillMaxWidth())
+                SnackbarHost(snackbar,Modifier.fillMaxWidth()){data->Snackbar(data,containerColor=Surface,contentColor=Color.White,shape=RoundedCornerShape(16.dp),modifier=Modifier.padding(horizontal=16.dp))}
                 update.available?.takeIf{it.version.toString()!=update.dismissed}?.let{UpdateBanner(it,model)}
                 when(page) {
-                    0 -> Home(state,vpn,model,connect,{page=2;add=true},{page=1})
-                    1 -> LocationList(state,vpn,probing,model::select,model::favorite,{model.measure()},model::refresh,Modifier.fillMaxSize().padding(horizontal=16.dp),activeProbes=activeProbes)
+                    0 -> Home(state,vpn,model,connect,{page=2;add=true},{showServers=true})
                     2 -> Subscriptions(state,{input="";add=true},{file.launch(arrayOf("text/*","application/json","application/octet-stream"))},{qr.launch(Intent(context,QrScannerActivity::class.java))},{qrImage.launch("image/*")},model::remove,model::refresh,{showAccount=true})
-                    3 -> Preferences(state,model)
+                    3 -> Preferences(state,model,{page=2},{showServers=true},openDiagnostics,{openDiagnostics=false})
                 }
+            }
+        }
+        if(showServers){
+            val sheet=rememberModalBottomSheetState(skipPartiallyExpanded=true)
+            ModalBottomSheet(onDismissRequest={showServers=false},sheetState=sheet,containerColor=Surface,contentColor=Color.White,modifier=Modifier.testTag("server-sheet")) {
+                LocationList(state,vpn,probing,{id->model.select(id);scope.launch{sheet.hide();showServers=false}},model::favorite,{model.measure()},model::refresh,
+                    Modifier.fillMaxWidth().fillMaxHeight(.88f).padding(horizontal=20.dp),activeProbes=activeProbes)
             }
         }
         if(showAccount)AccountScreen(model){showAccount=false}
@@ -138,7 +143,7 @@ private val Error=Color(0xFFFF657A)
 
 @Composable private fun Home(state:AppState,vpn:VpnStatus,model:MainViewModel,connect:()->Unit,add:()->Unit,servers:()->Unit) {
     val phase=vpn.phase
-    val active=phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING)
+    val active=vpn.tunActive||phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING)
     val server=if(phase==VpnPhase.CONNECTED)state.servers.firstOrNull{it.id==vpn.serverId}else state.server
     val display=remember(state.servers,server?.id){com.signet.core.ServerDisplayModel.all(state.servers)[server?.id]}
     val status=when(phase){VpnPhase.CONNECTED->"Подключено";VpnPhase.CONNECTING->"Подключение";VpnPhase.RECONNECTING->"Переподключение";VpnPhase.ERROR->"Ошибка подключения";VpnPhase.DISCONNECTING->"Отключение";else->"Не подключено"}
@@ -148,12 +153,11 @@ private val Error=Color(0xFFFF657A)
             Text(display?.title?:"Выбрать сервер",Modifier.weight(1f).padding(horizontal=12.dp),fontSize=16.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
             Icon(Icons.Outlined.ChevronRight,"Список серверов",tint=Primary)
         }
-        vpn.error?.let{Text(it,color=Warning,fontSize=11.sp,maxLines=3,overflow=TextOverflow.Ellipsis)}
+        vpn.error?.let{Text(it,color=Warning,fontSize=14.sp,lineHeight=20.sp,maxLines=3,overflow=TextOverflow.Ellipsis)}
         GlassButton(onClick={if(active)model.stop()else if(server==null)add()else connect()},enabled=phase!=VpnPhase.DISCONNECTING,modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=58.dp)) {
             if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Primary)else Icon(Icons.Outlined.PowerSettingsNew,null)
             Text(if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else"Подключиться",Modifier.padding(start=8.dp),maxLines=2)
         }
-        if(phase==VpnPhase.ERROR)TextButton(onClick=model::stop){Text("Отключить VPN")}
         if(phase==VpnPhase.CONNECTED)Text("↑ ${bytes(vpn.uploaded)}    ↓ ${bytes(vpn.downloaded)}",color=Muted,fontSize=11.sp,modifier=Modifier.padding(top=6.dp))
     }
     if(LocalConfiguration.current.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE)Row(Modifier.fillMaxSize().padding(horizontal=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(18.dp)) {
@@ -184,7 +188,7 @@ private val Error=Color(0xFFFF657A)
         Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){GlassButton(onClick=add){Icon(Icons.Outlined.Add,null);Text("Добавить")};GlassButton(onClick=qr){Icon(Icons.Outlined.QrCodeScanner,"QR-код")};GlassButton(onClick=file){Icon(Icons.Outlined.FileOpen,"Из файла")}}
         TextButton(onClick=image){Text("QR из изображения")}
         TextButton(onClick=account){Text("Аккаунт Signet · подписки и оплата")}
-        TextButton(onClick=refresh,enabled=!state.busy){if(state.busy)CircularProgressIndicator(Modifier.size(18.dp).padding(end=4.dp),strokeWidth=2.dp);Text(if(state.busy)"Обновление…" else "Обновить все подписки")}
+        IconButton(onClick=refresh,enabled=!state.busy){if(state.busy)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Refresh,"Обновить подписки")}
         if(state.busy)LinearProgressIndicator(Modifier.fillMaxWidth())
         LazyColumn(verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=20.dp)){
             if(state.subscriptions.isEmpty())item{Empty("Добро пожаловать","Добавьте ссылку из личного кабинета Signet или импортируйте конфигурацию. Данные хранятся на устройстве в зашифрованном виде.")}
@@ -205,66 +209,6 @@ private val Error=Color(0xFFFF657A)
             }}
         }
     }
-}
-
-@Composable private fun Preferences(state:AppState,model:MainViewModel){
-    val s=state.settings;val context=LocalContext.current;val scope=rememberCoroutineScope();val report by model.diagnostic.collectAsStateWithLifecycle()
-    var dns by remember(s.dns){mutableStateOf(s.dns)};var cabinet by remember(s.cabinet){mutableStateOf(s.cabinet)}
-    var healthUrl by remember(s.connectionCheckUrl){mutableStateOf(s.connectionCheckUrl)}
-    var showApps by rememberSaveable{mutableStateOf(false)}
-    var showProbeSettings by rememberSaveable{mutableStateOf(false)}
-    var showTemplate by rememberSaveable{mutableStateOf(false)}
-    var showAccount by rememberSaveable{mutableStateOf(false)}
-    val update by model.updates.state.collectAsStateWithLifecycle()
-    val probing by model.probing.collectAsStateWithLifecycle()
-    var routeText by remember{mutableStateOf("")};var routeDialog by remember{mutableStateOf(false)}
-    val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")){uri->if(uri!=null)scope.launch(Dispatchers.IO){runCatching{context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use{it.write(report)}}}}
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=22.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
-        Title("Настройки","Соединение под вашим контролем")
-        TextButton(onClick={showAccount=true}){Text("Аккаунт Signet · войти и продлить")}
-        Toggle("Подключаться при открытии",s.autoConnect){model.save(s.copy(autoConnect=it))}
-        Toggle("Переподключаться при смене сети",s.reconnect){model.save(s.copy(reconnect=it))}
-        TextButton(onClick={context.startActivity(Intent(AndroidSettings.ACTION_VPN_SETTINGS))}){Text("Системные Always-on и блокировка без VPN")}
-        TextButton(onClick={showProbeSettings=true}){Text("Настроить Ping · режим, адрес и интервалы")}
-        OutlinedTextField(healthUrl,{healthUrl=it},label={Text("HTTPS адрес проверки соединения")},supportingText={Text("Проверяется через VPN независимо от TCP-пинга. Адрес должен быть разрешён правилами профиля.")},singleLine=true,modifier=Modifier.fillMaxWidth())
-        TextButton(onClick={if(com.signet.core.SubscriptionMetadata.safeLink(healthUrl)!=null)model.save(s.copy(connectionCheckUrl=healthUrl))else model.repository.notify("Укажите HTTPS адрес без логина и пароля")}){Text("Сохранить адрес проверки")}
-        TextButton(onClick={showTemplate=true},enabled=state.server!=null){Text("Проверить шаблон Remnawave / Xray JSON")}
-        Section("ОБНОВЛЕНИЯ ПРИЛОЖЕНИЯ")
-        Toggle("Проверять обновления автоматически",s.automaticUpdates){model.save(s.copy(automaticUpdates=it))}
-        GlassButton(onClick={model.checkUpdates()},enabled=!update.checking){
-            if(update.checking)CircularProgressIndicator(Modifier.size(16.dp).padding(end=4.dp),strokeWidth=2.dp)
-            Text("Проверить обновление")
-        }
-        if(update.message.isNotBlank())Text(update.message,color=Muted,fontSize=12.sp)
-        Section("DNS И МАРШРУТИЗАЦИЯ")
-        OutlinedTextField(dns,{dns=it},label={Text("Резервный DNS · IP")},supportingText={Text("DNS из полного Xray-профиля сохраняется")},modifier=Modifier.fillMaxWidth(),singleLine=true)
-        TextButton(onClick={if(com.signet.core.TemplateCompatibility.numericAddress(dns))model.save(s.copy(dns=dns))else model.repository.notify("Укажите IPv4 или IPv6 адрес")}){Text("Сохранить DNS")}
-        Text("Приложения через VPN",fontSize=15.sp)
-        Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("all" to "Все","exclude" to "Кроме","include" to "Только").forEach{(mode,label)->FilterChip(s.appMode==mode,{model.save(s.copy(appMode=mode))},label={Text(label)})}}
-        TextButton(onClick={showApps=true}){Text("Выбрать приложения (${s.packages.size})")}
-        Text("Изменения маршрутизации применяются при следующем подключении.",color=Muted,fontSize=12.sp)
-        TextButton(onClick={routeText=state.server?.config?:"";routeDialog=true},enabled=state.server!=null){Text("Редактор маршрутов и DNS · Xray JSON")}
-        TextButton(onClick={scope.launch{state.server?.id?.let{model.repository.restore(it)};model.repository.notify("Исходный профиль восстановлен")}},enabled=state.server!=null){Text("Восстановить исходный профиль")}
-        Section("ПЛАНЕТА")
-        listOf("High" to "Качество · 60 кадров/с","Balanced" to "Баланс · 30 кадров/с","Battery Saver" to "Экономия · 10 кадров/с").forEach{(mode,label)->Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(graphics=mode))},verticalAlignment=Alignment.CenterVertically){RadioButton(s.graphics==mode,{model.save(s.copy(graphics=mode))});Text(label,fontSize=14.sp)}}
-        Toggle("Уменьшить движение",s.reduceMotion){model.save(s.copy(reduceMotion=it))}
-        Text("В фоне графика останавливается. Логи трафика не сохраняются, кеш ответов не создаётся. Размер каждой подписки ограничен 4 МБ.",color=Muted,fontSize=12.sp)
-        Section("ПОДПИСКА")
-        Text("HWID всегда включён",color=Primary,fontSize=14.sp)
-        Text("Подписке передаётся постоянный ID этой установки, версия Android и модель устройства.",color=Muted,fontSize=12.sp)
-        OutlinedTextField(cabinet,{cabinet=it},label={Text("HTTPS адрес личного кабинета")},modifier=Modifier.fillMaxWidth(),singleLine=true)
-        TextButton(onClick={if(cabinet.isEmpty()||cabinet.startsWith("https://"))model.save(s.copy(cabinet=cabinet))}){Text("Сохранить адрес")}
-        Section("ДИАГНОСТИКА")
-        Text("Signet ${BuildConfig.VERSION_NAME} · libXray 26.11.9",color=Muted,fontSize=12.sp)
-        GlassButton(onClick=model::diagnostics){Text("Проверить соединение")}
-        if(report.isNotBlank()){Text(report,color=Muted,fontSize=12.sp);TextButton(onClick={export.launch("signet-diagnostics.txt")}){Text("Экспорт без ключей и адресов серверов")}}
-        Spacer(Modifier.height(24.dp))
-    }
-    if(showApps)ApplicationsScreen(model){showApps=false}
-    if(showProbeSettings)ProbePreferences(model){showProbeSettings=false}
-    if(showTemplate)state.server?.let{TemplateScreen(it){showTemplate=false}}
-    if(showAccount)AccountScreen(model){showAccount=false}
-    if(routeDialog)AlertDialog(onDismissRequest={routeDialog=false},title={Text("Конфигурация Xray")},text={Column{Text("Конфигурация содержит секретные ключи. Не публикуйте её. Изменения заменяются при обновлении подписки.",color=Warning,fontSize=12.sp);OutlinedTextField(routeText,{if(it.length<=512*1024)routeText=it},modifier=Modifier.fillMaxWidth().heightIn(max=300.dp),maxLines=12)}},confirmButton={TextButton(onClick={scope.launch(Dispatchers.IO){if(VpnState.status.value.phase!=VpnPhase.DISCONNECTED)model.repository.notify("Для проверки остановите VPN")else runCatching{NativeCore.call("testXray",org.json.JSONObject().put("xrayJson",routeText));state.server?.id?.let{model.repository.edit(it,routeText)};model.repository.notify("Проверено ядром и сохранено");withContext(Dispatchers.Main){routeDialog=false}}.onFailure{model.repository.notify("Конфигурация не прошла проверку")}}}){Text("Проверить и сохранить")}},dismissButton={TextButton(onClick={routeDialog=false}){Text("Закрыть")}})
 }
 
 @Composable private fun Title(title:String,subtitle:String){Column(Modifier.padding(top=8.dp,bottom=20.dp)){Text(title,fontSize=28.sp,fontWeight=FontWeight.Light);Text(subtitle,color=Muted,fontSize=12.sp,modifier=Modifier.padding(top=6.dp))}}

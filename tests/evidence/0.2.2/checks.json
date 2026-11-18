@@ -1,0 +1,32 @@
+{
+  "version": "0.2.2",
+  "versionCode": 4,
+  "dependencyVerification": "strict",
+  "build": "PASS",
+  "duration": "2m 50s",
+  "targetedTests": {
+    "com.signet.core.DisplayAndSettingsTest": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.signet.core.SolarPositionTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.signet.client.vpn.ConnectionHealthTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "release": "PASS, three ABI APKs plus universal build output",
+  "instrumentation": "COMPILED ONLY, not executed per request to limit checks",
+  "lint": "lintVitalRelease passed as part of assembleRelease; full lintDebug not repeated",
+  "phone": "Not tested on physical device",
+  "userSubscription": "Exact failure not reproduced; implemented HTTPS status handling, bounded startup retry and diagnostics"
+}

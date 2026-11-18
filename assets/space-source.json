@@ -1,0 +1,7 @@
+{
+  "asset": "app/src/main/assets/space.png",
+  "origin": "Generated with the built-in imagegen tool, 2026-11-18",
+  "kind": "AI-generated astrophotographic-style background; not an astronomical observation",
+  "prompt": "Use case: photorealistic-natural. Asset type: subtle raster background texture for a mobile application's 3D Earth globe. Create a WIDE 2:1 astrophotography-style deep space star field, nearly black with faint natural cool blue-gray stars of varied tiny sizes, subtle sparse Milky Way dust near one corner and large calm dark central area where a separate 3D Earth will be rendered. Realistic long-exposure astronomical photograph appearance. Restrained low brightness, no oversaturated purple, no prominent nebula, no Earth or any planets, no sun, no spacecraft, no text, no UI, no logos, no frames. The whole image is a flat background starfield asset, not a screenshot or mockup. Generate one clean image with opaque background.",
+  "sha256": "0b6c23aac48e5da98594d45d086c80861633e15de23c01188ac13cb2c2af4406"
+}

@@ -10,7 +10,7 @@ class DisplayAndSettingsTest {
         val labels=ServerDisplayModel.all(listOf(first,second,gaming))
         assertTrue(labels.getValue("first").title.endsWith("№1"))
         assertTrue(labels.getValue("second").title.endsWith("№2"))
-        assertTrue(labels.getValue("game").title.contains("Gaming"))
+        assertEquals("Германия · Игровой",labels.getValue("game").title)
         assertFalse(labels.getValue("game").title.contains("№"))
         assertEquals(listOf("first","second","game"),labels.keys.toList())
     }
@@ -23,16 +23,23 @@ class DisplayAndSettingsTest {
         assertEquals("ab",SubscriptionMetadata.text("a\u202eb\u0000"))
     }
     private fun server(name:String="🇩🇪 DE Frankfurt")=Profiles.parseJson("""{"remarks":"$name","outbounds":[{"protocol":"vless","settings":{"vnext":[{"address":"example.com","port":443}]}}]}""").single()
-    @Test fun displayDoesNotChangeConfigurationOrIdentity(){val s=server();val display=ServerDisplayModel.from(s);assertEquals("Frankfurt",display.title);assertEquals(s.id,display.id);assertEquals("DE",display.country);assertTrue(s.name.contains("🇩🇪"))}
+    @Test fun displayDoesNotChangeConfigurationOrIdentity(){val s=server();val display=ServerDisplayModel.from(s);assertEquals("Германия",display.title);assertEquals(s.id,display.id);assertEquals("DE",display.country);assertTrue(s.name.contains("🇩🇪"))}
     @Test fun countryLabelsAndDuplicatePrefixesDoNotDependOnDeviceLanguage(){
         val previous=java.util.Locale.getDefault()
         try {
             java.util.Locale.setDefault(java.util.Locale.ENGLISH)
             val s=server("DE Germany Signet Германия Frankfurt");val display=ServerDisplayModel.from(s)
-            assertEquals("Германия",display.group);assertEquals("Frankfurt",display.title);assertEquals(s.id,display.id)
+            assertEquals("Германия",display.group);assertEquals("Германия",display.title);assertEquals(s.id,display.id)
         }finally{java.util.Locale.setDefault(previous)}
     }
     @Test fun stripsControlAndDirectionOverrides(){assertEquals("safe title",DisplayText.clean("safe\u202e title\u0000"))}
+    @Test fun signetAutoAndWhiteRemainVisibleWithoutHostLabels(){
+        val auto=server("Signet_Auto");assertTrue(auto.isAuto);assertEquals("AUTO",ServerDisplayModel.from(auto).title)
+        val white=server("Signet_White");assertEquals("Signet_White",ServerDisplayModel.from(white).title)
+        assertFalse(ServerDisplayModel.from(server("🇱🇻 Signet_Latvia")).title.contains("Signet"))
+        assertEquals("Латвия",ServerDisplayModel.from(server("🇱🇻 Signet_Latvia")).title)
+        assertEquals("Латвия",ServerDisplayModel.from(server("Signet_Latvia")).title)
+    }
     @Test fun routingExportHasNoProfileSecrets(){val r=AppRouting("include",setOf("ru.yandex.yandexmaps","org.example.app"));assertEquals(r,AppRouting.parse(r.json()));assertFalse(r.json().contains("token"));assertFails{AppRouting.parse(r.json().replace("\"schemaVersion\": 1","\"schemaVersion\": 9"))};assertFails{AppRouting.parse(r.json().replace("org.example.app","../secret"))}}
     @Test fun probesRejectUnsafeSchemesAndResourceAbuse(){assertFails{ProbeSettings(url="http://example.com").validated()};assertFails{ProbeSettings(url="https://u:p@example.com").validated()};assertFails{ProbeSettings(parallelism=100).validated()};assertEquals(ProbeSettings(),ProbeSettings.parse(ProbeSettings().json().toString()))}
     @Test fun autoHasNoInventedTcpEndpoint(){assertNull(Endpoints.from(server().copy(isAuto=true)));assertEquals("example.com",Endpoints.from(server())?.host)}

@@ -6,7 +6,9 @@ libXray — MIT, XTLS, [исходный релиз](https://github.com/XTLS/lib
 
 AndroidX/Compose/Room/DataStore/WorkManager — Apache-2.0; Kotlin/coroutines — Apache-2.0; OkHttp/Moshi — Apache-2.0; Koin — Apache-2.0; ZXing — Apache-2.0, zxing-android-embedded — Apache-2.0. JTS — EPL-2.0 / EDL-1.0 dual license (для распространения может применяться EDL-1.0). JSON-java — public domain по upstream; проверяйте закреплённую версию. Полный граф Gradle зависимостей сохраняется отдельно в отчётах сборки; это не исчерпывающий юридический аудит всех транзитивных Go packages.
 
-Natural Earth — public domain, https://www.naturalearthdata.com/about/terms-of-use/. NASA Blue Marble earth texture распространяется через https://github.com/turban/webgl-earth/tree/master/images; происхождение и SHA записаны в assets/sources.json. Процедурные облака не используют дополнительные чужие изображения. Географические данные не являются заявлением о юридическом признании спорных границ.
+Natural Earth — public domain, https://www.naturalearthdata.com/about/terms-of-use/. NASA Blue Marble Earth/cloud photo texture distributed in the official three.js r176 examples; exact URL, credit and SHA are recorded in assets/sources.json and assets/photo-textures-source.json. Geographic data is not a statement about recognition of disputed borders.
+
+Space background: AI-generated using the built-in imagegen tool for this project; not an astronomical observation. Original prompt and provenance: assets/space-source.json. No ESO image is included. Day/night geometry uses NOAA's general solar-position equations: https://www.gml.noaa.gov/grad/solcalc/solareqns.PDF.
 
 Закрытые ресурсы/код Incy и Happ не включены. Production ключи подписи не включены. Статический REALITY private key в tests/local-vless.json является открытой тестовой fixture и не должен использоваться для публичного сервера.
 # Локальные флаги 0.2.0

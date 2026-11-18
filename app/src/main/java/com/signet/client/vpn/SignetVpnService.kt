@@ -24,7 +24,7 @@ import java.net.*
 import java.util.concurrent.TimeUnit
 
 enum class VpnPhase { DISCONNECTED, CONNECTING, CONNECTED, RECONNECTING, DISCONNECTING, ERROR }
-data class VpnStatus(val phase: VpnPhase = VpnPhase.DISCONNECTED, val serverId: String? = null, val since: Long = 0, val uploaded: Long = 0, val downloaded: Long = 0, val error: String? = null)
+data class VpnStatus(val phase: VpnPhase = VpnPhase.DISCONNECTED, val serverId: String? = null, val since: Long = 0, val uploaded: Long = 0, val downloaded: Long = 0, val error: String? = null,val tunActive:Boolean=false)
 object VpnState { val status = MutableStateFlow(VpnStatus()) }
 
 class SignetVpnService : VpnService() {
@@ -56,6 +56,7 @@ class SignetVpnService : VpnService() {
     }
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "STOP") {
+            ConnectionLog.add("VPN","STOP_REQUESTED")
             requested = false; connectJob?.cancel(); networkJob?.cancel()
             VpnState.status.update { it.copy(phase=VpnPhase.DISCONNECTING) }
             scope.launch { mutex.withLock {
@@ -74,8 +75,10 @@ class SignetVpnService : VpnService() {
         if (!requested) return@withLock
         val current = VpnState.status.value
         VpnState.status.value = VpnStatus(if (current.phase == VpnPhase.CONNECTED) VpnPhase.RECONNECTING else VpnPhase.CONNECTING)
+        ConnectionHealth.clear()
         stopCore(closeTun=false)
         val selected = repository.state.value.server
+        ConnectionLog.add("VPN","CONNECT_REQUESTED")
         if (selected == null) { fail("Добавьте подписку и выберите сервер"); return@withLock }
         if(com.signet.core.TransportChecks.requiresOAuthConsent(JSONObject(selected.config))&&!repository.allowsOAuth(selected.id)){fail("Для XDrive OAuth требуется согласие при повторном импорте подписки");return@withLock}
         if (!selected.enabled) { fail("Сервер отключён в подписке"); return@withLock }
@@ -110,35 +113,34 @@ class SignetVpnService : VpnService() {
             metricsPort = ports.getInt(0)
             val previousTun=tun
             tun = builder.establish() ?: error("Разрешение VPN отозвано")
+            ConnectionLog.add("VPN","TUN_ESTABLISHED")
             runCatching { previousTun?.close() }
             val config = Profiles.runtime(selected, tun!!.fd, metricsPort, assetDir.absolutePath, dns)
             startupStage="запуск ядра"
             NativeCore.call("runXray", JSONObject().put("xrayJson", config.toString()))
+            ConnectionLog.add("CORE","STARTED")
             // A running Go instance alone is insufficient: require real HTTPS over the selected outbound.
             startupStage="проверка HTTPS"
-            val proxyClient = OkHttpClient.Builder().proxy(java.net.Proxy.NO_PROXY)
-                .connectTimeout(12, TimeUnit.SECONDS).readTimeout(12, TimeUnit.SECONDS).callTimeout(20, TimeUnit.SECONDS).build()
-            try {
-                proxyClient.newCall(Request.Builder().url(settings.connectionCheckUrl).build()).awaitResponse().use {
-                    check(it.isSuccessful) { "Сервер не подтвердил передачу данных" }
-                }
-            } finally { proxyClient.connectionPool.evictAll(); proxyClient.dispatcher.executorService.shutdown() }
+            // Android updates VPN routes/DNS asynchronously after establish(). Allow bounded warm-up retries.
+            delay(300)
+            check(ConnectionHealth.check(settings.connectionCheckUrl).healthy)
             currentCoroutineContext().ensureActive()
             if (!requested) { stopCore(); return@withLock }
-            VpnState.status.value = VpnStatus(VpnPhase.CONNECTED, selected.id, SystemClock.elapsedRealtime())
+            VpnState.status.value = VpnStatus(VpnPhase.CONNECTED, selected.id, SystemClock.elapsedRealtime(),tunActive=true)
             repository.success(selected.id)
             notification("Подключено · ${selected.countryName}")
+            ConnectionLog.add("VPN","CONNECTED")
             monitor = scope.launch { watch(selected) }
         } catch (e: CancellationException) { stopCore(closeTun=false); throw e }
         catch (e: Exception) {
+            ConnectionLog.add("VPN","CONNECT_FAILED",ConnectionHealth.category(e))
             stopCore(closeTun=false)
-            fail(if(startupStage=="проверка HTTPS")"HTTPS-проверка не прошла. Проверьте сервер и разрешён ли адрес проверки правилами профиля. Адрес можно изменить в настройках проверки соединения."
+            fail(if(startupStage=="проверка HTTPS")"${ConnectionHealth.latest.value?.description?:"HTTPS недоступен"}. Откройте диагностику в настройках."
                 else "Не удалось подключиться: $startupStage (${e.javaClass.simpleName}). Проверьте подписку и доступность сервера.")
         }
     }
     private suspend fun watch(server: Server) {
         val client = OkHttpClient.Builder().proxy(java.net.Proxy.NO_PROXY).callTimeout(2, TimeUnit.SECONDS).build()
-        val health = OkHttpClient.Builder().proxy(java.net.Proxy.NO_PROXY).callTimeout(10,TimeUnit.SECONDS).build()
         var nextHealth=SystemClock.elapsedRealtime()+30_000;var failures=0
         try {
             while (currentCoroutineContext().isActive && requested) {
@@ -149,7 +151,7 @@ class SignetVpnService : VpnService() {
                     break
                 }
                 if(SystemClock.elapsedRealtime()>=nextHealth) {
-                    val reachable=runCatching { health.newCall(Request.Builder().url(repository.state.value.settings.connectionCheckUrl).build()).awaitResponse().use { it.isSuccessful } }.getOrDefault(false)
+                    val reachable=ConnectionHealth.check(repository.state.value.settings.connectionCheckUrl,attempts=1).healthy
                     failures=if(reachable)0 else failures+1;nextHealth=SystemClock.elapsedRealtime()+30_000
                     if(reachable)retryCount=0
                     if(failures>=3){stopCore(closeTun=false);fail("VPN перестал передавать HTTPS-трафик");break}
@@ -163,11 +165,10 @@ class SignetVpnService : VpnService() {
                     }
                 }
             }
-        } finally { client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown();health.connectionPool.evictAll();health.dispatcher.executorService.shutdown() }
+        } finally { client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown() }
     }
     private fun fail(message: String) {
-        VpnState.status.value = VpnStatus(VpnPhase.ERROR, error = message)
-        repository.notify(message)
+        VpnState.status.value = VpnStatus(VpnPhase.ERROR, error = message,tunActive=tun!=null)
         notification(message)
         if(requested && repository.state.value.settings.reconnect && retryCount<3) {
             retryCount++;networkJob?.cancel()

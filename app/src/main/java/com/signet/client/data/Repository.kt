@@ -31,6 +31,7 @@ class Repository(private val context: Context, private val vault: Vault, private
     init { scope.launch {
         runCatching {
             val settings = settingsStore.load()
+            ConnectionLog.configure(settings.logging)
             val saved = vault.read()?.let(::JSONObject)
             installId = saved?.optString("installation")?.takeIf { it.isNotBlank() } ?: installId
             val subs = saved?.optJSONArray("subscriptions") ?: JSONArray()
@@ -67,7 +68,7 @@ class Repository(private val context: Context, private val vault: Vault, private
         require(state.value.servers.any { it.id == id && it.enabled }) { "Профиль недоступен" }
         commit(state.value.copy(selected=id))
     }
-    suspend fun settings(s: Settings) = mutex.withLock { settingsStore.save(s); _state.update { it.copy(settings = s) } }
+    suspend fun settings(s: Settings) = mutex.withLock { settingsStore.save(s);ConnectionLog.configure(s.logging); _state.update { it.copy(settings = s) } }
     suspend fun favorite(id: String) = updateServers { if (it.id == id) it.copy(favorite = !it.favorite) else it }
     suspend fun success(id: String) = updateServers { if (it.id == id) it.copy(successes = it.successes + 1) else it }
     suspend fun edit(id: String, text: String) {

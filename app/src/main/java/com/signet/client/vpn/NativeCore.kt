@@ -18,6 +18,7 @@ object NativeCore {
     }
     @Synchronized fun call(method: String, payload: JSONObject = JSONObject()): JSONObject {
         val response = JSONObject(LibXray.invoke(JSONObject().put("apiVersion", 3).put("method", method).put("payload", payload).toString()))
+        if(!response.optBoolean("success"))com.signet.client.data.ConnectionLog.add("CORE",method,"FAILED")
         check(response.optBoolean("success")) { "Ошибка ядра: $method" }
         return response.optJSONObject("data") ?: JSONObject()
     }

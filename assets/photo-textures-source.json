@@ -1,0 +1,7 @@
+{
+  "earth.jpg": {
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/r176/examples/textures/planets/earth_atmos_2048.jpg",
+    "credit": "NASA Blue Marble, distributed by three.js",
+    "sha256": "2faa400d1eade3bc44caf6750d1b772bd9bbb6d87362c02bc7c3304e78fa0a9d"
+  }
+}

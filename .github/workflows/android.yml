@@ -106,6 +106,7 @@ jobs:
           set -euo pipefail
           mkdir -p tests/evidence/runtime
           jps -lv | awk '/KotlinCompileDaemon/ {print $1}' | xargs -r kill
+          python3 scripts/prune-runtime-build-cache.py
           ulimit -c 0
           df -h . /tmp
           python3 -c "import shutil; assert shutil.disk_usage('.').free >= 4*1024**3, 'Insufficient runner disk for emulator'"

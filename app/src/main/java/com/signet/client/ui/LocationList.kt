@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -28,9 +29,11 @@ import com.signet.core.*
     val filtered=state.servers.filter { s->(!favoriteOnly||s.favorite)&&("${displays[s.id]?.title} ${s.countryName} ${displays[s.id]?.description} ${displays[s.id]?.transport}").contains(query,true) }
     Column(modifier) {
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-            Text("Локации",Modifier.weight(1f),fontWeight=FontWeight.SemiBold,fontSize=18.sp)
-            TextButton(onClick=ping,enabled=state.servers.isNotEmpty()&&vpn.phase !in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.DISCONNECTING)){if(probing)CircularProgressIndicator(Modifier.size(12.dp),strokeWidth=1.5.dp);Text(if(probing)" Стоп"else"Ping")}
-            TextButton(onClick=refresh,enabled=!state.busy){if(state.busy)CircularProgressIndicator(Modifier.size(16.dp),strokeWidth=2.dp);Text(if(state.busy)" Обновление"else"Обновить")}
+            Text("Серверы",Modifier.weight(1f),fontWeight=FontWeight.SemiBold,fontSize=24.sp)
+            IconButton(onClick=ping,modifier=Modifier.testTag("server-ping"),enabled=state.servers.isNotEmpty()&&vpn.phase !in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.DISCONNECTING)) {
+                Icon(if(probing)Icons.Outlined.StopCircle else Icons.Outlined.NetworkPing,if(probing)"Остановить измерение"else"Проверить задержку",tint=Color(0xFF8FDCFF))
+            }
+            IconButton(onClick=refresh,modifier=Modifier.testTag("server-refresh"),enabled=!state.busy){if(state.busy)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Refresh,"Обновить подписки",tint=Color(0xFF8FDCFF))}
         }
         if(!compact) {
             OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),placeholder={Text("Страна, город, сервер")},leadingIcon={Icon(Icons.Outlined.Search,null)},singleLine=true,shape=RoundedCornerShape(16.dp))
@@ -52,8 +55,8 @@ import com.signet.core.*
         CountryFlag(display.country,display.isAuto)
         Column(Modifier.weight(1f).padding(horizontal=12.dp)) {
             Text(display.title,color=if(server.enabled)Color.White else Color(0xFF9BAAC2),fontWeight=if(selected)FontWeight.SemiBold else FontWeight.Normal,maxLines=2,overflow=TextOverflow.Ellipsis,fontSize=14.sp)
-            display.description?.let{Text(it,color=Color(0xFF9BAAC2),fontSize=11.sp,maxLines=2,overflow=TextOverflow.Ellipsis)}
-            Text(display.transport,color=Color(0xFF73859F),fontSize=10.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
+            val format=if(state.subscriptions.firstOrNull{sub->sub.servers.any{it.id==server.id}}?.format=="XRAY_JSON")"JSON"else"URI"
+            Text("${display.transport} / $format",color=Color(0xFF9AAEC8),fontSize=11.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
         }
         Column(horizontalAlignment=Alignment.End) {
             if(probing)CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp)

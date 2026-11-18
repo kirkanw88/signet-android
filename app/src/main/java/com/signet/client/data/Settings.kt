@@ -12,7 +12,7 @@ data class Settings(
     val graphics: String = "Balanced", val reduceMotion: Boolean = false,
     val appMode: String = "all", val packages: Set<String> = emptySet(), val cabinet: String = "",
     val hwid: Boolean = true, val probes:ProbeSettings=ProbeSettings(),val automaticUpdates:Boolean=true,
-    val connectionCheckUrl:String="https://example.com"
+    val connectionCheckUrl:String="https://example.com",val logging:Boolean=false
 )
 class SettingsStore(private val context: Context) {
     suspend fun load(): Settings {
@@ -22,7 +22,7 @@ class SettingsStore(private val context: Context) {
             p[booleanPreferencesKey("reduceMotion")] ?: false, p[stringPreferencesKey("appMode")] ?: "all",
             p[stringSetPreferencesKey("packages")] ?: emptySet(), p[stringPreferencesKey("cabinet")] ?: "https://signet-cab.com", true,
             p[stringPreferencesKey("probes")]?.let { runCatching { ProbeSettings.parse(it) }.getOrNull() }?:ProbeSettings(),p[booleanPreferencesKey("automaticUpdates")]?:true,
-            p[stringPreferencesKey("connectionCheckUrl")]?.takeIf{com.signet.core.SubscriptionMetadata.safeLink(it)!=null}?:"https://example.com")
+            p[stringPreferencesKey("connectionCheckUrl")]?.takeIf{com.signet.core.SubscriptionMetadata.safeLink(it)!=null}?:"https://example.com",p[booleanPreferencesKey("logging")]?:false)
     }
     suspend fun save(s: Settings) = context.settingsStore.edit {
         it[booleanPreferencesKey("reconnect")] = s.reconnect; it[booleanPreferencesKey("autoConnect")] = s.autoConnect
@@ -34,5 +34,6 @@ class SettingsStore(private val context: Context) {
         it[stringPreferencesKey("connectionCheckUrl")] = s.connectionCheckUrl
         it[stringPreferencesKey("probes")] = s.probes.validated().json().toString()
         it[booleanPreferencesKey("automaticUpdates")] = s.automaticUpdates
+        it[booleanPreferencesKey("logging")] = s.logging
     }
 }

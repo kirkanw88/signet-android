@@ -57,6 +57,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     val samples=batch.associate{it.id to mutableListOf<Long>()};val statuses=mutableMapOf<String,String>()
                     repeat(options.attempts) { attempt->
                         Probes.measureDetailed(getApplication(),batch,options).forEach { (id,result)->
+                            ConnectionLog.add("PROBE",options.mode.name,result.status)
                             result.delay?.let { samples.getValue(id).add(it) };statuses[id]=result.status
                         }
                         if(attempt<options.attempts-1)delay(options.intervalMs.toLong())
@@ -73,12 +74,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
     fun diagnostics() {
         viewModelScope.launch(Dispatchers.IO) {
-            _diagnostic.value = "Проверка…"
-            val client=OkHttpClient.Builder().callTimeout(15,TimeUnit.SECONDS).build()
-            val check=runCatching { client.newCall(Request.Builder().url("https://www.gstatic.com/generate_204").build()).execute().use { if(it.isSuccessful) "PASS" else "FAIL" } }.getOrDefault("FAIL")
-            val dns=runCatching { java.net.InetAddress.getAllByName("example.com").isNotEmpty() }.getOrDefault(false)
-            _diagnostic.value = "Signet ${BuildConfig.VERSION_NAME}\nXray ${NativeCore.version()}\nVPN: ${vpn.value.phase}\nHTTPS: $check\nСистемный DNS: ${if(dns) "PASS" else "FAIL"}\nПрофилей: ${state.value.subscriptions.size}\nСерверов: ${state.value.servers.size}\nАдреса узлов и ключи исключены из отчёта."
-            client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown()
+            val previous=ConnectionHealth.latest.value
+            _diagnostic.value="Проверяем HTTPS-соединение…"
+            try {
+                val result=ConnectionHealth.check(state.value.settings.connectionCheckUrl,attempts=1,record=false)
+                val transport=state.value.server?.let{com.signet.core.ServerDisplayModel.from(it).transport}?:"Не выбран"
+                _diagnostic.value="Signet ${BuildConfig.VERSION_NAME}\nXray ${NativeCore.version()}\n\nVPN: ${vpn.value.phase}\nПрофиль: $transport\nРежим измерения: ${state.value.settings.probes.mode}\n\nПри подключении:\n${previous?.description?:"Проверка ещё не выполнялась"}\nПопыток: ${previous?.attempts?:0}\n\nСейчас:\n${result.description}\n\nПрофилей: ${state.value.subscriptions.size}\nСерверов: ${state.value.servers.size}\nHWID: включён\n\nАдреса серверов, ссылка подписки и ключи исключены."
+            }catch(e:CancellationException){throw e}
+            catch(e:Exception){_diagnostic.value="Не удалось выполнить диагностику. Код: ${ConnectionHealth.category(e)}"}
         }
     }
 }

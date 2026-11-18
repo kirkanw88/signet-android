@@ -15,33 +15,33 @@ data class ServerDisplayModel(val id:String,val title:String,val description:Str
     companion object {
         fun all(servers:List<Server>):Map<String,ServerDisplayModel> {
             val bases=servers.associate{it.id to from(it)}
-            val totals=servers.filterNot{it.isAuto}.groupingBy{it.countryCode?:it.countryName}.eachCount()
             val titles=servers.groupingBy{(it.countryCode?:"")+":"+bases.getValue(it.id).title}.eachCount()
             val positions=mutableMapOf<String,Int>()
             return servers.associate { server->
                 val base=bases.getValue(server.id);val key=(server.countryCode?:"")+":"+base.title
                 val n=(positions[key]?:0)+1;positions[key]=n
-                val named=if(!server.isAuto && (totals[server.countryCode?:server.countryName]?:0)>1 && base.title!=server.countryName)"${server.countryName} · ${base.title}"else base.title
-                server.id to base.copy(title=if((titles[key]?:0)>1)"$named №$n"else named)
+                server.id to base.copy(title=if((titles[key]?:0)>1)"${base.title} №$n"else base.title)
             }
         }
         fun from(server:Server):ServerDisplayModel {
             val code=server.countryCode
-            val names=listOfNotNull(code,code?.let{Locale("",it).getDisplayCountry(Locale.ENGLISH)},code?.let{Locale("",it).getDisplayCountry(Locale("ru"))},"Signet")
-            var name=DisplayText.clean(server.city?.takeIf{it.isNotBlank()}?:server.name)
-            if(server.city.isNullOrBlank())repeat(4) {
-                names.sortedByDescending{it.length}.firstOrNull { prefix->name.equals(prefix,true)||name.startsWith("$prefix ",true)||name.startsWith("$prefix |",true)||name.startsWith("$prefix -",true) }
-                    ?.let { name=name.substring(it.length).trim(' ','|','-','·','/','_') }
+            val white=server.name.contains(Regex("(?i)signet[ _-]*white"))
+            val gaming=Regex("(?i)gaming|game|игров").containsMatchIn(server.name+" "+server.description.orEmpty())
+            val name=when {
+                white->"Signet_White"
+                gaming->if(code!=null)"${server.countryName} · Игровой"else"Игровой"
+                else->server.countryName
             }
-            if(name.isBlank())name=server.countryName
             val transport=runCatching {
                 val all=JSONObject(server.config).getJSONArray("outbounds")
                 val outbound=(0 until all.length()).map{all.getJSONObject(it)}.firstOrNull{it.optString("tag")==server.outboundTag}?:all.getJSONObject(0)
                 val protocol=outbound.optString("protocol").uppercase(Locale.ROOT)
-                val network=outbound.optJSONObject("streamSettings")?.optString("network")?.uppercase(Locale.ROOT).orEmpty()
-                if(network.isNotBlank()&&network!="TCP"&&network!="RAW")"$protocol · $network" else protocol
+                val stream=outbound.optJSONObject("streamSettings")
+                val network=stream?.optString("network")?.uppercase(Locale.ROOT).orEmpty().let{if(it=="RAW")"TCP"else it}
+                val security=stream?.optString("security")?.uppercase(Locale.ROOT).orEmpty().takeIf{it.isNotBlank()&&it!="NONE"}
+                listOfNotNull(protocol,network.takeIf{it.isNotBlank()},security).joinToString(" / ")
             }.getOrDefault("Xray")
-            return ServerDisplayModel(server.id,if(server.isAuto)"AUTO"else name,
+            return ServerDisplayModel(server.id,if(server.isAuto&&!white)"AUTO"else name,
                 if(server.isAuto)"Автоматическая маршрутизация"else server.description?.let{DisplayText.clean(it,300)}?.takeIf{it.isNotBlank()&&!it.equals(name,true)},
                 if(server.isAuto)null else code,if(server.isAuto)"AUTO"else server.countryName,server.isAuto,transport)
         }
