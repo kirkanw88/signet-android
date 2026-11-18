@@ -5,16 +5,18 @@
 | Проверка | Результат 0.2.0 |
 |---|---|
 | Strict Gradle Dependency Verification | PASS, не отключалась, метаданные доверия в 0.2.0 не расширялись |
-| Core JVM | 40 tests, 0 failures/errors |
+| Core JVM | 42 tests, 0 failures/errors |
 | app JVM | NO-SOURCE, не отдельный тест |
 | Lint Debug | PASS, 0 errors; warnings в HTML/XML |
-| Debug и Release/R8 | PASS, stage-G-release.log, 3m 11s |
+| Debug и Release/R8 | PASS, stage-G-routing-final.log, 2m 3s |
 | Instrumentation APK | Strict compile PASS, 29s; это не runtime PASS |
 | Release signature/ABI/identity | PASS, 0.2.0/code 2, все 3 ABI, Signature v2, zip/ELF 16 KB alignment |
 | Точные GLES shaders | WebGL1 compile/link PASS; не Android FPS benchmark |
-| Host transport e2e | 8/8 конфигураций PASS, transport-host.json |
+| Host transport e2e | 9/9 конфигураций PASS, transport-host.json |
 | Android native TUN/UI 0.2.0 | Runtime job добавлен, результат обновляется после выполнения |
 | Физические устройства, камера, мобильная сеть, soak | NOT RUN |
+
+Чистый Ubuntu build job [44267311710](https://github.com/kirkanw88/signet-android/actions/runs/44267311710) для 280c5f4: SUCCESS, без restore Gradle cache; APK/report artifacts сохранены. В этом commit было 40 core tests; последующие default/locale tests дают 42 локально. Runtime того же run не исполнял тесты: emulator не нашёл AVD. Исправлен явный путь AVD, повтор выполняется отдельно. Предыдущая попытка 44265924197 остановилась на отсутствующем adb PATH. Ни один из этих инфраструктурных сбоев не выдаётся за тест приложения.
 
 Размеры APK: arm64-v8a 41,907,511 bytes; armeabi-v7a 41,183,517; x86_64 44,284,718. Устанавливаемые development releases с debug certificate; production key не задан. Хеши — `tests/evidence/0.2.0/apk-verification.json`.
 

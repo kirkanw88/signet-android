@@ -32,6 +32,7 @@ for abi in ('arm64-v8a','armeabi-v7a','x86_64'):
         for name in native:
             data=archive.read(name);assert data[:4]==b'\x7fELF'
             wide=data[4]==2;order='<' if data[5]==1 else '>'
+            assert struct.unpack_from(order+'H',data,18)[0]=={'arm64-v8a':183,'armeabi-v7a':40,'x86_64':62}[abi]
             offset=struct.unpack_from(order+('Q' if wide else 'I'),data,32 if wide else 28)[0]
             size,count=struct.unpack_from(order+'HH',data,54 if wide else 42)
             for i in range(count):

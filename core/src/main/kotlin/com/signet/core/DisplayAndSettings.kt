@@ -15,7 +15,7 @@ data class ServerDisplayModel(val id:String,val title:String,val description:Str
     companion object {
         fun from(server:Server):ServerDisplayModel {
             val code=server.countryCode
-            val names=listOfNotNull(code,code?.let{Locale("en",it).displayCountry},code?.let{Locale("ru",it).displayCountry},"Signet")
+            val names=listOfNotNull(code,code?.let{Locale("",it).getDisplayCountry(Locale.ENGLISH)},code?.let{Locale("",it).getDisplayCountry(Locale("ru"))},"Signet")
             var name=DisplayText.clean(server.city?.takeIf{it.isNotBlank()}?:server.name)
             if(server.city.isNullOrBlank())repeat(4) {
                 names.sortedByDescending{it.length}.firstOrNull { prefix->name.equals(prefix,true)||name.startsWith("$prefix ",true)||name.startsWith("$prefix |",true)||name.startsWith("$prefix -",true) }

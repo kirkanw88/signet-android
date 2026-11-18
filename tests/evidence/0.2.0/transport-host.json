@@ -71,6 +71,14 @@
       "geositeBlock": "PASS",
       "tlsNameReject": "PASS",
       "result": "PASS"
+    },
+    {
+      "case": "remnawave-default",
+      "tcp": "PASS",
+      "httpsVerified": "PASS",
+      "udpDns": "PASS",
+      "tlsNameReject": "PASS",
+      "result": "PASS"
     }
   ]
 }

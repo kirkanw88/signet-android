@@ -118,7 +118,11 @@ private val Error=Color(0xFFFF657A)
         if(add) AlertDialog(onDismissRequest={add=false;input="";ageKey="";oauthConsent=false},title={Text("Добавить подписку")},text={
             Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                 Text("HTTPS ссылка, VLESS / Hysteria2 или полный Xray JSON. Ссылки подписки содержат ваш ключ доступа.",color=Muted)
-                OutlinedTextField(value=input,onValueChange={if(it.length<=4*1024*1024)input=it},label={Text("Ссылка или конфигурация")},minLines=3,maxLines=7,modifier=Modifier.fillMaxWidth())
+                if(input.length>32*1024) {
+                    Text("Документ ${bytes(input.toByteArray().size.toLong())} готов к импорту. Предпросмотр ограничен, чтобы не перегружать память.",fontSize=12.sp,color=Muted)
+                    Text(input.take(1500),fontSize=11.sp,maxLines=8,overflow=TextOverflow.Ellipsis)
+                    TextButton(onClick={input="";ageKey="";oauthConsent=false}){Text("Очистить документ")}
+                } else OutlinedTextField(value=input,onValueChange={if(it.length<=4*1024*1024)input=it},label={Text("Ссылка или конфигурация")},minLines=3,maxLines=7,modifier=Modifier.fillMaxWidth())
                 Row(verticalAlignment=Alignment.CenterVertically){Checkbox(oauthConsent,{oauthConsent=it});Text("Разрешить OAuth-доступ XDrive из этой подписки",fontSize=12.sp)}
                 OutlinedTextField(value=ageKey,onValueChange={ageKey=it},label={Text("Ключ AGE · если требуется")},visualTransformation=androidx.compose.ui.text.input.PasswordVisualTransformation(),singleLine=true,modifier=Modifier.fillMaxWidth())
             }

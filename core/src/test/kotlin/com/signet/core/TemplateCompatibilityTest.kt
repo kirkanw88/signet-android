@@ -14,4 +14,13 @@ class TemplateCompatibilityTest {
     @Test fun inboundSniffingSurvivesBothAdapters(){val c=config();val sniffing=JSONObject().put("enabled",true).put("routeOnly",true).put("destOverride",JSONArray().put("http").put("tls"));c.getJSONArray("inbounds").getJSONObject(1).put("sniffing",sniffing);val s=Profiles.parseJson(c.toString()).single();assertEquals(sniffing.toString(),Profiles.runtime(s,1,1234,"/geo","1.1.1.1").getJSONArray("inbounds").getJSONObject(0).getJSONObject("sniffing").toString());assertEquals(sniffing.toString(),Profiles.probeRuntime(s,1234,"/geo","test").getJSONArray("inbounds").getJSONObject(0).getJSONObject("sniffing").toString())}
     @Test fun catchAllWarningDoesNotRewriteThePolicy(){val c=config();val before=c.toString();assertTrue(TemplateCompatibility.inspect(c).issues.any{it.code=="IPIFNONMATCH_CATCHALL"});assertEquals(before,c.toString())}
     @Test fun danglingOutboundReferenceFailsBeforeImport(){val c=config();c.getJSONObject("routing").getJSONArray("rules").getJSONObject(1).put("outboundTag","removed-host");assertFalse(TemplateCompatibility.inspect(c).accepted)}
+    @Test fun upstreamDefaultRenderedTemplatePreservesSniffingAndBittorrentPolicy(){
+        val c=JSONObject(javaClass.getResource("/remnawave-default-rendered.json")!!.readText())
+        assertTrue(TemplateCompatibility.inspect(c).accepted)
+        val s=Profiles.parseJson(c.toString()).single();val runtime=Profiles.runtime(s,42,12345,"/geo","9.9.9.9")
+        listOf("routing","outbounds","dns").forEach{assertEquals(c.get(it).toString(),runtime.get(it).toString())}
+        val inbound=runtime.getJSONArray("inbounds").getJSONObject(0)
+        assertEquals("socks",inbound.getString("tag"));assertTrue(inbound.getJSONObject("sniffing").getBoolean("enabled"))
+        assertFalse(inbound.getJSONObject("sniffing").getBoolean("routeOnly"));assertEquals(1,runtime.getJSONArray("inbounds").length())
+    }
 }

@@ -4,7 +4,7 @@
 
 | Сценарий | Статус / доказательство |
 |---|---|
-| Core import/refresh/AUTO/metadata/routing/versions/geometry | 40 JVM tests PASS |
+| Core import/refresh/AUTO/metadata/routing/versions/geometry | 42 JVM tests PASS |
 | Android instrumented APK | Compile PASS; runtime результат в TEST_REPORT |
 | Linux KVM API36 x86_64 | Новый CI runtime job; результат после выполнения |
 | VLESS/REALITY/XHTTP through TUN | Instrumentation: consent, outbound probe, CONNECTED после HTTPS, HTTPS и ненулевые счётчики, probe при VPN |

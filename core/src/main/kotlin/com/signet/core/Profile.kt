@@ -15,7 +15,7 @@ data class Server(
     val isAuto: Boolean = false, val description: String? = null, val profileKey: String? = null,
     val enabled: Boolean = true, val probeMode: String? = null, val probeMessage:String?=null
 ) {
-    val countryName: String get() = countryCode?.let { Locale("ru", it).displayCountry } ?: "Локация не указана"
+    val countryName: String get() = countryCode?.let { Locale("", it).getDisplayCountry(Locale("ru")) } ?: "Локация не указана"
 }
 
 object Profiles {

@@ -24,12 +24,11 @@ def core():
             while block:=r.read(1024*1024):f.write(block)
     if hashlib.sha256(archive.read_bytes()).hexdigest()!=expected:raise RuntimeError('Official host-core archive checksum mismatch')
     binary=LAB/('xray.exe' if windows else 'xray')
-    if not binary.exists():
-        with zipfile.ZipFile(archive) as z:binary.write_bytes(z.read(binary.name))
-        if not windows:binary.chmod(0o700)
     with zipfile.ZipFile(archive) as z:
-        for name in ("geoip.dat","geosite.dat"):
-            if not (LAB/name).exists():(LAB/name).write_bytes(z.read(name))
+        for name in (binary.name,"geoip.dat","geosite.dat"):
+            expected_bytes=z.read(name);target=LAB/name
+            if not target.exists() or hashlib.sha256(target.read_bytes()).digest()!=hashlib.sha256(expected_bytes).digest():target.write_bytes(expected_bytes)
+    if not windows:binary.chmod(0o700)
     return str(binary)
 
 def cmd(args):return subprocess.run(args,check=True,capture_output=True,**CREATION)
@@ -153,6 +152,10 @@ def generate(root,binary):
         {'type':'field','ip':['geoip:private'],'port':'18480','outboundTag':'direct'},
         {'type':'field','network':'tcp,udp','outboundTag':'proxy'}]}
     configs['remnawave-split']=split
+    # Official default-template contract after the generator prepends a host outbound.
+    default=json.loads((ROOT/'core/src/test/resources/remnawave-default-rendered.json').read_text())
+    default['outbounds'][0]=json.loads(json.dumps(profiles['vless']))
+    configs['remnawave-default']=default
     for config in (auto,split):
         config['inbounds']=[{'tag':'socks-in','protocol':'socks','port':0,'sniffing':{'enabled':True,'destOverride':['http','tls'],'routeOnly':True}}]
     (LAB/'server.json').write_text(json.dumps(server));(LAB/'profiles.json').write_text(json.dumps({'ca':root,'profiles':configs}))
@@ -229,7 +232,7 @@ def host_tests(binary,configs):
             curl(port,'http://198.18.0.1:18480/');row['tcp']='PASS'
             curl(port,'https://198.18.0.2:18443/',ca=True);row['httpsVerified']='PASS'
             udp_dns(port);row['udpDns']='PASS'
-            if name.startswith('remnawave-'):
+            if name in ('remnawave-auto','remnawave-split'):
                 curl(port,'http://allowed.signet.test:18480/');row['domainDns']='PASS'
                 curl(port,'http://blocked.signet.test:18480/',expect=False,timeout=4);row['routingBlock']='PASS'
             if name=='remnawave-split':
@@ -254,7 +257,9 @@ def main():
     print('LOCAL LAB READY',flush=True)
     if args.serve:
         while True:time.sleep(1)
-    return 0 if host_tests(binary,{k:v for k,v in configs.items() if args.case is None or k==args.case}) else 1
+    selected={k:v for k,v in configs.items() if args.case is None or k==args.case}
+    if not selected:raise ValueError('Unknown fixture case')
+    return 0 if host_tests(binary,selected) else 1
 
 if __name__=='__main__':
     try:raise SystemExit(main())
