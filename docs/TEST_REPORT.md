@@ -19,6 +19,8 @@
 
 Универсальные обновления 0.2.7+ выбираются из ограниченного публичного списка Releases. Выпуск публикуется без смены GitHub latest, чтобы старые APK Signet не предлагали чужой пакет. Первое обновление универсальной 0.2.6 → 0.2.7 — ручная установка APK поверх существующего приложения.
 
+[Публичный выпуск v0.2.7](https://github.com/kirkanw88/signet-android/releases/tag/v0.2.7) опубликован из `356a321`: только три external APK, исходники и SHA256SUMS. Размеры и GitHub asset digests совпали с локальными SHA-256. Анонимный список Releases содержит совместимый universal 0.2.7, GitHub latest остался v0.2.6. [Подтверждение](../tests/evidence/0.2.7/public-release.json). ARM64: 50 360 487 bytes, SHA-256 `3e05e527f9f979f97c0c40bcff219259d385b881b578f286da82b11dbce4a06a`.
+
 ---
 
 # Signet Android 0.2.6 — проверка 19.11.2026

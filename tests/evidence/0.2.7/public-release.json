@@ -1,0 +1,45 @@
+{
+  "publicEndpoint": "https://api.github.com/repos/kirkanw88/signet-android/releases/tags/v0.2.7",
+  "anonymousAccess": "PASS",
+  "release": "https://github.com/kirkanw88/signet-android/releases/tag/v0.2.7",
+  "tag": "v0.2.7",
+  "sourceCommit": "356a32114c88c65237319f37b74816670fadc1d9",
+  "assets": [
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 407,
+      "digest": "sha256:ec79312b7cd89ed68f47cffa132016b3246f2901138af5c842579de263ca3bb4",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.7/SHA256SUMS.txt"
+    },
+    {
+      "name": "signet-android-0.2.7-source.zip",
+      "size": 14953250,
+      "digest": "sha256:157aaef59f2695c4ada8b831576f0f9ff347a9e7d0386948f7482806c60e08f1",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.7/signet-android-0.2.7-source.zip"
+    },
+    {
+      "name": "signet-external-0.2.7-arm64-v8a.apk",
+      "size": 50360487,
+      "digest": "sha256:3e05e527f9f979f97c0c40bcff219259d385b881b578f286da82b11dbce4a06a",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.7/signet-external-0.2.7-arm64-v8a.apk"
+    },
+    {
+      "name": "signet-external-0.2.7-armeabi-v7a.apk",
+      "size": 49636493,
+      "digest": "sha256:934abc685d2d1dabcc8c0c95c73b1660da6391a38a602d5bee1c16a75782857b",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.7/signet-external-0.2.7-armeabi-v7a.apk"
+    },
+    {
+      "name": "signet-external-0.2.7-x86_64.apk",
+      "size": 52737694,
+      "digest": "sha256:9e758b2e825febfb899ef7f610e0f9c38fdb608338a74309701eb77c01ce08c9",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.7/signet-external-0.2.7-x86_64.apk"
+    }
+  ],
+  "universalFeed": {
+    "endpoint": "https://api.github.com/repos/kirkanw88/signet-android/releases?per_page=10",
+    "anonymousAccess": "PASS",
+    "selectedArm64Release": "v0.2.7"
+  },
+  "signetLatestUnchanged": "v0.2.6"
+}
