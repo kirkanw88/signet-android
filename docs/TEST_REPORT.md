@@ -21,6 +21,8 @@ DNS fallback работает только для проверки через а
 
 [Checks](../tests/evidence/0.2.10/checks.json), [APK](../tests/evidence/0.2.10/apk-verification.json). Прежние шаблоны/GLSL не менялись, их проверки не повторялись. Ошибка первой компиляции затрагивала только запись тестового Dns mock; исправлена реализацией интерфейса, финальные тесты прошли.
 
+[Публичный выпуск v0.2.10](https://github.com/kirkanw88/signet-android/releases/tag/v0.2.10) опубликован из `31ed6bf`: три external APK, исходники и SHA256SUMS. Digests совпали с локальными SHA-256; анонимная universal-лента выбрала 0.2.10, общий latest остался 0.2.6. В Release DEX подтверждён DNS fallback, строки удалённых переключателей отсутствуют. [Подтверждение](../tests/evidence/0.2.10/public-release.json). ARM64: 50 360 483 bytes, SHA-256 `cb65f532959d5153d245999b822dde490e071c33ce5b7e862582e9652b86ab7d`.
+
 ---
 
 # Signet VPN 0.2.9 — проверка 19.11.2026
