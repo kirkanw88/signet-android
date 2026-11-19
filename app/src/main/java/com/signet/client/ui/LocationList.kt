@@ -52,6 +52,7 @@ import androidx.compose.ui.semantics.stateDescription
                     IconButton(onClick=refresh,modifier=Modifier.testTag("server-refresh"),enabled=!state.busy){if(state.busy)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Refresh,"Обновить все подписки",tint=AppColors.accent)}
                     IconButton(onClick={tools=!tools}){Icon(if(tools)Icons.Outlined.Close else Icons.Outlined.Search,if(tools)"Закрыть поиск"else"Поиск и сортировка",tint=AppColors.accent)}
                 }
+                if(addSubscription!=null&&state.subscriptions.size>=8)Text("Достигнут лимит 8 подписок. Для добавления новой удалите ненужную подписку.",color=AppColors.muted,fontSize=12.sp,modifier=Modifier.padding(vertical=4.dp))
                 if(!compact&&tools){
                     OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),placeholder={Text("Подписка, хост или страна")},leadingIcon={Icon(Icons.Outlined.Search,null)},singleLine=true,shape=RoundedCornerShape(16.dp))
                     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){FilterChip(favoriteOnly,{favoriteOnly=!favoriteOnly},label={Text("Избранное")});FilterChip(sort,{sort=!sort},label={Text("По задержке")})}
