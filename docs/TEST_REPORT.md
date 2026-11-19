@@ -19,6 +19,8 @@
 
 Обычный Signet сохраняет applicationId, подпись и хранилище при обновлении 0.2.5. External устанавливается отдельным приложением; подписку нужно импортировать туда. Обе редакции используют собственный updater channel в общем публичном Releases. Старые APK 0.2.5 неизменны.
 
+[Выпуск v0.2.6](https://github.com/kirkanw88/signet-android/releases/tag/v0.2.6) опубликован из `bb0029a`: 6 ABI APK, исходники и SHA256SUMS. Все asset digests совпали с локальными SHA-256, анонимный update feed вернул v0.2.6. Обычные Signet APK идут первыми: старый updater 0.2.5 выбирает свою редакцию. [Подтверждение публикации](../tests/evidence/0.2.6/public-release.json).
+
 ---
 
 # Signet Android 0.2.5 — проверка 18.11.2026
