@@ -24,6 +24,8 @@
 
 [Checks](../tests/evidence/0.2.11/checks.json), [APK](../tests/evidence/0.2.11/apk-verification.json). Исходный JSON/DNS/routing AUTO не меняется для замера. Подробные native messages не сохраняются; вместо «Сбой Ping» доступны безопасные коды ошибок профиля/ядра/геоданных/подготовки DNS.
 
+[Выпуск v0.2.11](https://github.com/kirkanw88/signet-android/releases/tag/v0.2.11) опубликован из `2f24668`: три external APK, исходники и SHA256SUMS. Digests совпали с локальными SHA-256. Анонимная universal-лента выбрала 0.2.11; общий latest остался 0.2.6. [Подтверждение](../tests/evidence/0.2.11/public-release.json). ARM64: 50 376 963 bytes, SHA-256 `d8ed24f02c16809c46c5653c1483847d351d02087903b53e917f20426bbe7e01`.
+
 ---
 
 # Signet VPN 0.2.10 — проверка 19.11.2026

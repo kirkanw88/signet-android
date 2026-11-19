@@ -1,0 +1,45 @@
+{
+  "publicEndpoint": "https://api.github.com/repos/kirkanw88/signet-android/releases/tags/v0.2.11",
+  "anonymousAccess": "PASS",
+  "release": "https://github.com/kirkanw88/signet-android/releases/tag/v0.2.11",
+  "tag": "v0.2.11",
+  "sourceCommit": "2f24668ccdce88d052712797f0f7ec364fff8a91",
+  "assets": [
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 411,
+      "digest": "sha256:29895ee662f87da095dd9919de4307b04a2a47f33e59dd1cff3d03f60ce1af35",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.11/SHA256SUMS.txt"
+    },
+    {
+      "name": "signet-android-0.2.11-source.zip",
+      "size": 14998145,
+      "digest": "sha256:0f84decb3f2a5a332ffff0f950813ce303fe18affb83b7d1d7fd32074ac59f83",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.11/signet-android-0.2.11-source.zip"
+    },
+    {
+      "name": "signet-external-0.2.11-arm64-v8a.apk",
+      "size": 50376963,
+      "digest": "sha256:d8ed24f02c16809c46c5653c1483847d351d02087903b53e917f20426bbe7e01",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.11/signet-external-0.2.11-arm64-v8a.apk"
+    },
+    {
+      "name": "signet-external-0.2.11-armeabi-v7a.apk",
+      "size": 49652969,
+      "digest": "sha256:b7767501a31bbfb142fb516b7839ebcdcaa772b38451b9fbc907b51bb13b2cbb",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.11/signet-external-0.2.11-armeabi-v7a.apk"
+    },
+    {
+      "name": "signet-external-0.2.11-x86_64.apk",
+      "size": 52754170,
+      "digest": "sha256:f5aec1a7b78b3649dc6f84152fbf5b59e15abd25687a17089edc056f5b482948",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.11/signet-external-0.2.11-x86_64.apk"
+    }
+  ],
+  "universalFeed": {
+    "endpoint": "https://api.github.com/repos/kirkanw88/signet-android/releases?per_page=10",
+    "anonymousAccess": "PASS",
+    "selectedArm64Release": "v0.2.11"
+  },
+  "signetLatestUnchanged": "v0.2.6"
+}
