@@ -17,7 +17,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val mobileAccount=if(BuildConfig.SIGNET_ACCOUNT)MobileAccount(app)else null
     val account:MobileAccount get()=checkNotNull(mobileAccount){"Аккаунт Signet недоступен в этой редакции"}
     val installer=NativeUpdater(app,viewModelScope)
-    val capitalImagery=if(BuildConfig.SIGNET_ACCOUNT)null else com.signet.client.graphics.CapitalImagery(app)
     val accountPage=MutableStateFlow<String?>(null)
     fun openAccount(page:String="account"){if(BuildConfig.SIGNET_ACCOUNT)accountPage.value=page}
     val updates=AppUpdates(app)
