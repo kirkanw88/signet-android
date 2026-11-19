@@ -1,6 +1,15 @@
 name: Android
 # Runtime UI/native fixture targets Universal; the build job compiles both editions for regression.
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches: [main, feature/android-0.2.0]
+  pull_request:
+  workflow_dispatch:
+
+# Prevent old commits from consuming runner resources while preserving one check per PR.
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -25,7 +34,20 @@ jobs:
             "build-tools;36.0.0"
       - run: python3 scripts/fetch-native.py
       - name: Verify dependencies, test, lint and build APKs
-        run: chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon --stacktrace --max-workers=2 :core:test :app:testSignetDebugUnitTest :app:testExternalDebugUnitTest :app:lintSignetDebug :app:lintExternalDebug :app:assembleDebug :app:assembleRelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          # Unit/lint/debug checks have a smaller memory footprint.
+          ./gradlew --dependency-verification strict --no-daemon --stacktrace --max-workers=2 \
+            :core:test :app:testSignetDebugUnitTest :app:testExternalDebugUnitTest \
+            :app:lintSignetDebug :app:lintExternalDebug :app:assembleDebug
+          # Packaging multiple ABI-split release variants together exhausted the default 2 GiB heap.
+          # Keep strict dependency verification and full release coverage; isolate packaging per flavor.
+          for flavor in External Signet; do
+            ./gradlew --dependency-verification strict --no-daemon --stacktrace --max-workers=1 \
+              '-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8' ":app:assemble${flavor}Release"
+          done
       - name: Verify installable APK signatures, ABIs and 16 KB alignment
         run: python3 scripts/verify-apks.py
       - uses: actions/upload-artifact@v4
