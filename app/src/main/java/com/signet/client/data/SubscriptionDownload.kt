@@ -50,7 +50,9 @@ object SubscriptionDownload {
             }
             error("Слишком много перенаправлений")
         }
-        val initial=get(original)
+        // Negotiate complete profiles on the actual subscription URL on the first import too.
+        // Some subscription gateways expose no /json route; their base response is UA-dependent.
+        val initial=get(original,extended=true)
         val originalJson=xray(initial.text)
         val needsDescriptions=originalJson&&initial.headers["profile-title"]!=null&&runCatching{Profiles.parseJson(Profiles.decode(initial.text)).none{!it.description.isNullOrBlank()}}.getOrDefault(false)
         if(originalJson&&!needsDescriptions){event("JSON_ORIGINAL");return initial}

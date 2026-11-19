@@ -1,3 +1,29 @@
+# Signet VPN 0.2.13 — проверка 19.11.2026
+
+Только universal external, code 15. [Изменения](RELEASE_0_2_13.md): согласование полного JSON на исходном адресе уже при первом запросе каждой подписки и сохранение существующего JSON при временном URI-ответе.
+
+Подтверждённый дефект кода: первый запрос использовал `SignetVPN/...`, а extended capability `Happ/compatible SignetVPN/...` добавлялась только для дополнительного `/json`. При base-only JSON-шлюзе этот путь давал URI fallback; явные `/json`/`.json` адреса могли вообще не получить второй запрос. Это воспроизведено interceptor fixtures, не живой подпиской пользователя. Теперь extended capability присутствует на исходном запросе, а реальная идентичность Signet остаётся в User-Agent.
+
+| Проверка | Результат |
+|---|---|
+| External JVM | 18/18, failures/errors/skipped 0; из них 8 SubscriptionDownloadTest |
+| Два новых источника | Разные origins, JSON только на base по User-Agent, `/json` недоступен: 2 запроса на 2 импорта; AUTO в обоих, scoped ID различаются PASS |
+| Полный профиль | Исходные routing, DNS и outbounds сохранены в обоих источниках PASS |
+| Явный JSON URL | `/json` и `.json` с query получают AUTO первым запросом PASS |
+| Совместимость и безопасность | URI-only, недоступный/невалидный JSON fallback, запрет redirect identity на другой origin, отсутствие retry после 403 PASS |
+| Запрет downgrade сохранённого JSON | Guard Repository проверен по коду; instrumented persistence test NOT RUN |
+| Android Lint external | 0 errors / 48 warnings |
+| Debug / Release external | PASS, strict verification, 3m 13s |
+| APK | 3 ABI, 0.2.13/code 15; см. проверку подписи/manifest/zip/ELF 16 KB ниже |
+| Живая вторая подписка / физический Android | NOT RUN |
+| Long CI / emulator / cold cache / production | Не запускались; Signet 0.2.6 и production не изменены |
+
+Согласование происходит до сохранения подписки; дополнительное ручное обновление новым импортам не требуется. Уже сохранённые URI обновляются обычной кнопкой ↻ или почасовым заданием. Если ранее JSON-подписка обновляется URI-ответом, Repository сообщает об отказе и возвращается до конвертации/commit: старые профили, выбор и AUTO остаются. У провайдера только с URI искусственные JSON/AUTO не создаются. Проверки целостности конфигурации, TLS, лимиты ответов и зависимостей сохранены; новые зависимости не добавлялись.
+
+[Checks](../tests/evidence/0.2.13/checks.json), [APK verification](../tests/evidence/0.2.13/apk-verification.json).
+
+---
+
 # Signet VPN 0.2.12 — проверка 19.11.2026
 
 Только universal external, code 14. [Изменения](RELEASE_0_2_12.md): отдельные сворачиваемые группы подписок, закрепление, сохранение состояния и управление каждой группой; исправление владения OpenGL-view при смене темы/возврате на главную.

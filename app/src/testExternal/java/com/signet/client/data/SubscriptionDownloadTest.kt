@@ -28,7 +28,7 @@ class SubscriptionDownloadTest {
         val result=SubscriptionDownload.fetch(http,original,"SignetVPN/test",mapOf("X-Hwid" to "test-device"))
         assertEquals(listOf(original,"https://sub.example/s/id/json?token=a%2Bb"),seen.map{it.url.toString()})
         assertTrue(seen.all{it.header("X-Hwid")=="test-device"})
-        assertEquals("SignetVPN/test",seen[0].header("User-Agent"));assertEquals("Happ/compatible SignetVPN/test",seen[1].header("User-Agent"))
+        assertTrue(seen.all{it.header("User-Agent")=="Happ/compatible SignetVPN/test"})
         assertEquals("JSON title",result.headers["profile-title"]);assertEquals(json,result.text)
         val server=Profiles.parseJson(result.text).single();assertTrue(server.isAuto)
         assertEquals("Signet_Auto",ServerDisplayModel.from(server).title)
@@ -66,5 +66,36 @@ class SubscriptionDownloadTest {
         var requests=0;val http=client{r->requests++;reply(r,403,"")}
         try{SubscriptionDownload.fetch(http,original,"SignetVPN/test",emptyMap());fail("Denied subscriptions must fail")}
         catch(expected:IllegalArgumentException){assertEquals(1,requests)}
+    }
+    @Test fun firstImportOfEachSourceNegotiatesJsonOnBaseWithoutJsonRoute()=runBlocking {
+        val seen=mutableListOf<Request>()
+        val http=client{r->
+            seen.add(r)
+            when {
+                r.url.encodedPath.endsWith("/json")->reply(r,404,"")
+                r.header("User-Agent")!!.startsWith("Happ/")->reply(r,200,JSONArray().put(JSONObject(config)).toString())
+                else->reply(r,200,uri)
+            }
+        }
+        val imported=listOf("https://sub.example/first","https://other.example/second").map{source->
+            val result=SubscriptionDownload.fetch(http,source,"SignetVPN/test",mapOf("X-Hwid" to "test-device"))
+            ProfileRefresh.reconcile(Profiles.id(source),emptyList(),Profiles.parseJson(result.text)).single()
+        }
+        assertEquals(2,seen.size)
+        assertTrue(imported.all{it.isAuto&&it.name=="Signet_Auto"})
+        assertNotEquals(imported[0].id,imported[1].id)
+        assertTrue(seen.all{it.header("X-Hwid")=="test-device"})
+        for(server in imported)for(field in listOf("routing","dns","outbounds")){
+            assertEquals(JSONObject(config).get(field).toString(),JSONObject(server.config).get(field).toString())
+        }
+    }
+    @Test fun explicitJsonAddressAlsoNegotiatesBeforeAnyUriFallback()=runBlocking {
+        for(source in listOf("https://sub.example/id/json","https://sub.example/profile.json?token=a%2Bb")){
+            var requests=0
+            val http=client{r->requests++;reply(r,200,if(r.header("User-Agent")!!.startsWith("Happ/"))config else uri)}
+            val result=SubscriptionDownload.fetch(http,source,"SignetVPN/test",emptyMap())
+            assertTrue(Profiles.parseJson(result.text).single().isAuto)
+            assertEquals(1,requests)
+        }
     }
 }

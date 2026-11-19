@@ -1,0 +1,26 @@
+{
+  "version": "0.2.13",
+  "edition": "external",
+  "gradleVerification": "strict",
+  "tests": {
+    "tests": 18,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "subscriptionDownloadTests": 8,
+  "debugRelease": "PASS",
+  "duration": "3m 13s",
+  "lint": {
+    "errors": 0,
+    "warnings": 48
+  },
+  "firstImport": "two independent origins; base JSON selected with no /json route; scoped AUTO IDs and routing/dns/outbounds preservation PASS",
+  "explicitJson": "/json and .json with encoded query negotiate on first request PASS",
+  "fallback": "URI-only and invalid/unavailable JSON retained; denied original not retried; HWID origin restriction PASS",
+  "existingJsonDowngrade": "repository guard reviewed; no instrumented persistence test",
+  "physicalAndroidAndLiveProvider": "NOT RUN",
+  "longCiEmulatorColdCache": "NOT RUN",
+  "production": "UNCHANGED",
+  "signetRelease": "UNCHANGED 0.2.6"
+}

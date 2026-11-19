@@ -157,6 +157,13 @@ class Repository(private val context: Context, private val vault: Vault, private
             }
             val isJson=text.startsWith("{")||text.startsWith("[")
             ConnectionLog.add("SUBSCRIPTION","FORMAT",if(isJson)"JSON"else"URI")
+            val subId = existingId ?: Profiles.id(url ?: text)
+            val previous = state.value.subscriptions.firstOrNull { it.id == subId }
+            if(url!=null&&previous?.format=="XRAY_JSON"&&!isJson){
+                ConnectionLog.add("SUBSCRIPTION","JSON_DOWNGRADE_REJECTED")
+                notify("Сервис временно не отдал JSON. Сохранена предыдущая конфигурация подписки.")
+                return@withLock
+            }
             val parsed = if (isJson) Profiles.parseJson(text) else {
                 val nodes = NativeCore.call("convertShareLinksToXrayJson", JSONObject().put("text", text)).getJSONArray("outbounds")
                 (0 until nodes.length()).flatMap { Profiles.parseJson(JSONObject().put("outbounds", JSONArray().put(nodes.getJSONObject(it))).toString()) }
@@ -165,8 +172,6 @@ class Repository(private val context: Context, private val vault: Vault, private
             require(oauthConsent || parsed.none{TransportChecks.requiresOAuthConsent(JSONObject(it.config))}) { "Для OAuth backend XDrive нужно отдельное согласие при импорте" }
             require(parsed.all{TemplateCompatibility.inspect(JSONObject(it.config)).accepted}) { "Шаблон не применим: нужен сформированный Xray JSON подписки без ошибок связей" }
             require(parsed.isNotEmpty()) { "В подписке нет серверов" }
-            val subId = existingId ?: Profiles.id(url ?: text)
-            val previous = state.value.subscriptions.firstOrNull { it.id == subId }
             val servers = ProfileRefresh.reconcile(subId,previous?.servers.orEmpty(),parsed)
             mutex.withLock {
                 require(existingId==null || state.value.subscriptions.any{it.id==existingId}) { "Подписка была удалена" }
