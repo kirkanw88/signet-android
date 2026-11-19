@@ -110,24 +110,24 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
             Column(Modifier.fillMaxSize().padding(insets)) {
                 Row(Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
                     if(page==0)Image(painterResource(R.drawable.signet_logo),"Signet VPN",Modifier.width(80.dp).height(48.dp),colorFilter=if(AppColors.dark)null else androidx.compose.ui.graphics.ColorFilter.tint(AppColors.text))
-                    else IconButton(onClick={page=if(page==2)3 else 0}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=AppColors.text)}
-                    if(page!=0)Text(if(page==3)"Настройки"else"Подписки",color=AppColors.text,fontSize=20.sp,fontWeight=FontWeight.Medium)
+                    else if(page!=3)IconButton(onClick={page=if(page==2)3 else 0}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=AppColors.text)}
+                    if(page==2)Text("Подписки",color=AppColors.text,fontSize=20.sp,fontWeight=FontWeight.Medium)
                     if(page==0&&!BuildConfig.SIGNET_ACCOUNT)Text("v${BuildConfig.VERSION_NAME}",fontSize=13.sp,color=AppColors.muted)
                     Row {
                         if(page==0&&!BuildConfig.SIGNET_ACCOUNT)IconButton(onClick={addMenu=true},enabled=!state.busy&&state.subscriptions.size<8,modifier=Modifier.testTag("home-add-subscription")){Icon(Icons.Outlined.Add,"Добавить подписку",tint=if(state.busy||state.subscriptions.size>=8)AppColors.muted else Primary)}
                         if(BuildConfig.SIGNET_ACCOUNT)IconButton(onClick={model.openAccount("support")}){Icon(Icons.Outlined.SupportAgent,"Техническая поддержка",tint=AppColors.muted)}
-                        IconButton(onClick={page=if(page==3)0 else 3}) { Icon(if(page==3)Icons.Outlined.Close else Icons.Outlined.Settings,if(page==3)"Закрыть настройки"else"Настройки",tint=AppColors.muted) }
+                        if(page!=3)IconButton(onClick={page=3}) { Icon(Icons.Outlined.Settings,"Настройки",tint=AppColors.muted) }
                     }
                 }
                 SnackbarHost(snackbar,Modifier.fillMaxWidth()){data->Snackbar(data,containerColor=Surface,contentColor=AppColors.text,shape=RoundedCornerShape(16.dp),modifier=Modifier.padding(horizontal=16.dp))}
                 update.available?.let{UpdateBanner(it,model)}
                 when(page) {
-                    0 -> Home(state,vpn,model,connect,{if(BuildConfig.SIGNET_ACCOUNT)page=2;addMenu=true},{showServers=true})
+                    0 -> Home(state,vpn,model,connect,{if(BuildConfig.SIGNET_ACCOUNT)page=2;addMenu=true},{showServers=true},{page=3;openDiagnostics=true})
                     2 -> Subscriptions(state,{addMenu=true},model::remove,model::refresh,model::openAccount,if(BuildConfig.SIGNET_ACCOUNT)model.account else null, model, {
                         runCatching{ClipboardTransfers.read(context,16*1024).also{require(com.signet.core.SubscriptionMetadata.safeLink(it)!=null)}}
                             .onSuccess{input=it;ageKey="";oauthConsent=false;add=true}.onFailure{model.repository.notify("В буфере нет корректной HTTPS ссылки подписки")}
                     })
-                    3 -> Preferences(state,model,{page=2},{showServers=true},openDiagnostics,{openDiagnostics=false})
+                    3 -> Preferences(state,model,{page=2},{showServers=true},openDiagnostics,{openDiagnostics=false},{page=0})
                 }
             }
         }
@@ -164,7 +164,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     }
 }
 
-@Composable private fun Home(state:AppState,vpn:VpnStatus,model:MainViewModel,connect:()->Unit,add:()->Unit,servers:()->Unit) {
+@Composable private fun Home(state:AppState,vpn:VpnStatus,model:MainViewModel,connect:()->Unit,add:()->Unit,servers:()->Unit,diagnostics:()->Unit) {
     val phase=vpn.phase
     val active=vpn.tunActive||phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING)
     val server=if(phase==VpnPhase.CONNECTED)state.servers.firstOrNull{it.id==vpn.serverId}else state.server
@@ -177,7 +177,15 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
             Icon(Icons.Outlined.ChevronRight,"Список серверов",tint=Primary)
         }
         state.subscriptions.firstOrNull{sub->sub.servers.any{it.id==server?.id}}?.let{SubscriptionUsage(it)}
-        vpn.error?.let{Text(it,color=Warning,fontSize=14.sp,lineHeight=20.sp,maxLines=3,overflow=TextOverflow.Ellipsis)}
+        vpn.error?.let{error->
+            Column(Modifier.fillMaxWidth().padding(vertical=6.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+                Text(error,color=Warning,fontSize=14.sp,lineHeight=20.sp,maxLines=3,overflow=TextOverflow.Ellipsis)
+                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick=servers){Text("Сменить сервер")}
+                    TextButton(onClick=diagnostics){Text("Диагностика")}
+                }
+            }
+        }
         if(phase==VpnPhase.CONNECTED)Surface(color=Surface,shape=RoundedCornerShape(16.dp),modifier=Modifier.testTag("home-traffic").fillMaxWidth().padding(vertical=6.dp)){
             Row(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=8.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)){
                 Column(Modifier.weight(1f)){
@@ -194,7 +202,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         }
         GlassButton(onClick={if(active)model.stop()else if(server==null)add()else connect()},enabled=phase!=VpnPhase.DISCONNECTING,modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=58.dp)) {
             if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Primary)else Icon(Icons.Outlined.PowerSettingsNew,null)
-            Text(if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else"Подключиться",Modifier.padding(start=8.dp),maxLines=2)
+            Text(if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))"Отменить подключение"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else"Подключиться",Modifier.padding(start=8.dp),maxLines=2)
         }
 
     }
@@ -240,7 +248,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 Icon(Icons.Outlined.LocationOn,null,tint=Primary,modifier=Modifier.size(28.dp))
             }
         }
-        if(!BuildConfig.SIGNET_ACCOUNT&&imagery!=null)CapitalView(server?.countryCode,phase,marker.visible,imagery){photoCovered=it}
+        // Universal keeps the interactive globe as its only primary visual. Offline photos are not shown.
     }
 }
 
