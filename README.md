@@ -1,12 +1,14 @@
 # Signet VPN для Android
 
-Нативный клиент: Kotlin, Compose, Android VpnService, официальный libXray/Xray 26.11.9. Версия приложения 0.2.6. Android 8.0 / API 26 и новее.
+**Активная разработка: только универсальная редакция `external`, версия 0.2.7.** Редакция Signet с кабинетом остаётся на 0.2.6. [Исправления Ping и установка универсального APK](docs/RELEASE_0_2_7.md).
+
+Нативный клиент: Kotlin, Compose, Android VpnService, официальный libXray/Xray 26.11.9. Универсальная версия 0.2.7, Signet с кабинетом 0.2.6. Android 8.0 / API 26 и новее.
 
 Две редакции с одинаковым названием Signet VPN: исходная с кабинетом и `external` для сторонних подписок без кабинета и техподдержки. Они устанавливаются рядом. [Различия и APK](docs/RELEASE_0_2_6.md).
 
 ## Установка
 
-Установите APK из [публичных Releases](https://github.com/kirkanw88/signet-android/releases/latest) или `release/`. Для современных телефонов используйте `signet-0.2.6-arm64-v8a.apk`. В настройках откройте «Подписки» и импортируйте вашу HTTPS-ссылку, QR, файл, VLESS/Hysteria2 URI или Xray JSON. Сервер выбирается нажатием на страну на главном экране. При первом подключении подтвердите системное разрешение Android VPN. Проверка подключения имеет отдельный HTTPS адрес; для измерения задержки URL по умолчанию — `https://www.gstatic.com/generate_204`.
+Установите APK из [публичных Releases](https://github.com/kirkanw88/signet-android/releases/tag/v0.2.7) или `release/`. Для современных телефонов используйте `signet-external-0.2.7-arm64-v8a.apk`. В настройках откройте «Подписки» и импортируйте вашу HTTPS-ссылку, QR, файл, VLESS/Hysteria2 URI или Xray JSON. Сервер выбирается нажатием на страну на главном экране. При первом подключении подтвердите системное разрешение Android VPN. Проверка подключения имеет отдельный HTTPS адрес; для измерения задержки URL по умолчанию — `https://www.gstatic.com/generate_204`.
 
 Сборка подписана локальным сертификатом разработки, пригодна для установки, не опубликована в Google Play. Это первая сборка: проверенные сценарии и ограничения перечислены в [отчёте](docs/TEST_REPORT.md). Нельзя считать все пункты исходного ТЗ прошедшими приёмку на основании наличия APK.
 
@@ -41,7 +43,7 @@ JDK 17, Android SDK 36, Gradle 8.13:
 
 ```powershell
 python scripts/fetch-native.py
-.\gradlew.bat :core:test :app:lintSignetDebug :app:lintExternalDebug :app:assembleRelease
+.\gradlew.bat --dependency-verification strict :app:testExternalDebugUnitTest :app:lintExternalDebug :app:assembleExternalRelease
 ```
 
 `fetch-native.py` проверяет SHA-256 официальных архивов перед извлечением. Ресурсы Земли и бренда уже находятся в исходниках. На Windows со старым JDK и кириллицей в пути используйте ASCII-путь для проекта и GRADLE_USER_HOME; воспроизводимый пример находится в `scripts/build.ps1`.

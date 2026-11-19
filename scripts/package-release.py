@@ -1,9 +1,15 @@
 """Package ABI APKs and reviewable sources without build caches or local keys."""
-import hashlib, pathlib, shutil, zipfile, re, subprocess
+import argparse, hashlib, pathlib, shutil, zipfile, re, subprocess
 root=pathlib.Path(__file__).resolve().parents[1]
 out=root/'release';out.mkdir(exist_ok=True)
-version=re.search(r'versionName = "([^"]+)"',(root/'app/build.gradle.kts').read_text()).group(1)
-for edition in ('signet','external'):
+parser=argparse.ArgumentParser();parser.add_argument('--edition',choices=('signet','external','all'),default='all');args=parser.parse_args()
+editions=('signet','external') if args.edition=='all' else (args.edition,)
+metadata={edition:__import__('json').loads((root/f'app/build/outputs/apk/{edition}/release/output-metadata.json').read_text())['elements'][0] for edition in editions}
+version=max(item['versionName'] for item in metadata.values())
+
+for edition in editions:
+    version=metadata[edition]['versionName']
+    code=str(metadata[edition]['versionCode'])
     prefix='signet' if edition=='signet' else 'signet-external'
     for abi in ('arm64-v8a','armeabi-v7a','x86_64'):
         shutil.copy2(root/f'app/build/outputs/apk/{edition}/release/app-{edition}-{abi}-release.apk',out/f'{prefix}-{version}-{abi}.apk')

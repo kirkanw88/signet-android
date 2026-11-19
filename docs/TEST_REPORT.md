@@ -1,3 +1,26 @@
+# Signet VPN Universal 0.2.7 — проверка 19.11.2026
+
+По запросу пользователя развивается только `external`. Редакция с кабинетом остаётся на опубликованной 0.2.6. [Изменения и установка](RELEASE_0_2_7.md).
+
+Найдены различия между Ping и рабочим VPN: в процессе Ping отсутствовали `LibXray.setDNS` и привязка native sockets к физической сети, TCP проверял только первый DNS-адрес, ошибки IPC превращались в общий `FAILED` и показывались как отсутствие ответа серверов. Исправлена инициализация DNS/сети, TCP fallback и классификация результата. Это подтверждённые дефекты кода; без журнала телефона нельзя доказать, какой из них вызвал конкретный пользовательский случай. Изменённые UI/IPC пути для универсальной версии защищены flavor flag; прежнее тело Signet ProbeService сохранено без изменений в отдельном source set.
+
+| Проверка | Результат |
+|---|---|
+| Targeted JVM | AppReleaseTest 8/8; external app 6/6, failures/errors 0 |
+| TCP regression | Настоящий localhost: отказ первого IP → успешный второй IP; сокеты закрыты после успеха/ошибки |
+| Android Lint external | 0 errors / 48 warnings |
+| Debug + Release external | PASS, strict dependency verification, 3m 3s |
+| Release APK | Три ABI, 0.2.7/code 9, пакет `com.signet.client.external`, подпись v2, zip/ELF 16 KB PASS |
+| Signet freeze | Отдельная Signet-сборка не запускалась и не публиковалась; прежнее тело ProbeService совпало с 0.2.6 |
+| Physical Android / VPN-on Ping / Wi-Fi–cellular transitions | NOT RUN; воспроизведение конкретного сбоя телефона не заявляется |
+| Long CI / emulator / cold cache / production | Не запускались; production не изменён |
+
+Новые зависимости не добавлены, verification-metadata не изменён. Адреса серверов/ключи не добавлены в логи; пишутся только коды результата Ping. Нет фиктивных latency, переключения серверов или отключения TLS-проверок. Полный профиль и исходный AUTO JSON сохраняются. [APK](../tests/evidence/0.2.7/apk-verification.json), [checks](../tests/evidence/0.2.7/checks.json).
+
+Универсальные обновления 0.2.7+ выбираются из ограниченного публичного списка Releases. Выпуск публикуется без смены GitHub latest, чтобы старые APK Signet не предлагали чужой пакет. Первое обновление универсальной 0.2.6 → 0.2.7 — ручная установка APK поверх существующего приложения.
+
+---
+
 # Signet Android 0.2.6 — проверка 19.11.2026
 
 Две редакции Signet VPN: исходная с кабинетом (`com.signet.client`) и сторонняя без кабинета и техподдержки (`com.signet.client.external`). Название, логотип, планета и VPN-функции сохранены. Изменения: [RELEASE_0_2_6](RELEASE_0_2_6.md). Backend/production/main не изменялись.

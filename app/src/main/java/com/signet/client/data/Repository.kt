@@ -157,5 +157,5 @@ class Repository(private val context: Context, private val vault: Vault, private
         finally { _state.update { it.copy(busy = false) } }
     } }
     suspend fun refreshAll(onlyDue:Boolean=false) { awaitReady(); state.value.subscriptions.filter { it.url != null && (!onlyDue || System.currentTimeMillis()-it.updated>=it.metadata.updateHours*3_600_000L) }.forEach { import(it.url!!, it.id) } }
-    suspend fun measurement(id: String, delay: Long?,mode:String="OUTBOUND",status:String?=null) = updateServers(persistent = false) { if (it.id == id) it.copy(latencyMs = delay, available = if(status in setOf("UNSUPPORTED","CONSENT_REQUIRED"))null else delay != null, checkedAt = System.currentTimeMillis(),probeMode=mode,probeMessage=status) else it }
+    suspend fun measurement(id: String, delay: Long?,mode:String="OUTBOUND",status:String?=null) = updateServers(persistent = false) { if (it.id == id) it.copy(latencyMs = delay, available = if(status in setOf("UNSUPPORTED","CONSENT_REQUIRED")||(!com.signet.client.BuildConfig.SIGNET_ACCOUNT&&status in setOf("NO_NETWORK","SERVICE_ERROR","PROBE_ERROR","DNS","TLS","IO","FAILED")))null else delay != null, checkedAt = System.currentTimeMillis(),probeMode=mode,probeMessage=status) else it }
 }

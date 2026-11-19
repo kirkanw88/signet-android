@@ -61,7 +61,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     _probingIds.value=batch.map{it.id}.toSet()
                     val samples=batch.associate{it.id to mutableListOf<Long>()};val statuses=mutableMapOf<String,String>()
                     repeat(options.attempts) { attempt->
-                        Probes.measureDetailed(getApplication(),batch,options).forEach { (id,result)->
+                        var measured=Probes.measureDetailed(getApplication(),batch,options)
+                        if(!BuildConfig.SIGNET_ACCOUNT&&measured.values.all{it.status=="SERVICE_ERROR"}){
+                            // A dying isolated process can race the next bind. Retry transport once, not servers.
+                            delay(250)
+                            measured=Probes.measureDetailed(getApplication(),batch,options)
+                        }
+                        measured.forEach { (id,result)->
                             ConnectionLog.add("PROBE",options.mode.name,result.status)
                             result.delay?.let { samples.getValue(id).add(it) };statuses[id]=result.status
                         }

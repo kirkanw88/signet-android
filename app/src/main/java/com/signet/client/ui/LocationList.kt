@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import com.signet.client.data.AppState
+import com.signet.client.BuildConfig
 import com.signet.client.vpn.VpnStatus
 import com.signet.client.vpn.VpnPhase
 import com.signet.core.*
@@ -77,7 +78,16 @@ import com.signet.core.*
         }
         Column(horizontalAlignment=Alignment.End) {
             if(probing)CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp)
-            Text(when {server.probeMessage=="CONSENT_REQUIRED"->"Нужно согласие";server.probeMessage=="UNSUPPORTED"->"—";server.latencyMs!=null->"${server.latencyMs} ms";server.available==false->"Нет ответа";else->"—"},color=if(server.available==false)Color(0xFFFFC857)else Color(0xFF9BAAC2),fontSize=11.sp)
+            val problem=if(BuildConfig.SIGNET_ACCOUNT)null else when(server.probeMessage){
+                "SERVICE_ERROR","PROBE_ERROR","IO"->"Сбой Ping"
+                "NO_NETWORK"->"Нет сети"
+                "DNS"->"Ошибка DNS"
+                "TLS"->"Ошибка TLS"
+                "TIMEOUT"->"Таймаут"
+                "FAILED"->"Не измерено"
+                else->null
+            }
+            Text(when {server.probeMessage=="CONSENT_REQUIRED"->"Нужно согласие";server.probeMessage=="UNSUPPORTED"->"—";server.latencyMs!=null->"${server.latencyMs} ms";problem!=null->problem;server.available==false->"Нет ответа";else->"—"},color=if(server.available==false||problem!=null)Color(0xFFFFC857)else Color(0xFF9BAAC2),fontSize=11.sp)
             if(active)Text("Подключён",color=color,fontSize=10.sp)
         }
         if(server.favorite)Icon(Icons.Outlined.Star,"Избранное",Modifier.padding(start=4.dp).size(13.dp),tint=Color(0xFFFFC857))

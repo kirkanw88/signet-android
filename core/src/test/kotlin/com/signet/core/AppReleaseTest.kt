@@ -4,6 +4,16 @@ import org.junit.Test
 import kotlin.test.*
 
 class AppReleaseTest {
+    @Test fun externalFeedIgnoresOtherEditionsAndUntrustedOrPrereleaseEntries(){
+        val external=release();val asset=external.getJSONArray("assets").getJSONObject(1)
+        asset.put("name","signet-external-0.3.0-arm64-v8a.apk").put("browser_download_url","https://github.com/${AppRelease.REPOSITORY}/releases/download/v0.3.0/signet-external-0.3.0-arm64-v8a.apk")
+        val prerelease=JSONObject(external.toString()).put("prerelease",true)
+        val untrusted=JSONObject(external.toString()).put("html_url","https://evil.example/release")
+        val feed=JSONArray().put(release()).put(prerelease).put(untrusted).put(external)
+        val selected=AppRelease.externalFeed(feed.toString(),listOf("arm64-v8a"))
+        assertTrue(selected.apk!!.contains("signet-external-"))
+        assertFails{AppRelease.externalFeed(JSONArray().put(release()).toString(),listOf("arm64-v8a"))}
+    }
     @Test fun editionsNeverSelectEachOthersApkOrCache(){
         val j=release();val assets=j.getJSONArray("assets")
         val external=JSONObject(assets.getJSONObject(1).toString())

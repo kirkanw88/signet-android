@@ -1,0 +1,29 @@
+{
+  "version": "0.2.7",
+  "edition": "external",
+  "gradleVerification": "strict",
+  "debugRelease": "PASS",
+  "duration": "3m 3s",
+  "tests": {
+    "updates": {
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "external": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 48
+  },
+  "signet026ProbeServicePreserved": "PASS",
+  "physicalAndroid": "NOT RUN",
+  "production": "UNCHANGED",
+  "longCiEmulatorColdCache": "NOT RUN"
+}

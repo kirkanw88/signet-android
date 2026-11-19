@@ -1,6 +1,7 @@
 package com.signet.core
 
 import org.json.JSONObject
+import org.json.JSONArray
 import java.net.URI
 
 data class ReleaseVersion(val major:Int,val minor:Int,val patch:Int):Comparable<ReleaseVersion> {
@@ -13,6 +14,14 @@ data class AppRelease(val version:ReleaseVersion,val page:String,val apk:String?
     companion object {
         const val REPOSITORY="kirkanw88/signet-android"
         const val ENDPOINT="https://api.github.com/repos/$REPOSITORY/releases/latest"
+        const val EXTERNAL_ENDPOINT="https://api.github.com/repos/$REPOSITORY/releases?per_page=10"
+        fun externalFeed(raw:String,abis:List<String>):AppRelease {
+            require(raw.toByteArray().size<=512*1024)
+            val releases=JSONArray(raw);require(releases.length()<=10)
+            return (0 until releases.length()).mapNotNull { index->
+                runCatching{parse(releases.getJSONObject(index).toString(),abis,true)}.getOrNull()?.takeIf{it.apk!=null}
+            }.maxByOrNull{it.version}?:error("Нет совместимого выпуска универсальной версии")
+        }
         private fun trusted(url:String,kind:String):Boolean=runCatching {val u=URI(url);u.scheme=="https"&&u.host=="github.com"&&u.rawUserInfo==null&&u.rawQuery==null&&u.rawFragment==null&&u.port==-1&&u.normalize().path.startsWith("/$REPOSITORY/releases/$kind/")}.getOrDefault(false)
         fun parse(raw:String,abis:List<String>,external:Boolean=false):AppRelease {
             require(raw.toByteArray().size<=512*1024)

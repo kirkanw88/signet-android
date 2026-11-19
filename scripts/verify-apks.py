@@ -1,10 +1,13 @@
 """Verify compiled release identity, signatures, zip/ELF alignment and ABI contents."""
-import hashlib, json, os, pathlib, re, shutil, struct, subprocess, zipfile
+import argparse, hashlib, json, os, pathlib, re, shutil, struct, subprocess, zipfile
 root=pathlib.Path(__file__).resolve().parents[1]
 sdk=pathlib.Path(os.environ.get('ANDROID_HOME',os.environ.get('ANDROID_SDK_ROOT','C:/Android/Sdk')))
 build=sdk/'build-tools/36.0.0'
-version=re.search(r'versionName = "([^"]+)"',(root/'app/build.gradle.kts').read_text()).group(1)
-code=re.search(r'versionCode = (\d+)',(root/'app/build.gradle.kts').read_text()).group(1)
+parser=argparse.ArgumentParser();parser.add_argument('--edition',choices=('signet','external','all'),default='all');args=parser.parse_args()
+editions=('signet','external') if args.edition=='all' else (args.edition,)
+metadata={edition:__import__('json').loads((root/f'app/build/outputs/apk/{edition}/release/output-metadata.json').read_text())['elements'][0] for edition in editions}
+version=max(item['versionName'] for item in metadata.values())
+
 def run(tool,*args):
     suffix='.bat' if os.name=='nt' and tool=='apksigner' else '.exe' if os.name=='nt' else ''
     arguments=[str(a.relative_to(root)) if isinstance(a,pathlib.Path) and a.is_relative_to(root) else str(a) for a in args]
@@ -16,7 +19,9 @@ def digest(path):
     return result.hexdigest()
 rows=[]
 certificates=set()
-for edition in ('signet','external'):
+for edition in editions:
+    version=metadata[edition]['versionName']
+    code=str(metadata[edition]['versionCode'])
     package='com.signet.client'+('.external' if edition=='external' else '')
     for abi in ('arm64-v8a','armeabi-v7a','x86_64'):
         path=root/f'app/build/outputs/apk/{edition}/release/app-{edition}-{abi}-release.apk'
