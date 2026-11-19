@@ -24,6 +24,8 @@ HTTP responses в новых negotiation tests моделируются OkHttp i
 
 [Checks](../tests/evidence/0.2.9/checks.json), [APK](../tests/evidence/0.2.9/apk-verification.json), [GLSL](../tests/evidence/0.2.9/glsl-check.json). После установки нужно нажать ↻ для подписки: старый URI-кеш не содержит JSON-only hosts и описаний, которые провайдер должен доставить заново. AUTO не создаётся из отсутствующих в ответе данных.
 
+[Выпуск v0.2.9](https://github.com/kirkanw88/signet-android/releases/tag/v0.2.9) опубликован из `1247e9e`: три external APK, исходники и SHA256SUMS. Asset digests совпали с локальными SHA-256. Анонимный universal feed выбрал 0.2.9; общий latest остался 0.2.6. В Release DEX подтверждены JSON-negotiation и uniform светлой темы. [Подтверждение](../tests/evidence/0.2.9/public-release.json). ARM64: 50 360 487 bytes, SHA-256 `153b6e908bb752666d7c2c83d15cfff1e4d4f9c377f240a071aeb4e6dc18d1ed`.
+
 ---
 
 # Signet VPN 0.2.8 — проверка 19.11.2026
