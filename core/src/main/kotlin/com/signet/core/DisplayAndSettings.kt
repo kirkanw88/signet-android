@@ -41,8 +41,9 @@ data class ServerDisplayModel(val id:String,val title:String,val description:Str
                 val security=stream?.optString("security")?.uppercase(Locale.ROOT).orEmpty().takeIf{it.isNotBlank()&&it!="NONE"}
                 listOfNotNull(protocol,network.takeIf{it.isNotBlank()},security).joinToString(" / ")
             }.getOrDefault("Xray")
-            return ServerDisplayModel(server.id,if(server.isAuto&&!white)"AUTO"else name,
-                if(server.isAuto)"Автоматическая маршрутизация"else server.description?.let{DisplayText.clean(it,300)}?.takeIf{it.isNotBlank()&&!it.equals(name,true)},
+            val autoTitle=if(Regex("(?i)signet[ _-]+auto(?:\\b|$)").containsMatchIn(server.name))"Signet_Auto"else"AUTO"
+            return ServerDisplayModel(server.id,if(server.isAuto&&!white)autoTitle else name,
+                server.description?.let{DisplayText.clean(it.replace(Regex("[\\r\\n]+")," "),300)}?.takeIf{it.isNotBlank()&&!it.equals(name,true)}?:if(server.isAuto)"Автоматическая маршрутизация"else null,
                 if(server.isAuto)null else code,if(server.isAuto)"AUTO"else server.countryName,server.isAuto,transport)
         }
     }

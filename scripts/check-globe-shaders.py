@@ -15,7 +15,7 @@ with sync_playwright() as p:
     page=browser.new_page()
     result=page.evaluate('''sources => {const gl=document.createElement('canvas').getContext('webgl');if(!gl)throw Error('WebGL unavailable');const program=gl.createProgram();for(let i=0;i<2;i++){let shader=gl.createShader(i===0?gl.VERTEX_SHADER:gl.FRAGMENT_SHADER);gl.shaderSource(shader,sources[i]);gl.compileShader(shader);if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(shader));gl.attachShader(program,shader);}gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));return {shaderCompile:'PASS',programLink:'PASS',version:gl.getParameter(gl.VERSION)};}''',shaders)
     browser.close()
-version=re.search(r'versionName = "([^"]+)"',(root/'app/build.gradle.kts').read_text()).group(1)
+version=max(re.findall(r'versionName = "([^"]+)"',(root/'app/build.gradle.kts').read_text()),key=lambda value:tuple(map(int,value.split("."))))
 out=root/'tests/evidence'/version;out.mkdir(parents=True,exist_ok=True)
 (out/'glsl-check.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
 print(json.dumps(result))

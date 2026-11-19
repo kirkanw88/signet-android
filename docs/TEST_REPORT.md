@@ -1,3 +1,31 @@
+# Signet VPN 0.2.9 — проверка 19.11.2026
+
+Исправления только универсальной редакции external: JSON/Signet_Auto, описания Remnawave и светлая тема. Signet с кабинетом не пересобирается и остаётся на 0.2.6. [Описание и обновление подписки](RELEASE_0_2_9.md).
+
+Причины в коде: при отделении external был отключён явный JSON endpoint; native Signet UA не входит в upstream extended-clients list Remnawave, от которого зависит `meta.serverDescription`; UI выбирал между provider description и строкой формата, а для AUTO подставлял своё описание. Вектор логотипа содержал белые пути без tint для светлой темы, GL-область продолжала рисовать тёмный космос независимо от темы.
+
+Теперь получение JSON/расширенных метаданных ограничено исходным origin с сохранением HWID и реального Signet UA в compatibility agent. Исходный отказ доступа не вызывает дополнительных запросов. URI-only и не-Xray JSON не подменяют рабочую выдачу. DNS/routing/balancers/outbounds доставленного AUTO сохраняются. Протокол/формат и описание показаны отдельными строками, Signet_Auto остаётся узнаваемым.
+
+| Проверка | Результат |
+|---|---|
+| Core targeted JVM | ProfilesTest + DisplayAndSettingsTest + SubscriptionRequestTest: 25/25, failures/errors 0 |
+| External app JVM | 12/12, failures/errors 0; 6 новых HTTP-negotiation tests + прежние TLS/TCP/log tests |
+| JSON negotiation fixture | Native URI → same-origin `/json` с extended metadata, AUTO/описание/opaque routing сохранены |
+| Compatibility negatives | URI fallback при 403/404/500, IOException, sing-box JSON; original 403 не повторяется, JSON redirect на другой origin не выполняется |
+| Existing JSON | JSON/Base64 JSON с описаниями не вызывает лишний запрос; JSON без extended metadata может получить описание |
+| Native shaders | Точный GLSL ES compile/link PASS в WebGL1; не Android GPU/FPS тест |
+| Android Lint external | 0 errors / 48 warnings |
+| Debug / Release external | PASS, strict verification, финальная упаковочная сборка 2m 54s |
+| APK | Три ABI, external 0.2.9/code 11, подпись v2 и zip/ELF 16 KB PASS |
+| Physical Android / production customer subscription / screenshot / FPS | NOT RUN; проверены типовые обезличенные fixtures, публичный upstream contract и код шейдеров |
+| Long CI / emulator / cold cache / production changes | Не запускались; production не изменён |
+
+HTTP responses в новых negotiation tests моделируются OkHttp interceptor; они не заявляются проверкой реального Remnawave сервера. Прежние ConnectionHealth tests выполняют настоящий локальный TLS. Ссылки, ключи, UUID и содержимое JSON не попадают в журнал приложения. Новые зависимости и bitmap/blur buffers не добавлены. В тёмной теме `uLightTheme=0` сохраняет исходную формулу света и космоса.
+
+[Checks](../tests/evidence/0.2.9/checks.json), [APK](../tests/evidence/0.2.9/apk-verification.json), [GLSL](../tests/evidence/0.2.9/glsl-check.json). После установки нужно нажать ↻ для подписки: старый URI-кеш не содержит JSON-only hosts и описаний, которые провайдер должен доставить заново. AUTO не создаётся из отсутствующих в ответе данных.
+
+---
+
 # Signet VPN 0.2.8 — проверка 19.11.2026
 
 Только универсальная редакция external; Signet с кабинетом остаётся 0.2.6 без новой сборки. [Описание изменений](RELEASE_0_2_8.md).

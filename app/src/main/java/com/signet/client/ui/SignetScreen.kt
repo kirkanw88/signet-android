@@ -106,7 +106,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         Scaffold(containerColor=Color.Transparent,contentColor=AppColors.text,snackbarHost={}) { insets ->
             Column(Modifier.fillMaxSize().padding(insets)) {
                 Row(Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
-                    if(page==0)Image(painterResource(R.drawable.signet_logo),"Signet VPN",Modifier.width(80.dp).height(48.dp))
+                    if(page==0)Image(painterResource(R.drawable.signet_logo),"Signet VPN",Modifier.width(80.dp).height(48.dp),colorFilter=if(AppColors.dark)null else androidx.compose.ui.graphics.ColorFilter.tint(AppColors.text))
                     else IconButton(onClick={page=if(page==2)3 else 0}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=AppColors.text)}
                     if(page!=0)Text(if(page==3)"Настройки"else"Подписки",color=AppColors.text,fontSize=20.sp,fontWeight=FontWeight.Medium)
                     if(page==0&&!BuildConfig.SIGNET_ACCOUNT)Text("v${BuildConfig.VERSION_NAME}",fontSize=13.sp,color=AppColors.muted)
@@ -198,10 +198,11 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         onDispose { lifecycle.removeObserver(observer);view.onPause() }
     }
     val marker by view.globe.capitalMarker.collectAsStateWithLifecycle()
+    val lightTheme=!AppColors.dark
     var labelSize by remember{mutableStateOf(IntSize.Zero)}
     var area by remember{mutableStateOf(IntSize.Zero)}
     Box(modifier.testTag("home-globe").clip(RoundedCornerShape(if(AppColors.dark)0.dp else 24.dp)).onSizeChanged{area=it}) {
-        AndroidView(factory={view},modifier=Modifier.fillMaxSize(),update={it.update(server,phase,settings.graphics,settings.reduceMotion)})
+        AndroidView(factory={view},modifier=Modifier.fillMaxSize(),update={it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme)})
         AnimatedVisibility(marker.visible,enter=fadeIn(tween(350)),exit=fadeOut(tween(150)),modifier=Modifier.offset{
             IntOffset((marker.x-labelSize.width/2).coerceIn(0,(area.width-labelSize.width).coerceAtLeast(0)),(marker.y-labelSize.height).coerceAtLeast(0))
         }) {

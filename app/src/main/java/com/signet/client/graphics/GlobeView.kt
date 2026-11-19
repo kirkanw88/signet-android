@@ -42,8 +42,8 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
         setRenderer(globe); preserveEGLContextOnPause = false
         contentDescription = "Интерактивная трёхмерная Земля. Проведите пальцем для вращения."
     }
-    fun update(server: Server?, phase: VpnPhase, quality: String, reduced: Boolean) {
-        queueEvent { globe.update(server, phase, quality, reduced) }
+    fun update(server: Server?, phase: VpnPhase, quality: String, reduced: Boolean, lightTheme:Boolean=false) {
+        queueEvent { globe.lightTheme=lightTheme;globe.update(server, phase, quality, reduced) }
     }
     override fun onLayout(changed:Boolean,left:Int,top:Int,right:Int,bottom:Int){
         super.onLayout(changed,left,top,right,bottom)
@@ -66,6 +66,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
 }
 
 class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
+    var lightTheme=false
     private val markerState=MutableStateFlow(CapitalMarker());val capitalMarker=markerState.asStateFlow()
     private var capitals:JSONObject?=null;private var capital:JSONObject?=null
     private var capitalRevealed=false
@@ -145,7 +146,7 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             precision mediump float;
             #endif
             uniform sampler2D uTexture; uniform sampler2D uNight; uniform sampler2D uDetailDay; uniform sampler2D uDetailNight;
-            uniform vec4 uDetailRect; uniform float uDetailBlend; uniform mediump int uMode; uniform vec4 uColor; uniform vec3 uSun;
+            uniform vec4 uDetailRect; uniform float uDetailBlend; uniform mediump int uMode; uniform vec4 uColor; uniform vec3 uSun; uniform float uLightTheme;
             varying vec2 vUv; varying vec3 vNormal; varying vec2 vScreen;
             void main(){
                 if(uMode==0){
@@ -162,7 +163,7 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
                     vec3 night=texture2D(uNight,vUv).rgb;
                     night=mix(night,texture2D(uDetailNight,clamp(detailUv,0.0,1.0)).rgb,detailWeight);
                     float darkness=1.0-smoothstep(-0.08,0.12,incidence);
-                    vec3 linear=pow(earth,vec3(2.2))*(0.008+0.98*sunlight);
+                    vec3 linear=pow(earth,vec3(2.2))*(mix(0.008,0.045,uLightTheme)+mix(0.98,1.10,uLightTheme)*sunlight);
                     float city=max(night.r,max(night.g,night.b));
                     linear+=pow(night,vec3(2.2))*darkness*smoothstep(0.03,0.55,city)*1.8;
                     vec3 color=pow(max(linear,vec3(0.0)),vec3(0.4545));
@@ -179,6 +180,7 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
                     gl_FragColor=vec4(uColor.rgb,uColor.a);
                 } else if(uMode==6){
                     vec3 space=texture2D(uTexture,vUv).rgb*0.72;
+                    space=mix(space,vec3(0.95686,0.96863,0.98824),0.95*uLightTheme);
                     gl_FragColor=vec4(space,1.0);
                 }
                 else { gl_FragColor=uColor; }
@@ -256,6 +258,7 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         Matrix.setLookAtM(view, 0, 0f, 0f, cameraDistance, 0f,0f,0f,0f,1f,0f)
         Matrix.multiplyMM(mv,0,view,0,model,0); Matrix.multiplyMM(mvp,0,projection,0,mv,0)
         GLES20.glUseProgram(program)
+        GLES20.glUniform1f(GLES20.glGetUniformLocation(program,"uLightTheme"),if(lightTheme)1f else 0f)
         val borderOffset=GLES20.glGetUniformLocation(program,"uScreenOffset")
         GLES20.glUniform2f(borderOffset,0f,0f)
         GLES20.glDepthMask(false);GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(program,"uMvp"),1,false,identity,0)

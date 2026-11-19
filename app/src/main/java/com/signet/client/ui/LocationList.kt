@@ -74,7 +74,11 @@ import com.signet.core.*
         Column(Modifier.weight(1f).padding(horizontal=12.dp)) {
             Text(display.title,color=if(server.enabled)AppColors.text else AppColors.muted,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis,fontSize=15.sp)
             val format=if(state.subscriptions.firstOrNull{sub->sub.servers.any{it.id==server.id}}?.format=="XRAY_JSON")"JSON"else"URI"
-            Text(if(display.isAuto)"Автоматический выбор сервера"else display.description?:"${display.transport} / $format",color=AppColors.muted,fontSize=11.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
+            Row(Modifier.fillMaxWidth()){
+                Text(display.transport,Modifier.weight(1f,fill=false),color=AppColors.muted,fontSize=11.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
+                Text(" / $format",color=AppColors.muted,fontSize=11.sp,maxLines=1)
+            }
+            display.description?.let{Text(it,color=AppColors.muted,fontSize=11.sp,maxLines=2,overflow=TextOverflow.Ellipsis)}
         }
         Column(horizontalAlignment=Alignment.End) {
             if(probing)CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp)

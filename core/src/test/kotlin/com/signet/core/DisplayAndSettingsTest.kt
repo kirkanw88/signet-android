@@ -34,11 +34,19 @@ class DisplayAndSettingsTest {
     }
     @Test fun stripsControlAndDirectionOverrides(){assertEquals("safe title",DisplayText.clean("safe\u202e title\u0000"))}
     @Test fun signetAutoAndWhiteRemainVisibleWithoutHostLabels(){
-        val auto=server("Signet_Auto");assertTrue(auto.isAuto);assertEquals("AUTO",ServerDisplayModel.from(auto).title)
+        val auto=server("Signet_Auto");assertTrue(auto.isAuto);assertEquals("Signet_Auto",ServerDisplayModel.from(auto).title)
         val white=server("Signet_White");assertEquals("Signet_White",ServerDisplayModel.from(white).title)
         assertFalse(ServerDisplayModel.from(server("🇱🇻 Signet_Latvia")).title.contains("Signet"))
         assertEquals("Латвия",ServerDisplayModel.from(server("🇱🇻 Signet_Latvia")).title)
         assertEquals("Латвия",ServerDisplayModel.from(server("Signet_Latvia")).title)
+    }
+    @Test fun panelDescriptionsAreReadForNormalAndAutoProfiles(){
+        for(name in listOf("Signet_Latvia","Signet_Auto")){
+            val json=org.json.JSONObject(server(name).config).put("meta",org.json.JSONObject().put("serverDescription","Enhanced traffic\ncamouflage"))
+            val parsed=Profiles.parseJson(json.toString()).single()
+            assertEquals("Enhanced traffic\ncamouflage",parsed.description)
+            assertEquals("Enhanced traffic camouflage",ServerDisplayModel.from(parsed).description)
+        }
     }
     @Test fun routingExportHasNoProfileSecrets(){val r=AppRouting("include",setOf("ru.yandex.yandexmaps","org.example.app"));assertEquals(r,AppRouting.parse(r.json()));assertFalse(r.json().contains("token"));assertFails{AppRouting.parse(r.json().replace("\"schemaVersion\": 1","\"schemaVersion\": 9"))};assertFails{AppRouting.parse(r.json().replace("org.example.app","../secret"))}}
     @Test fun probesRejectUnsafeSchemesAndResourceAbuse(){assertFails{ProbeSettings(url="http://example.com").validated()};assertFails{ProbeSettings(url="https://u:p@example.com").validated()};assertFails{ProbeSettings(parallelism=100).validated()};assertEquals(ProbeSettings(),ProbeSettings.parse(ProbeSettings().json().toString()))}

@@ -95,35 +95,44 @@ class Repository(private val context: Context, private val vault: Vault, private
             if (text.startsWith("https://")) {
                 require(SubscriptionMetadata.safeLink(text)!=null) { "Неверная HTTPS ссылка" }
                 url = text
-                var next = if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)SubscriptionRequest.jsonUrl(text)else text
-                var fallbackAvailable=next!=text
-                var fetched = false
-                repeat(6) {
-                    if (fetched) return@repeat
-                    require(SubscriptionMetadata.safeLink(next)!=null) { "Разрешены только корректные HTTPS ссылки без встроенных учётных данных" }
-                    val request = Request.Builder().url(next).header("User-Agent", "SignetVPN/${com.signet.client.BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE})").header("Accept", "application/json, text/plain")
-                    if (java.net.URI(next).host.equals(java.net.URI(url).host,true)) {
-                        request.header("X-Hwid", installId).header("X-Device-Os", "Android").header("X-Ver-Os", Build.VERSION.RELEASE).header("X-Device-Model", Build.MODEL)
-                    }
-                    client.newCall(request.build()).awaitResponse().use { response ->
-                        if(response.code in listOf(404,405)&&fallbackAvailable){
-                            next=url!!;fallbackAvailable=false;ConnectionLog.add("SUBSCRIPTION","JSON_PATH_UNAVAILABLE")
-                        } else if (response.code in 300..399) {
-                            next = response.request.url.resolve(response.header("Location") ?: error("Нет адреса перенаправления"))?.toString() ?: error("Неверный адрес")
-                        } else {
-                            require(response.isSuccessful) { when(response.code){401->"Нужна действующая подписка или новая ссылка доступа";403->"Доступ запрещён. Проверьте статус подписки и лимит устройств";429->"Слишком много запросов. Повторите позже";else->"Не удалось получить подписку: HTTP ${response.code}"} }
-                            val body = response.body ?: error("Пустой ответ")
-                            require(body.contentLength() <= 4 * 1024 * 1024) { "Подписка слишком большая" }
-                            val bytes = body.byteStream().readLimited(4 * 1024 * 1024)
-                            require(bytes.size <= 4 * 1024 * 1024) { "Подписка слишком большая" }
-                            text = String(bytes, Charsets.UTF_8)
-                            title = SubscriptionMetadata.text(response.header("profile-title"),200).ifBlank{"Подписка"}
-                            metadata=SubscriptionMetadata.headers { name->response.header(name) }
-                            info = Profiles.userInfo(response.header("subscription-userinfo")); fetched = true
+                if(!com.signet.client.BuildConfig.SIGNET_ACCOUNT){
+                    val result=SubscriptionDownload.fetch(client,text,"SignetVPN/${com.signet.client.BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE})",
+                        mapOf("X-Hwid" to installId,"X-Device-Os" to "Android","X-Ver-Os" to Build.VERSION.RELEASE,"X-Device-Model" to Build.MODEL)) { code->ConnectionLog.add("SUBSCRIPTION",code) }
+                    text=result.text
+                    title=SubscriptionMetadata.text(result.headers["profile-title"],200).ifBlank{"Подписка"}
+                    metadata=SubscriptionMetadata.headers{name->result.headers[name]}
+                    info=Profiles.userInfo(result.headers["subscription-userinfo"])
+                } else {
+                    var next = SubscriptionRequest.jsonUrl(text)
+                    var fallbackAvailable=next!=text
+                    var fetched = false
+                    repeat(6) {
+                        if (fetched) return@repeat
+                        require(SubscriptionMetadata.safeLink(next)!=null) { "Разрешены только корректные HTTPS ссылки без встроенных учётных данных" }
+                        val request = Request.Builder().url(next).header("User-Agent", "SignetVPN/${com.signet.client.BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE})").header("Accept", "application/json, text/plain")
+                        if (java.net.URI(next).host.equals(java.net.URI(url).host,true)) {
+                            request.header("X-Hwid", installId).header("X-Device-Os", "Android").header("X-Ver-Os", Build.VERSION.RELEASE).header("X-Device-Model", Build.MODEL)
+                        }
+                        client.newCall(request.build()).awaitResponse().use { response ->
+                            if(response.code in listOf(404,405)&&fallbackAvailable){
+                                next=url!!;fallbackAvailable=false;ConnectionLog.add("SUBSCRIPTION","JSON_PATH_UNAVAILABLE")
+                            } else if (response.code in 300..399) {
+                                next = response.request.url.resolve(response.header("Location") ?: error("Нет адреса перенаправления"))?.toString() ?: error("Неверный адрес")
+                            } else {
+                                require(response.isSuccessful) { when(response.code){401->"Нужна действующая подписка или новая ссылка доступа";403->"Доступ запрещён. Проверьте статус подписки и лимит устройств";429->"Слишком много запросов. Повторите позже";else->"Не удалось получить подписку: HTTP ${response.code}"} }
+                                val body = response.body ?: error("Пустой ответ")
+                                require(body.contentLength() <= 4 * 1024 * 1024) { "Подписка слишком большая" }
+                                val bytes = body.byteStream().readLimited(4 * 1024 * 1024)
+                                require(bytes.size <= 4 * 1024 * 1024) { "Подписка слишком большая" }
+                                text = String(bytes, Charsets.UTF_8)
+                                title = SubscriptionMetadata.text(response.header("profile-title"),200).ifBlank{"Подписка"}
+                                metadata=SubscriptionMetadata.headers { name->response.header(name) }
+                                info = Profiles.userInfo(response.header("subscription-userinfo")); fetched = true
+                            }
                         }
                     }
+                    check(fetched) { "Слишком много перенаправлений" }
                 }
-                check(fetched) { "Слишком много перенаправлений" }
             } else require(!text.startsWith("http://")) { "Нужна защищённая HTTPS ссылка" }
             text = Profiles.decode(text)
             val secret=ageKey.ifEmpty { state.value.subscriptions.firstOrNull { it.id==existingId }?.ageKey.orEmpty() }

@@ -1,0 +1,31 @@
+{
+  "version": "0.2.9",
+  "edition": "external",
+  "gradleVerification": "strict",
+  "tests": {
+    "jsonProfilesDisplay": {
+      "tests": 25,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "external": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "debugRelease": "PASS",
+  "duration": "2m 54s",
+  "lint": {
+    "errors": 0,
+    "warnings": 48
+  },
+  "negotiation": "OkHttp interceptor fixtures; upstream Remnawave contract inspected",
+  "shaders": "exact GLSL compile/link PASS WebGL1",
+  "physicalAndroidAndCustomerSubscription": "NOT RUN",
+  "longCiEmulatorColdCache": "NOT RUN",
+  "production": "UNCHANGED",
+  "signetRelease": "UNCHANGED 0.2.6"
+}
