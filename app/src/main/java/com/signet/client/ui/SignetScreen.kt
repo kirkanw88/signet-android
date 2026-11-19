@@ -216,14 +216,14 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         val viewport=with(density){(maxHeight-12.dp).roundToPx().coerceAtLeast(0)}
         val scroll=rememberScrollState()
         if(LocalConfiguration.current.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE)Row(Modifier.fillMaxSize().padding(horizontal=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(18.dp)){
-            Globe(server,phase,state.settings,Modifier.weight(1.2f).fillMaxHeight(),model.capitalImagery)
+            Globe(server,phase,state.settings,Modifier.weight(1.2f).fillMaxHeight())
             Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(scroll),horizontalAlignment=Alignment.CenterHorizontally){Text(status,fontSize=22.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text);controls()}
         }else SubcomposeLayout(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal=16.dp).padding(bottom=12.dp)){constraints->
             val natural=constraints.copy(minHeight=0,maxHeight=Constraints.Infinity)
             val footer=subcompose("controls"){Column(Modifier.fillMaxWidth()){controls()}}.single().measure(natural)
             val heading=subcompose("status"){Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center){Text(status,fontSize=24.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text,maxLines=1)}}.single().measure(natural)
             val height=com.signet.core.HomeMeasurements.globeHeight(viewport,heading.height,footer.height)
-            val planet=if(height>0)subcompose("globe"){Globe(server,phase,state.settings,Modifier.fillMaxSize(),model.capitalImagery)}.single().measure(Constraints.fixed(constraints.maxWidth,height))else null
+            val planet=if(height>0)subcompose("globe"){Globe(server,phase,state.settings,Modifier.fillMaxSize())}.single().measure(Constraints.fixed(constraints.maxWidth,height))else null
             layout(constraints.maxWidth,(heading.height+height+footer.height).coerceAtLeast(viewport)){
                 heading.placeRelative(0,0)
                 planet?.placeRelative(0,heading.height)
@@ -233,10 +233,9 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     }
 }
 
-@Composable private fun Globe(server:Server?,phase:VpnPhase,settings:Settings,modifier:Modifier,imagery:com.signet.client.graphics.CapitalImagery?) {
+@Composable private fun Globe(server:Server?,phase:VpnPhase,settings:Settings,modifier:Modifier) {
     val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
     var renderer by remember{mutableStateOf<com.signet.client.graphics.GlobeRenderer?>(null)}
-    var photoCovered by remember{mutableStateOf(false)}
     val parentScroll=!BuildConfig.SIGNET_ACCOUNT&&LocalConfiguration.current.orientation!=android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val emptyMarker=remember{kotlinx.coroutines.flow.MutableStateFlow(com.signet.client.graphics.CapitalMarker())}
     val marker by (renderer?.capitalMarker?:emptyMarker).collectAsStateWithLifecycle()
@@ -244,7 +243,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     var labelSize by remember{mutableStateOf(IntSize.Zero)}
     var area by remember{mutableStateOf(IntSize.Zero)}
     Box(modifier.testTag("home-globe").clip(RoundedCornerShape(if(AppColors.dark)0.dp else 24.dp)).onSizeChanged{area=it}) {
-        AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);renderer=it.globe}},modifier=Modifier.fillMaxSize(),onRelease={it.releaseHost()},update={it.bindHost(lifecycle);it.photoCover(photoCovered);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,parentScroll)})
+        AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);renderer=it.globe}},modifier=Modifier.fillMaxSize(),onRelease={it.releaseHost()},update={it.bindHost(lifecycle);it.photoCover(false);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,parentScroll)})
         AnimatedVisibility(marker.visible,enter=fadeIn(tween(350)),exit=fadeOut(tween(150)),modifier=Modifier.offset{
             IntOffset((marker.x-labelSize.width/2).coerceIn(0,(area.width-labelSize.width).coerceAtLeast(0)),(marker.y-labelSize.height).coerceAtLeast(0))
         }) {
