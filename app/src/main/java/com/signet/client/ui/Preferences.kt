@@ -37,7 +37,7 @@ private val Ink:Color @Composable get()=AppColors.text
 private val SecondaryInk:Color @Composable get()=AppColors.muted
 private val Accent:Color @Composable get()=AppColors.accent
 
-@Composable fun Preferences(state:AppState,model:MainViewModel,subscriptions:()->Unit,servers:()->Unit,openDiagnostics:Boolean,diagnosticsHandled:()->Unit) {
+@Composable fun Preferences(state:AppState,model:MainViewModel,subscriptions:()->Unit,servers:()->Unit,openDiagnostics:Boolean,diagnosticsHandled:()->Unit,close:()->Unit) {
     var section by rememberSaveable { mutableStateOf("main") }
     var apps by rememberSaveable{mutableStateOf(false)}
     var probes by rememberSaveable{mutableStateOf(false)}
@@ -55,11 +55,14 @@ private val Accent:Color @Composable get()=AppColors.accent
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")){uri->if(uri!=null)scope.launch(Dispatchers.IO){runCatching{context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use{it.write(report)}}}}
     val exportLog=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")){uri->if(uri!=null)scope.launch(Dispatchers.IO){runCatching{context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use{it.write(ConnectionLog.export())}}}}
     LaunchedEffect(openDiagnostics){if(openDiagnostics){section="diagnostics";model.diagnostics();diagnosticsHandled()}}
-    BackHandler(enabled=section!="main"){section="main"}
+    BackHandler { if(section!="main")section="main" else close() }
     LaunchedEffect(section){scroll.scrollTo(0)}
     val title=when(section){"connection"->"Соединение";"routing"->"Маршрутизация";"appearance"->"Оформление";"updates"->"Обновления";"diagnostics"->"Диагностика";"logs"->"Журнал подключения";"account"->"Аккаунт";else->"Настройки"}
     Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal=20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
-        if(section!="main")Row(verticalAlignment=Alignment.CenterVertically){IconButton(onClick={section="main"}){Icon(Icons.Outlined.ArrowBack,"Назад к настройкам")};Text(title,fontSize=24.sp,fontWeight=FontWeight.SemiBold,color=Ink)}
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+            IconButton(onClick={if(section=="main")close()else{section="main"}}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=Ink)}
+            Text(title,Modifier.weight(1f),fontSize=24.sp,fontWeight=FontWeight.SemiBold,color=Ink)
+        }
         when(section){
             "main"->{
                 Text("Ваш доступ и приложение",fontSize=16.sp,color=SecondaryInk,modifier=Modifier.padding(vertical=4.dp))

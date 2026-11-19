@@ -25,6 +25,9 @@ import com.signet.core.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable fun LocationList(state:AppState,vpn:VpnStatus,probing:Boolean,select:(String)->Unit,favorite:(String)->Unit,ping:()->Unit,refresh:()->Unit,modifier:Modifier=Modifier,compact:Boolean=false,activeProbes:Set<String> = emptySet(),toggleSubscription:(String)->Unit={},pinSubscription:(String)->Unit={},refreshSubscription:(String)->Unit={},pingSubscription:(String)->Unit={},removeSubscription:(String)->Unit={},refreshingSubscriptions:Set<String> = emptySet(),addSubscription:(()->Unit)?=null,management:Boolean=false) {
@@ -47,8 +50,9 @@ import androidx.compose.ui.platform.LocalContext
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End){
                     IconButton(onClick=ping,modifier=Modifier.testTag("server-ping"),enabled=state.servers.isNotEmpty()&&canPing){Icon(if(probing)Icons.Outlined.StopCircle else Icons.Outlined.Speed,if(probing)"Остановить измерение"else"Ping всех подписок",tint=AppColors.accent)}
                     IconButton(onClick=refresh,modifier=Modifier.testTag("server-refresh"),enabled=!state.busy){if(state.busy)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Refresh,"Обновить все подписки",tint=AppColors.accent)}
-                    IconButton(onClick={tools=!tools}){Icon(Icons.Outlined.MoreHoriz,"Поиск и сортировка",tint=AppColors.accent)}
+                    IconButton(onClick={tools=!tools}){Icon(if(tools)Icons.Outlined.Close else Icons.Outlined.Search,if(tools)"Закрыть поиск"else"Поиск и сортировка",tint=AppColors.accent)}
                 }
+                if(addSubscription!=null&&state.subscriptions.size>=8)Text("Достигнут лимит 8 подписок. Для добавления новой удалите ненужную подписку.",color=AppColors.muted,fontSize=12.sp,modifier=Modifier.padding(vertical=4.dp))
                 if(!compact&&tools){
                     OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),placeholder={Text("Подписка, хост или страна")},leadingIcon={Icon(Icons.Outlined.Search,null)},singleLine=true,shape=RoundedCornerShape(16.dp))
                     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){FilterChip(favoriteOnly,{favoriteOnly=!favoriteOnly},label={Text("Избранное")});FilterChip(sort,{sort=!sort},label={Text("По задержке")})}
@@ -74,10 +78,8 @@ import androidx.compose.ui.platform.LocalContext
                             Icon(Icons.Outlined.ExpandMore,if(expanded)"Свернуть подписку"else"Развернуть подписку",Modifier.size(24.dp).rotate(angle),tint=AppColors.accent)
                             Column(Modifier.weight(1f).padding(start=6.dp)){
                                 Text(label,fontSize=16.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
-                                Text("Серверов: ${sub.servers.size} · Обновление 1 ч",color=AppColors.muted,fontSize=10.sp)
+                                Text("Серверов: ${sub.servers.size} · Обновлено "+android.text.format.DateUtils.getRelativeTimeSpanString(sub.updated,System.currentTimeMillis(),android.text.format.DateUtils.MINUTE_IN_MILLIS),color=AppColors.muted,fontSize=12.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
                             }
-                            IconButton(onClick={refreshSubscription(sub.id)},enabled=sub.url!=null&&!state.busy){if(sub.id in refreshingSubscriptions)CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Refresh,"Обновить $label",tint=AppColors.accent)}
-                            IconButton(onClick={pingSubscription(sub.id)},enabled=canPing&&sub.servers.isNotEmpty()&&(!probing||here)){Icon(if(here)Icons.Outlined.StopCircle else Icons.Outlined.Speed,if(here)"Остановить Ping"else"Ping $label",tint=AppColors.accent)}
                             Box {
                                 IconButton(onClick={menu=true}){Icon(Icons.Outlined.MoreVert,"Действия с подпиской",tint=AppColors.muted)}
                                 if(pinned)Icon(Icons.Outlined.PushPin,"Закреплена",Modifier.align(Alignment.TopEnd).padding(top=3.dp,end=3.dp).size(12.dp),tint=AppColors.accent)
@@ -89,13 +91,30 @@ import androidx.compose.ui.platform.LocalContext
                                 }
                             }
                         }
-                        SubscriptionUsage(sub)
-                        sub.error?.let{Text(it,color=AppColors.warning,fontSize=11.sp,maxLines=2)}
+                        if(expanded) {
+                            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End,verticalAlignment=Alignment.CenterVertically){
+                                TextButton(onClick={refreshSubscription(sub.id)},enabled=sub.url!=null&&!state.busy){
+                                    if(sub.id in refreshingSubscriptions)CircularProgressIndicator(Modifier.size(16.dp),strokeWidth=2.dp)
+                                    else Icon(Icons.Outlined.Refresh,null,Modifier.size(18.dp))
+                                    Text("Обновить",Modifier.padding(start=6.dp),fontSize=12.sp)
+                                }
+                                TextButton(onClick={pingSubscription(sub.id)},enabled=canPing&&sub.servers.isNotEmpty()&&(!probing||here)){
+                                    Icon(if(here)Icons.Outlined.StopCircle else Icons.Outlined.Speed,null,Modifier.size(18.dp))
+                                    Text(if(here)"Остановить"else"Ping",Modifier.padding(start=6.dp),fontSize=12.sp)
+                                }
+                            }
+                            SubscriptionUsage(sub)
+                        }
+                        sub.error?.let{Text(it,color=AppColors.warning,fontSize=12.sp,maxLines=3)}
                     }
                 }
             }
             if(expanded){
-                if(sub.metadata.announcement.isNotBlank())item(key="${sub.id}:announcement"){Text(sub.metadata.announcement,Modifier.padding(vertical=6.dp),fontSize=11.sp,color=AppColors.muted,maxLines=5,overflow=TextOverflow.Ellipsis)}
+                if(sub.metadata.announcement.isNotBlank())item(key="${sub.id}:announcement"){Column(Modifier.padding(vertical=6.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+                    var announcementExpanded by rememberSaveable(sub.id){mutableStateOf(false)}
+                    Text(sub.metadata.announcement,fontSize=13.sp,color=AppColors.muted,maxLines=if(announcementExpanded)Int.MAX_VALUE else 3,overflow=TextOverflow.Ellipsis)
+                    if(sub.metadata.announcement.length>180)TextButton(onClick={announcementExpanded=!announcementExpanded}){Text(if(announcementExpanded)"Свернуть сообщение"else"Показать сообщение полностью")}
+                }}
                 items(if(sort)visible.sortedBy{it.latencyMs?:Long.MAX_VALUE}else visible,key={"${sub.id}:${it.id}"}){server->ServerRow(server,displays.getValue(server.id),state,vpn,select,favorite,server.id in activeProbes,Modifier.animateItem())}
                 if(visible.isEmpty())item(key="${sub.id}:empty"){Text("В подписке пока нет серверов",Modifier.padding(12.dp),color=AppColors.muted)}
             }
@@ -126,16 +145,14 @@ import androidx.compose.ui.platform.LocalContext
     val active=vpn.serverId==server.id&&vpn.phase==VpnPhase.CONNECTED
     val selected=state.selected==server.id
     val color=if(active)AppColors.success else AppColors.accent
-    Row(modifier.fillMaxWidth().padding(vertical=1.dp).heightIn(min=56.dp).border(if(selected)1.5.dp else 0.dp,if(selected)color else Color.Transparent,RoundedCornerShape(10.dp)).background(if(selected)AppColors.tint else Color.Transparent,RoundedCornerShape(10.dp)).combinedClickable(enabled=server.enabled,onClick={select(server.id)},onLongClick={favorite(server.id)},onLongClickLabel="Избранное").padding(horizontal=8.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically) {
+    Row(modifier.fillMaxWidth().semantics { this.selected=selected; stateDescription=if(active)"Подключён" else if(selected)"Выбран" else "Не выбран" }.padding(vertical=1.dp).heightIn(min=56.dp).border(if(selected)1.5.dp else 0.dp,if(selected)color else Color.Transparent,RoundedCornerShape(10.dp)).background(if(selected)AppColors.tint else Color.Transparent,RoundedCornerShape(10.dp)).combinedClickable(enabled=server.enabled,onClick={select(server.id)},onLongClick={favorite(server.id)},onLongClickLabel="Избранное").padding(horizontal=8.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically) {
         CountryFlag(display.country,display.isAuto)
         Column(Modifier.weight(1f).padding(horizontal=8.dp)) {
-            Text(display.title,color=if(server.enabled)AppColors.text else AppColors.muted,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis,fontSize=14.sp)
-            val format=if(state.subscriptions.firstOrNull{sub->sub.servers.any{it.id==server.id}}?.format=="XRAY_JSON")"JSON"else"URI"
+            Text(display.title,color=if(server.enabled)AppColors.text else AppColors.muted,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis,fontSize=15.sp)
             Row(Modifier.fillMaxWidth()){
-                Text(display.transport,Modifier.weight(1f,fill=false),color=AppColors.muted,fontSize=11.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
-                Text(" / $format",color=AppColors.muted,fontSize=11.sp,maxLines=1)
+                Text(display.transport,Modifier.weight(1f),color=AppColors.muted,fontSize=12.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
             }
-            display.description?.let{Text(it,color=AppColors.muted,fontSize=11.sp,maxLines=1,overflow=TextOverflow.Ellipsis)}
+            display.description?.let{Text(it,color=AppColors.muted,fontSize=12.sp,maxLines=1,overflow=TextOverflow.Ellipsis)}
         }
         Column(horizontalAlignment=Alignment.End) {
             if(probing)CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp)
@@ -158,7 +175,7 @@ import androidx.compose.ui.platform.LocalContext
             if(active)Text("Подключён",color=color,fontSize=10.sp)
         }
         if(server.favorite)Icon(Icons.Outlined.Star,"Избранное",Modifier.padding(start=4.dp).size(13.dp),tint=AppColors.warning)
-        Icon(Icons.Outlined.ChevronRight,"Выбрать сервер",Modifier.padding(start=6.dp).size(18.dp),tint=AppColors.muted)
+        Icon(if(selected)Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,if(selected)"Выбран"else"Выбрать сервер",Modifier.padding(start=6.dp).size(20.dp),tint=if(selected)AppColors.accent else AppColors.muted)
     }
     HorizontalDivider(color=AppColors.border.copy(alpha=.4f))
 }

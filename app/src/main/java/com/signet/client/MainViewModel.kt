@@ -17,7 +17,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val mobileAccount=if(BuildConfig.SIGNET_ACCOUNT)MobileAccount(app)else null
     val account:MobileAccount get()=checkNotNull(mobileAccount){"Аккаунт Signet недоступен в этой редакции"}
     val installer=NativeUpdater(app,viewModelScope)
-    val capitalImagery=if(BuildConfig.SIGNET_ACCOUNT)null else com.signet.client.graphics.CapitalImagery(app)
     val accountPage=MutableStateFlow<String?>(null)
     fun openAccount(page:String="account"){if(BuildConfig.SIGNET_ACCOUNT)accountPage.value=page}
     val updates=AppUpdates(app)
@@ -37,8 +36,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun select(id: String) { viewModelScope.launch { repository.select(id)
         if(vpn.value.phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING))start()
     } }
-    fun selectAuto() { state.value.servers.firstOrNull { it.isAuto && it.enabled }?.let { select(it.id) }
-        ?: repository.notify("В подписке нет серверного профиля AUTO") }
+    fun selectAuto() {
+        val selectedSubscription=state.value.subscriptions.firstOrNull { sub->sub.servers.any { it.id==state.value.selected } }
+        val available=selectedSubscription?.servers?.firstOrNull { it.isAuto&&it.enabled }
+        if(available!=null)select(available.id)
+        else repository.notify(if(selectedSubscription==null)"Сначала выберите подписку" else "В выбранной подписке нет серверного профиля AUTO")
+    }
     fun favorite(id: String) { viewModelScope.launch { repository.favorite(id) } }
     fun remove(id: String) { viewModelScope.launch { if(!BuildConfig.SIGNET_ACCOUNT&&state.value.subscriptions.firstOrNull{it.id==id}?.servers?.any{it.id==vpn.value.serverId}==true)stop();repository.remove(id) } }
     private val _refreshingSubscriptions=MutableStateFlow<Set<String>>(emptySet());val refreshingSubscriptions=_refreshingSubscriptions.asStateFlow()

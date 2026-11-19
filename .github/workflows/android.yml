@@ -1,5 +1,15 @@
 name: Android
-on: [push, pull_request, workflow_dispatch]
+# Runtime UI/native fixture targets Universal; the build job compiles both editions for regression.
+on:
+  push:
+    branches: [main, feature/android-0.2.0]
+  pull_request:
+  workflow_dispatch:
+
+# Prevent old commits from consuming runner resources while preserving one check per PR.
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -24,7 +34,20 @@ jobs:
             "build-tools;36.0.0"
       - run: python3 scripts/fetch-native.py
       - name: Verify dependencies, test, lint and build APKs
-        run: chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon :core:test :app:testSignetDebugUnitTest :app:testExternalDebugUnitTest :app:lintSignetDebug :app:lintExternalDebug :app:assembleDebug :app:assembleRelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          # Unit/lint/debug checks have a smaller memory footprint.
+          ./gradlew --dependency-verification strict --no-daemon --stacktrace --max-workers=2 \
+            :core:test :app:testSignetDebugUnitTest :app:testExternalDebugUnitTest \
+            :app:lintSignetDebug :app:lintExternalDebug :app:assembleDebug
+          # Packaging multiple ABI-split release variants together exhausted the default 2 GiB heap.
+          # Keep strict dependency verification and full release coverage; isolate packaging per flavor.
+          for flavor in External Signet; do
+            ./gradlew --dependency-verification strict --no-daemon --stacktrace --max-workers=1 \
+              '-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8' ":app:assemble${flavor}Release"
+          done
       - name: Verify installable APK signatures, ABIs and 16 KB alignment
         run: python3 scripts/verify-apks.py
       - uses: actions/upload-artifact@v4
@@ -99,7 +122,7 @@ jobs:
           wait "$signet_emulator_pid"
       - run: python3 scripts/fetch-native.py
       - name: Compile instrumented APKs with strict verification
-        run: chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon :app:assembleSignetDebug :app:assembleSignetRelease :app:assembleSignetDebugAndroidTest
+        run: chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon --stacktrace --max-workers=2 :app:assembleExternalDebug :app:assembleExternalRelease :app:assembleExternalDebugAndroidTest
       - name: Run Android UI and native TUN tests
         shell: bash
         run: |
@@ -126,27 +149,32 @@ jobs:
           adb shell input keyevent HOME
           sleep 5
           adb logcat -d > tests/evidence/runtime/boot-logcat.txt
-          adb install app/build/outputs/apk/signet/debug/app-signet-x86_64-debug.apk
-          adb install app/build/outputs/apk/androidTest/signet/debug/app-signet-debug-androidTest.apk
-          adb shell appops set com.signet.client ACTIVATE_VPN allow
-          adb shell pm grant com.signet.client android.permission.POST_NOTIFICATIONS
+          adb install app/build/outputs/apk/external/debug/app-external-x86_64-debug.apk
+          adb install app/build/outputs/apk/androidTest/external/debug/app-external-debug-androidTest.apk
+          adb shell appops set com.signet.client.external ACTIVATE_VPN allow
+          adb shell pm grant com.signet.client.external android.permission.POST_NOTIFICATIONS
           for port in 10888 10889 10890 10891 10894 18480 19095; do adb reverse tcp:$port tcp:$port; done
-          adb shell am instrument -w -r -e localVpn true -e class com.signet.client.GlobeVisualTest,com.signet.client.QrImageTest,com.signet.client.UiSmokeTest com.signet.client.test/androidx.test.runner.AndroidJUnitRunner | tee tests/evidence/runtime/ui-instrumentation.txt
-          grep -Eq '^OK \(6 tests\)' tests/evidence/runtime/ui-instrumentation.txt
+          adb shell am instrument -w -r -e localVpn true -e class com.signet.client.GlobeVisualTest,com.signet.client.QrImageTest,com.signet.client.UniversalUiSmokeTest com.signet.client.external.test/androidx.test.runner.AndroidJUnitRunner | tee tests/evidence/runtime/ui-instrumentation.txt
+          grep -Eq '^OK \(4 tests\)' tests/evidence/runtime/ui-instrumentation.txt
           ! grep -Eq 'FAILURES|INSTRUMENTATION_FAILED|Process crashed' tests/evidence/runtime/ui-instrumentation.txt
-          adb pull /sdcard/Android/data/com.signet.client/files/country-frames tests/evidence/runtime/countries
-          adb pull /sdcard/Android/data/com.signet.client/files/ui-state tests/evidence/runtime/ui-state
-          adb install -r app/build/outputs/apk/signet/release/app-signet-x86_64-release.apk
-          python3 scripts/capture-matrix.py
-          adb shell dumpsys meminfo com.signet.client > tests/evidence/runtime/meminfo-release.txt
-          adb install -r app/build/outputs/apk/signet/debug/app-signet-x86_64-debug.apk
-          adb shell appops set com.signet.client ACTIVATE_VPN allow
-          adb shell pm grant com.signet.client android.permission.POST_NOTIFICATIONS
-          adb shell am instrument -w -r -e localVpn true -e class com.signet.client.ClientIntegrationTest,com.signet.client.TemplateTransportTest com.signet.client.test/androidx.test.runner.AndroidJUnitRunner | tee tests/evidence/runtime/native-instrumentation.txt
+          adb pull /sdcard/Android/data/com.signet.client.external/files/country-frames tests/evidence/runtime/countries
+          # Optional: UniversalUiSmokeTest currently has no UI screenshot fixture.
+          if adb shell test -d /sdcard/Android/data/com.signet.client.external/files/ui-state; then
+            adb pull /sdcard/Android/data/com.signet.client.external/files/ui-state tests/evidence/runtime/ui-state
+          else
+            echo 'No optional ui-state directory; continuing to native TUN tests'
+          fi
+          adb install -r app/build/outputs/apk/external/release/app-external-x86_64-release.apk
+          SIGNET_TEST_PACKAGE=com.signet.client.external python3 scripts/capture-matrix.py
+          adb shell dumpsys meminfo com.signet.client.external > tests/evidence/runtime/meminfo-release.txt
+          adb install -r app/build/outputs/apk/external/debug/app-external-x86_64-debug.apk
+          adb shell appops set com.signet.client.external ACTIVATE_VPN allow
+          adb shell pm grant com.signet.client.external android.permission.POST_NOTIFICATIONS
+          adb shell am instrument -w -r -e localVpn true -e class com.signet.client.ClientIntegrationTest,com.signet.client.TemplateTransportTest com.signet.client.external.test/androidx.test.runner.AndroidJUnitRunner | tee tests/evidence/runtime/native-instrumentation.txt
           cat tests/evidence/runtime/ui-instrumentation.txt tests/evidence/runtime/native-instrumentation.txt > tests/evidence/runtime/instrumentation.txt
           grep -Eq '^OK \(11 tests\)' tests/evidence/runtime/native-instrumentation.txt
           ! grep -Eq 'FAILURES|INSTRUMENTATION_FAILED|Process crashed' tests/evidence/runtime/native-instrumentation.txt
-          adb pull /sdcard/Android/data/com.signet.client/files/vpn-memory tests/evidence/runtime/vpn-memory
+          adb pull /sdcard/Android/data/com.signet.client.external/files/vpn-memory tests/evidence/runtime/vpn-memory
           python3 scripts/check-emulator-ui.py final
           adb shell dumpsys activity lastanr > tests/evidence/runtime/lastanr.txt
           ! grep -q 'ANR in ' tests/evidence/runtime/lastanr.txt
@@ -159,9 +187,9 @@ jobs:
           python3 scripts/check-emulator-ui.py failure || true
           timeout 15 adb logcat -d -b crash > tests/evidence/runtime/crash.txt || true
           timeout 15 adb shell dumpsys activity lastanr > tests/evidence/runtime/lastanr.txt || true
-          timeout 15 adb pull /sdcard/Android/data/com.signet.client/files/ui-state tests/evidence/runtime/ui-state || true
-          timeout 15 adb pull /sdcard/Android/data/com.signet.client/files/country-frames tests/evidence/runtime/countries || true
-          timeout 15 adb pull /sdcard/Android/data/com.signet.client/files/vpn-memory tests/evidence/runtime/vpn-memory || true
+          timeout 15 adb pull /sdcard/Android/data/com.signet.client.external/files/ui-state tests/evidence/runtime/ui-state || true
+          timeout 15 adb pull /sdcard/Android/data/com.signet.client.external/files/country-frames tests/evidence/runtime/countries || true
+          timeout 15 adb pull /sdcard/Android/data/com.signet.client.external/files/vpn-memory tests/evidence/runtime/vpn-memory || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -182,7 +182,18 @@ class Repository(private val context: Context, private val vault: Vault, private
                 commit(state.value.copy(subscriptions = SubscriptionGroups.upsert(state.value.subscriptions,sub){it.id}, selected = ProfileRefresh.selection(state.value.selected,others.flatMap { s->s.servers }+servers,existingId==null), message = "Добавлено серверов: ${servers.size}"))
             }
         } catch (e: CancellationException) { throw e }
-        catch (e: Exception) { notify(if (e.message?.startsWith("HTTP ") == true) e.message!! else "Не удалось импортировать профиль. Проверьте ссылку и формат конфигурации.") }
+        catch (e: Exception) {
+            val safeMessage=if(!com.signet.client.BuildConfig.SIGNET_ACCOUNT)when(e.message){
+                "HTTP 401"->"Требуется новая ссылка подписки или авторизация у провайдера."
+                "HTTP 403"->"Провайдер отказал в доступе. Проверьте срок подписки и лимит устройств."
+                "HTTP 429"->"Слишком много запросов. Повторите обновление позже."
+                else->"Не удалось обновить подписку. Проверьте соединение и формат ответа."
+            } else if(e.message?.startsWith("HTTP ")==true) e.message!! else "Не удалось импортировать профиль. Проверьте ссылку и формат конфигурации."
+            if(existingId!=null){
+                _state.update { current->current.copy(subscriptions=current.subscriptions.map { sub->if(sub.id==existingId)sub.copy(error=safeMessage)else sub }) }
+            }
+            notify(safeMessage)
+        }
         finally { _state.update { it.copy(busy = false) } }
     } }
     suspend fun refreshAll(onlyDue:Boolean=false) { awaitReady(); state.value.subscriptions.filter { it.url != null && (!onlyDue || if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)System.currentTimeMillis()-it.updated>=it.metadata.updateHours*3_600_000L else UniversalDefaults.subscriptionDue(it.updated,System.currentTimeMillis())) }.forEach { import(it.url!!, it.id) } }

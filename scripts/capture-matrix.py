@@ -1,6 +1,7 @@
 """Device layout assertions and baseline screenshots. Requires an installed APK."""
-import json, pathlib, re, subprocess, time, xml.etree.ElementTree as ET
+import json, pathlib, re, subprocess, time, xml.etree.ElementTree as ET, os
 root=pathlib.Path(__file__).resolve().parents[1]
+package=os.environ.get('SIGNET_TEST_PACKAGE','com.signet.client')
 out=root/'tests/evidence/screenshots';out.mkdir(parents=True,exist_ok=True)
 def adb(*args):
     return subprocess.check_output(['adb',*args],timeout=30)
@@ -11,8 +12,8 @@ try:
     for width,height,font in matrix:
         adb('shell','settings','put','system','font_scale',str(font))
         adb('shell','wm','size',f'{width}x{height}')
-        adb('shell','am','force-stop','com.signet.client')
-        adb('shell','am','start','-W','-n','com.signet.client/.MainActivity')
+        adb('shell','am','force-stop',package)
+        adb('shell','am','start','-W','-n',f'{package}/com.signet.client.MainActivity')
         time.sleep(2)
         name=f'{width}x{height}-font-{font}'
         (out/f'{name}.png').write_bytes(adb('exec-out','screencap','-p'))
@@ -22,7 +23,7 @@ try:
         nodes=ET.fromstring(raw).iter('node')
         found=False
         for node in nodes:
-            if node.get('text') in ('Добавить подписку','Подключиться','Отключиться'):
+            if node.get('text') in ('Добавить подписку','Подключиться','Отключиться','Отменить подключение','Повторить подключение'):
                 x0,y0,x1,y1=map(int,re.findall(r'\d+',node.get('bounds','')))
                 found = x1>x0 and y1>y0 and 0<=x0<x1<=width and 0<=y0<y1<=height
                 if found:break

@@ -77,7 +77,7 @@ class TemplateTransportTest {
             assertEquals("Probes must preserve the policy",original,repository.state.value.server!!.config)
             assertTrue("TUN still works after isolated probe",http("allowed.signet.test").contains("signet-local-lab"))
             val memoryDirectory=File(context.getExternalFilesDir(null),"vpn-memory").apply{mkdirs()}
-            val memory=ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand("dumpsys meminfo com.signet.client")).bufferedReader().use{it.readText()}
+            val memory=ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand("dumpsys meminfo ${context.packageName}")).bufferedReader().use{it.readText()}
             assertTrue("Active debug-process memory snapshot",memory.contains("TOTAL PSS"))
             File(memoryDirectory,"$name.txt").writeText("Debug instrumentation process, VPN active, UI closed. Not release/soak proof.\n"+memory)
         } finally {

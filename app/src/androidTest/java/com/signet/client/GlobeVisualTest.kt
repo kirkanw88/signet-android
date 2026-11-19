@@ -50,7 +50,7 @@ class GlobeVisualTest {
             val device=UiDevice.getInstance(instrumentation)
             for((code,city,_) in places) {
                 repository.select(sub.servers.single{it.countryCode==code}.id)
-                compose.waitUntil(10_000){compose.onAllNodesWithText(java.util.Locale("",code).getDisplayCountry(java.util.Locale("ru"))).fetchSemanticsNodes().isNotEmpty()}
+                compose.waitUntil(10_000){compose.onAllNodesWithText("VISUAL-$run-$code").fetchSemanticsNodes().isNotEmpty()}
                 compose.waitUntil(30_000){
                     var ready=false
                     compose.activityRule.scenario.onActivity{activity->findGlobe(activity.window.decorView)?.globe?.let{ready=it.frameReady&&it.renderedCountry==code}}
@@ -67,12 +67,12 @@ class GlobeVisualTest {
                 assertTrue(device.takeScreenshot(screenshot));assertTrue(screenshot.length()>10_000)
                 assertEquals(VpnPhase.DISCONNECTED,VpnState.status.value.phase)
             }
-            compose.onNodeWithText("Турция").performClick()
+            compose.onNodeWithText("VISUAL-$run-TR").performClick()
             compose.onNodeWithTag("server-sheet").assertExists()
-            compose.onNodeWithContentDescription("Проверить задержку").assertExists()
-            compose.onNodeWithContentDescription("Обновить подписки").assertExists()
-            compose.onNodeWithText("Ping").assertDoesNotExist()
-            compose.onNodeWithText("Германия").performScrollTo().performClick()
+            compose.onNodeWithContentDescription("Ping всех подписок").assertExists()
+            compose.onNodeWithContentDescription("Обновить все подписки").assertExists()
+            compose.onNodeWithText("Ping").assertExists()
+            compose.onNodeWithText("VISUAL-$run-DE").performScrollTo().performClick()
             compose.waitUntil(10_000){repository.state.value.selected==sub.servers.single{it.countryCode=="DE"}.id&&compose.onAllNodesWithTag("server-sheet").fetchSemanticsNodes().isEmpty()}
         }finally {
             repository.state.value.subscriptions.filter{it.id !in previousIds}.forEach{repository.remove(it.id)}
