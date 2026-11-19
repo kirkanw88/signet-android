@@ -25,6 +25,8 @@ DNS fallback используется только при CONNECTED и акти�
 
 [Checks](../tests/evidence/0.2.16/checks.json), [APK verification](../tests/evidence/0.2.16/apk-verification.json).
 
+[Выпуск v0.2.16](https://github.com/kirkanw88/signet-android/releases/tag/v0.2.16) опубликован из `5ecc915`: три external APK, исходники и SHA256SUMS. Загруженные digests совпали с локальными SHA-256. Анонимная universal-лента выбирает 0.2.16; общий latest остался 0.2.6. [Подтверждение](../tests/evidence/0.2.16/public-release.json). ARM64: 50409731 bytes, SHA-256 `5450103810cf289b079bd91112ad0754ec9279d1d1501f3351800bcdb5b61ea3`.
+
 ---
 
 # Signet VPN 0.2.15 — проверка 19.11.2026
