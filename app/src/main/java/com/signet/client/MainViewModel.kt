@@ -36,8 +36,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun select(id: String) { viewModelScope.launch { repository.select(id)
         if(vpn.value.phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING))start()
     } }
-    fun selectAuto() { state.value.servers.firstOrNull { it.isAuto && it.enabled }?.let { select(it.id) }
-        ?: repository.notify("В подписке нет серверного профиля AUTO") }
+    fun selectAuto() {
+        val selectedSubscription=state.value.subscriptions.firstOrNull { sub->sub.servers.any { it.id==state.value.selected } }
+        val available=selectedSubscription?.servers?.firstOrNull { it.isAuto&&it.enabled }
+        if(available!=null)select(available.id)
+        else repository.notify(if(selectedSubscription==null)"Сначала выберите подписку" else "В выбранной подписке нет серверного профиля AUTO")
+    }
     fun favorite(id: String) { viewModelScope.launch { repository.favorite(id) } }
     fun remove(id: String) { viewModelScope.launch { if(!BuildConfig.SIGNET_ACCOUNT&&state.value.subscriptions.firstOrNull{it.id==id}?.servers?.any{it.id==vpn.value.serverId}==true)stop();repository.remove(id) } }
     private val _refreshingSubscriptions=MutableStateFlow<Set<String>>(emptySet());val refreshingSubscriptions=_refreshingSubscriptions.asStateFlow()
