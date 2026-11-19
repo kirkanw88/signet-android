@@ -90,18 +90,20 @@ import androidx.compose.ui.semantics.stateDescription
                                 }
                             }
                         }
-                        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End,verticalAlignment=Alignment.CenterVertically){
-                            TextButton(onClick={refreshSubscription(sub.id)},enabled=sub.url!=null&&!state.busy){
-                                if(sub.id in refreshingSubscriptions)CircularProgressIndicator(Modifier.size(16.dp),strokeWidth=2.dp)
-                                else Icon(Icons.Outlined.Refresh,null,Modifier.size(18.dp))
-                                Text("Обновить",Modifier.padding(start=6.dp),fontSize=12.sp)
+                        if(expanded) {
+                            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End,verticalAlignment=Alignment.CenterVertically){
+                                TextButton(onClick={refreshSubscription(sub.id)},enabled=sub.url!=null&&!state.busy){
+                                    if(sub.id in refreshingSubscriptions)CircularProgressIndicator(Modifier.size(16.dp),strokeWidth=2.dp)
+                                    else Icon(Icons.Outlined.Refresh,null,Modifier.size(18.dp))
+                                    Text("Обновить",Modifier.padding(start=6.dp),fontSize=12.sp)
+                                }
+                                TextButton(onClick={pingSubscription(sub.id)},enabled=canPing&&sub.servers.isNotEmpty()&&(!probing||here)){
+                                    Icon(if(here)Icons.Outlined.StopCircle else Icons.Outlined.Speed,null,Modifier.size(18.dp))
+                                    Text(if(here)"Остановить"else"Ping",Modifier.padding(start=6.dp),fontSize=12.sp)
+                                }
                             }
-                            TextButton(onClick={pingSubscription(sub.id)},enabled=canPing&&sub.servers.isNotEmpty()&&(!probing||here)){
-                                Icon(if(here)Icons.Outlined.StopCircle else Icons.Outlined.Speed,null,Modifier.size(18.dp))
-                                Text(if(here)"Остановить"else"Ping",Modifier.padding(start=6.dp),fontSize=12.sp)
-                            }
+                            SubscriptionUsage(sub)
                         }
-                        SubscriptionUsage(sub)
                         sub.error?.let{Text(it,color=AppColors.warning,fontSize=12.sp,maxLines=3)}
                     }
                 }
