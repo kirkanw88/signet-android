@@ -75,7 +75,7 @@ private val Error=Color(0xFFFF657A)
     }
     val accountPage by model.accountPage.collectAsStateWithLifecycle()
     val accountCallback=MainActivity.pendingAccount.value
-    LaunchedEffect(accountCallback){accountCallback?.let{uri->try{if(model.accountPage.value==null)model.openAccount();model.account.callback(uri)}finally{MainActivity.pendingAccount.value=null}}}
+    LaunchedEffect(accountCallback){if(BuildConfig.SIGNET_ACCOUNT)accountCallback?.let{uri->try{if(model.accountPage.value==null)model.openAccount();model.account.callback(uri)}finally{MainActivity.pendingAccount.value=null}}}
 
     val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(state.ready,state.settings.probes,vpn.phase) {
@@ -106,7 +106,7 @@ private val Error=Color(0xFFFF657A)
                     else IconButton(onClick={page=if(page==2)3 else 0}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=Color.White)}
                     if(page!=0)Text(if(page==3)"Настройки"else"Подписки",color=Color.White,fontSize=20.sp,fontWeight=FontWeight.Medium)
                     Row {
-                        IconButton(onClick={model.openAccount("support")}){Icon(Icons.Outlined.SupportAgent,"Техническая поддержка",tint=Color(0xFFCFDBEB))}
+                        if(BuildConfig.SIGNET_ACCOUNT)IconButton(onClick={model.openAccount("support")}){Icon(Icons.Outlined.SupportAgent,"Техническая поддержка",tint=Color(0xFFCFDBEB))}
                         IconButton(onClick={page=if(page==3)0 else 3}) { Icon(if(page==3)Icons.Outlined.Close else Icons.Outlined.Settings,if(page==3)"Закрыть настройки"else"Настройки",tint=Color(0xFFCFDBEB)) }
                     }
                 }
@@ -114,7 +114,7 @@ private val Error=Color(0xFFFF657A)
                 update.available?.takeIf{it.version.toString()!=update.dismissed}?.let{UpdateBanner(it,model)}
                 when(page) {
                     0 -> Home(state,vpn,model,connect,{page=2;addMenu=true},{showServers=true})
-                    2 -> Subscriptions(state,{addMenu=true},model::remove,model::refresh,model::openAccount,model.account, {
+                    2 -> Subscriptions(state,{addMenu=true},model::remove,model::refresh,model::openAccount,if(BuildConfig.SIGNET_ACCOUNT)model.account else null, {
                         runCatching{ClipboardTransfers.read(context,16*1024).also{require(com.signet.core.SubscriptionMetadata.safeLink(it)!=null)}}
                             .onSuccess{input=it;ageKey="";oauthConsent=false;add=true}.onFailure{model.repository.notify("В буфере нет корректной HTTPS ссылки подписки")}
                     })
@@ -130,7 +130,7 @@ private val Error=Color(0xFFFF657A)
                     Modifier.fillMaxWidth().fillMaxHeight(.88f).padding(horizontal=20.dp),activeProbes=activeProbes)
             }
         }
-        if(accountPage!=null)MobileAccountScreen(model,accountPage!!){model.accountPage.value=null}
+        if(BuildConfig.SIGNET_ACCOUNT&&accountPage!=null)MobileAccountScreen(model,accountPage!!){model.accountPage.value=null}
         UpdateWindow(model)
         if(addMenu)ModalBottomSheet(onDismissRequest={addMenu=false},containerColor=Surface,contentColor=Color.White){
             Column(Modifier.fillMaxWidth().padding(horizontal=20.dp).padding(bottom=24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
@@ -208,15 +208,15 @@ private val Error=Color(0xFFFF657A)
     }
 }
 
-@Composable private fun Subscriptions(state:AppState,add:()->Unit,remove:(String)->Unit,refresh:()->Unit,account:(String)->Unit,mobile:MobileAccount,paste:()->Unit){
+@Composable private fun Subscriptions(state:AppState,add:()->Unit,remove:(String)->Unit,refresh:()->Unit,account:(String)->Unit,mobile:MobileAccount?,paste:()->Unit){
     val context=LocalContext.current
-    val remote by mobile.state.collectAsStateWithLifecycle()
-    LaunchedEffect(remote.loggedIn){if(remote.loggedIn)mobile.refresh()}
+    val remote=if(mobile!=null){val observed by mobile.state.collectAsStateWithLifecycle();observed}else MobileAccountState()
+    LaunchedEffect(remote.loggedIn){if(remote.loggedIn)mobile?.refresh()}
     val current=state.subscriptions.firstOrNull{sub->sub.servers.any{it.id==state.selected}}?:state.subscriptions.firstOrNull()
     var confirmRemove by remember{mutableStateOf(false)}
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
         Text("Текущая подписка",fontSize=26.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.padding(top=8.dp,bottom=4.dp))
-        if(current==null)Text("Добавьте подписку из личного кабинета",color=Muted)
+        if(current==null)Text(if(BuildConfig.SIGNET_ACCOUNT)"Добавьте подписку из личного кабинета"else"Добавьте ссылку подписки или QR-код",color=Muted)
         else Card(colors=CardDefaults.cardColors(containerColor=Surface)){
             Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
                 Text("Signet VPN",fontSize=20.sp,fontWeight=FontWeight.SemiBold)
@@ -228,16 +228,18 @@ private val Error=Color(0xFFFF657A)
                 }
             }
         }
+        if(BuildConfig.SIGNET_ACCOUNT){
         AccountAction(Icons.Outlined.AccountBalanceWallet,remote.account?.let{"Баланс: ${it.optLong("balance_rub")} ₽"}?:"Баланс и пополнение",{account("balance")})
         AccountAction(Icons.Outlined.Devices,"Управление устройствами",{account("devices")})
         AccountAction(Icons.Outlined.Tune,"Настройки подписки",{account("settings")})
+        }
         AccountAction(Icons.Outlined.Add,"Добавить подписку",add)
         AccountAction(Icons.Outlined.FileDownload,"Импорт ссылки из буфера",paste)
         current?.url?.let{url->AccountAction(Icons.Outlined.FileUpload,"Экспорт ссылки в буфер",{ClipboardTransfers.copy(context,"Signet subscription",url);android.widget.Toast.makeText(context,"Ссылка скопирована",android.widget.Toast.LENGTH_SHORT).show()})}
         if(current!=null)AccountAction(Icons.Outlined.DeleteOutline,"Удалить с устройства",{confirmRemove=true})
         Spacer(Modifier.height(20.dp))
     }
-    if(confirmRemove&&current!=null)AlertDialog(onDismissRequest={confirmRemove=false},title={Text("Удалить подписку с устройства?")},text={Text("Подписка и устройства в кабинете сохранятся.")},confirmButton={TextButton(onClick={remove(current.id);confirmRemove=false}){Text("Удалить")}},dismissButton={TextButton(onClick={confirmRemove=false}){Text("Отмена")}})
+    if(confirmRemove&&current!=null)AlertDialog(onDismissRequest={confirmRemove=false},title={Text("Удалить подписку с устройства?")},text={Text(if(BuildConfig.SIGNET_ACCOUNT)"Подписка и устройства в кабинете сохранятся."else"Удалится только сохранённая на этом устройстве подписка.")},confirmButton={TextButton(onClick={remove(current.id);confirmRemove=false}){Text("Удалить")}},dismissButton={TextButton(onClick={confirmRemove=false}){Text("Отмена")}})
 }
 
 @Composable private fun AccountAction(icon:androidx.compose.ui.graphics.vector.ImageVector,title:String,click:()->Unit){

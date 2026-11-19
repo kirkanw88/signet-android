@@ -1,3 +1,26 @@
+# Signet Android 0.2.6 — проверка 19.11.2026
+
+Две редакции Signet VPN: исходная с кабинетом (`com.signet.client`) и сторонняя без кабинета и техподдержки (`com.signet.client.external`). Название, логотип, планета и VPN-функции сохранены. Изменения: [RELEASE_0_2_6](RELEASE_0_2_6.md). Backend/production/main не изменялись.
+
+| Проверка | Результат |
+|---|---|
+| JVM core | 68 tests, 0 failures/errors; включая разделение APK и кеша обновлений по редакциям |
+| Android JVM | По 4 tests в Signet и external, 0 failures/errors |
+| Android Lint | Обе редакции: 0 errors, 48 warnings |
+| Debug / Release | Обе редакции PASS, strict dependency verification; финальная сборка 5m 59s |
+| APK | 6 ABI APK: package/version 0.2.6/code 8, одинаковое имя, v2 signature, zip/ELF 16 KB PASS |
+| Cabinet removal | В external Release DEX отсутствуют `https://signet-cab.com`, `/api/mobile/v1`, `/support/messages`; в Signet сохранены |
+| Manifest separation | OAuth callback только Signet; external import `signet-external`, отдельный пакет и startup authority |
+| Signing identity | Тот же сертификат, что 0.2.5: `8158ed1e88c0d5e485abed87d63209f295021a482fc6c51d108e44fdce0448b1` |
+| Physical Android / installation side by side / self-update | NOT RUN; разделение подтверждено пакетами и манифестами, реальная установка не заявляется |
+| Long CI / emulator / cold Gradle cache | NOT REPEATED по просьбе ограничить проверки |
+
+Первый запуск Lint обнаружил отсутствующий явный `android:exported` в новом Signet flavor manifest. Исправлено на `true`, как у исходной MainActivity; финальный Lint прошёл без исключений и отключения правил. Новых зависимостей и изменений verification-metadata нет. [APK evidence](../tests/evidence/0.2.6/apk-verification.json), [checks](../tests/evidence/0.2.6/checks.json).
+
+Обычный Signet сохраняет applicationId, подпись и хранилище при обновлении 0.2.5. External устанавливается отдельным приложением; подписку нужно импортировать туда. Обе редакции используют собственный updater channel в общем публичном Releases. Старые APK 0.2.5 неизменны.
+
+---
+
 # Signet Android 0.2.5 — проверка 18.11.2026
 
 Изменения: [RELEASE_0_2_5](RELEASE_0_2_5.md). Android ветка `feature/android-0.2.0`; main не объединялся. В рамках уже разрешённого развёртывания customer API исправлены app/main.py и app/mobile_api.py на действующем кабинете: резервный image/source сохранён, новый image проверен без сети, пересоздан только кабинет. БД не мигрировалась, bot/VPN nodes не менялись.

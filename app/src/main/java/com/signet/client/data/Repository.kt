@@ -68,7 +68,7 @@ class Repository(private val context: Context, private val vault: Vault, private
         require(state.value.servers.any { it.id == id && it.enabled }) { "Профиль недоступен" }
         commit(state.value.copy(selected=id))
     }
-    suspend fun settings(s: Settings) = mutex.withLock { val fixed=s.copy(cabinet=SignetLinks.CABINET,hwid=true);settingsStore.save(fixed);ConnectionLog.configure(fixed.logging); _state.update { it.copy(settings = fixed) } }
+    suspend fun settings(s: Settings) = mutex.withLock { val fixed=s.copy(cabinet=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)SignetLinks.CABINET else "",hwid=true);settingsStore.save(fixed);ConnectionLog.configure(fixed.logging); _state.update { it.copy(settings = fixed) } }
     suspend fun favorite(id: String) = updateServers { if (it.id == id) it.copy(favorite = !it.favorite) else it }
     suspend fun success(id: String) = updateServers { if (it.id == id) it.copy(successes = it.successes + 1) else it }
     suspend fun edit(id: String, text: String) {
@@ -95,7 +95,7 @@ class Repository(private val context: Context, private val vault: Vault, private
             if (text.startsWith("https://")) {
                 require(SubscriptionMetadata.safeLink(text)!=null) { "Неверная HTTPS ссылка" }
                 url = text
-                var next = SubscriptionRequest.jsonUrl(text)
+                var next = if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)SubscriptionRequest.jsonUrl(text)else text
                 var fallbackAvailable=next!=text
                 var fetched = false
                 repeat(6) {

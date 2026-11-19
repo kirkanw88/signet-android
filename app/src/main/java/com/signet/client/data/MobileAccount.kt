@@ -35,6 +35,7 @@ class MobileAccount(context:Context){
     private fun publicError(code:Int)=when(code){404,503->"API кабинета пока недоступно. Требуется обновление серверной части.";401->"Войдите в аккаунт Signet";403->"Действие недоступно этому аккаунту";409->"Данные изменились. Обновите экран";429->"Слишком много запросов. Повторите позже";else->"Не удалось выполнить запрос ($code)"}
     private class ApiError(val status:Int):Exception()
     private suspend fun execute(path:String,method:String="GET",payload:JSONObject?=null,token:String?=null):ByteArray{
+        check(com.signet.client.BuildConfig.SIGNET_ACCOUNT){"Аккаунт Signet недоступен в этой редакции"}
         require(path.startsWith("/")&&!path.contains("://")&&!path.startsWith("//"))
         val request=Request.Builder().url(base+path).header("Accept","application/json").header("User-Agent","SignetAndroid/${com.signet.client.BuildConfig.VERSION_NAME}")
         token?.let{request.header("Authorization","Bearer $it")}

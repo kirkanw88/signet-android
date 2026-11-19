@@ -66,7 +66,7 @@ private val Accent=Color(0xFF8AD9FF)
                 SettingsCard {
                     MenuItem(Icons.Outlined.CreditCard,"Подписки","Добавить, отсканировать QR или обновить",subscriptions)
                     MenuItem(Icons.Outlined.Public,"Серверы","Выбрать локацию и измерить задержку",servers)
-                    MenuItem(Icons.Outlined.PersonOutline,"Аккаунт","Войти, купить или продлить доступ",{section="account"})
+                    if(BuildConfig.SIGNET_ACCOUNT)MenuItem(Icons.Outlined.PersonOutline,"Аккаунт","Войти, купить или продлить доступ",{section="account"})
                 }
                 SettingsCard {
                     MenuItem(Icons.Outlined.VpnKey,"Соединение","Автоподключение и проверка связи",{section="connection"})
@@ -76,7 +76,7 @@ private val Accent=Color(0xFF8AD9FF)
                     MenuItem(Icons.Outlined.Troubleshoot,"Диагностика","Причина ошибки и отчёт без ключей",{section="diagnostics";model.diagnostics()})
                     MenuItem(Icons.Outlined.Article,"Журнал подключения","Логирование, просмотр и экспорт",{section="logs"})
                 }
-                Text("Signet VPN ${BuildConfig.VERSION_NAME}",fontSize=14.sp,color=SecondaryInk,modifier=Modifier.padding(8.dp))
+                Text("Signet VPN ${BuildConfig.VERSION_NAME}"+if(BuildConfig.SIGNET_ACCOUNT)""else" · Сторонние подписки",fontSize=14.sp,color=SecondaryInk,modifier=Modifier.padding(8.dp))
             }
             "connection"->{
                 SettingsCard {
@@ -146,7 +146,7 @@ private val Accent=Color(0xFF8AD9FF)
                     }
                 }
             }
-            "account"->{
+            "account"->if(BuildConfig.SIGNET_ACCOUNT){
                 SettingsCard {
                     MenuItem(Icons.Outlined.PersonOutline,"Аккаунт Signet","Вход, покупка и продление",{account=true})
                     MenuItem(Icons.Outlined.SupportAgent,"Поддержка","Написать в Telegram",{model.openAccount("support")})
@@ -159,7 +159,7 @@ private val Accent=Color(0xFF8AD9FF)
     if(apps)ApplicationsScreen(model){apps=false}
     if(probes)ProbePreferences(model){probes=false}
     if(template)state.server?.let{TemplateScreen(it){template=false}}
-    if(account)AccountScreen(model){account=false}
+    if(BuildConfig.SIGNET_ACCOUNT&&account)AccountScreen(model){account=false}
     if(editor)JsonEditor(routeText,{routeText=it},{scope.launch(Dispatchers.IO){
         if(VpnState.status.value.phase!=VpnPhase.DISCONNECTED)model.repository.notify("Для проверки остановите VPN")
         else runCatching{NativeCore.call("testXray",org.json.JSONObject().put("xrayJson",routeText));state.server?.id?.let{model.repository.edit(it,routeText)};model.repository.notify("Проверено ядром и сохранено");withContext(Dispatchers.Main){editor=false}}

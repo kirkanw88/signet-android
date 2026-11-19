@@ -14,15 +14,16 @@ import okhttp3.*
 import java.util.concurrent.TimeUnit
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
-    val account=MobileAccount(app)
+    private val mobileAccount=if(BuildConfig.SIGNET_ACCOUNT)MobileAccount(app)else null
+    val account:MobileAccount get()=checkNotNull(mobileAccount){"Аккаунт Signet недоступен в этой редакции"}
     val installer=NativeUpdater(app,viewModelScope)
     val accountPage=MutableStateFlow<String?>(null)
-    fun openAccount(page:String="account"){accountPage.value=page}
+    fun openAccount(page:String="account"){if(BuildConfig.SIGNET_ACCOUNT)accountPage.value=page}
     val updates=AppUpdates(app)
     init { viewModelScope.launch(Dispatchers.IO){runCatching{updates.restore()}} }
     fun checkUpdates(automatic:Boolean=false){viewModelScope.launch(Dispatchers.IO){try{val result=updates.check(automatic);if(!automatic){updates.state.value.available?.let(installer::offer);if(result.isNotBlank())repository.notify(result)}}catch(e:CancellationException){throw e}catch(e:Exception){if(!automatic)repository.notify("Не удалось проверить обновления")}}}
     fun dismissUpdate(){viewModelScope.launch(Dispatchers.IO){updates.dismiss()}}
-    override fun onCleared(){installer.close();account.close();updates.close();super.onCleared()}
+    override fun onCleared(){installer.close();mobileAccount?.close();updates.close();super.onCleared()}
     val repository: Repository = get(Repository::class.java)
     val state = repository.state
     val vpn = VpnState.status.asStateFlow()

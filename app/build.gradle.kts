@@ -11,9 +11,25 @@ android {
         applicationId = "com.signet.client"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "0.2.5"
+        versionCode = 8
+        versionName = "0.2.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+    flavorDimensions += "edition"
+    productFlavors {
+        create("signet") {
+            dimension = "edition"
+            buildConfigField("boolean", "SIGNET_ACCOUNT", "true")
+            buildConfigField("String", "IMPORT_SCHEME", "\"signet\"")
+            manifestPlaceholders["importScheme"] = "signet"
+        }
+        create("external") {
+            dimension = "edition"
+            applicationIdSuffix = ".external"
+            buildConfigField("boolean", "SIGNET_ACCOUNT", "false")
+            buildConfigField("String", "IMPORT_SCHEME", "\"signet-external\"")
+            manifestPlaceholders["importScheme"] = "signet-external"
+        }
     }
     buildFeatures { compose = true; buildConfig = true }
     sourceSets.getByName("androidTest").assets.srcDir(rootProject.file(".gradle/transport-lab/android-assets"))

@@ -14,22 +14,23 @@ data class AppRelease(val version:ReleaseVersion,val page:String,val apk:String?
         const val REPOSITORY="kirkanw88/signet-android"
         const val ENDPOINT="https://api.github.com/repos/$REPOSITORY/releases/latest"
         private fun trusted(url:String,kind:String):Boolean=runCatching {val u=URI(url);u.scheme=="https"&&u.host=="github.com"&&u.rawUserInfo==null&&u.rawQuery==null&&u.rawFragment==null&&u.port==-1&&u.normalize().path.startsWith("/$REPOSITORY/releases/$kind/")}.getOrDefault(false)
-        fun parse(raw:String,abis:List<String>):AppRelease {
+        fun parse(raw:String,abis:List<String>,external:Boolean=false):AppRelease {
             require(raw.toByteArray().size<=512*1024)
             val j=JSONObject(raw);require(!j.optBoolean("draft")&&!j.optBoolean("prerelease"))
             val tag=j.getString("tag_name");val version=ReleaseVersion.parse(tag);val page=j.getString("html_url");require(trusted(page,"tag")&&URI(page).path=="/$REPOSITORY/releases/tag/$tag")
             val a=j.getJSONArray("assets");require(a.length()<=200)
             val assets=(0 until a.length()).map{a.getJSONObject(it)}.filter { asset->
                 val name=asset.optString("name");val url=asset.optString("browser_download_url")
-                name.matches(Regex("[A-Za-z0-9_.-]+\\.apk"))&&trusted(url,"download")&&URI(url).path.startsWith("/$REPOSITORY/releases/download/$tag/")&&url.endsWith("/$name")&&asset.optLong("size") in 1..250*1024*1024
+                name.startsWith("signet-external-")==external&&name.matches(Regex("[A-Za-z0-9_.-]+\\.apk"))&&trusted(url,"download")&&URI(url).path.startsWith("/$REPOSITORY/releases/download/$tag/")&&url.endsWith("/$name")&&asset.optLong("size") in 1..250*1024*1024
             }
             val chosen=abis.firstNotNullOfOrNull{abi->assets.firstOrNull{it.getString("name").contains(abi)}}?:assets.firstOrNull{it.getString("name").contains("universal",true)}
             val digest=chosen?.optString("digest")?.takeIf{it.matches(Regex("sha256:[a-fA-F0-9]{64}"))}?.substring(7)?.lowercase()
             return AppRelease(version,page,chosen?.getString("browser_download_url"),digest,chosen?.getLong("size")?:0)
         }
-        fun cached(raw:String):AppRelease {
+        fun cached(raw:String,external:Boolean=false):AppRelease {
             require(raw.length<=8192);val j=JSONObject(raw);val page=j.getString("page");require(trusted(page,"tag"))
             val apk=j.optString("apk").takeIf{it.isNotBlank()&&it!="null"};require(apk==null||trusted(apk,"download"))
+            require(apk==null||URI(apk).path.substringAfterLast('/').startsWith("signet-external-")==external)
             return AppRelease(ReleaseVersion.parse(j.getString("version")),page,apk,j.optString("sha256").takeIf{it.matches(Regex("[a-f0-9]{64}"))},j.optLong("size").also{require(it in 0..250L*1024*1024)})
         }
     }

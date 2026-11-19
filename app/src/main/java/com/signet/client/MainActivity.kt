@@ -28,9 +28,9 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); consume(intent) }
     override fun onStop(){model.cancelAutoProbes();super.onStop()}
     private fun consume(intent: Intent?) {
-        intent?.data?.takeIf{it.scheme=="com.signet.client"&&it.host=="oauth"&&it.path=="/callback"}?.let{pendingAccount.value=it;intent.data=null;return}
+        if(BuildConfig.SIGNET_ACCOUNT)intent?.data?.takeIf{it.scheme=="com.signet.client"&&it.host=="oauth"&&it.path=="/callback"}?.let{pendingAccount.value=it;intent.data=null;return}
         val raw = if(intent?.action == Intent.ACTION_SEND) intent.getStringExtra(Intent.EXTRA_TEXT) else intent?.data?.let {
-            if(it.scheme == "signet" && it.host == "import") it.getQueryParameter("url") else it.toString()
+            if(it.scheme == BuildConfig.IMPORT_SCHEME && it.host == "import") it.getQueryParameter("url") else it.toString()
         }
         // Imports always require review in the import dialog; external links never start VPN.
         if(!raw.isNullOrBlank() && raw.length<=4*1024*1024) pendingImport.value = raw

@@ -1,0 +1,39 @@
+{
+  "version": "0.2.6",
+  "gradleVerification": "strict",
+  "build": "PASS",
+  "buildDuration": "5m 59s",
+  "tests": {
+    "core": {
+      "tests": 68,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "signet": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "external": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "lint": {
+    "signet": {
+      "Error": 0,
+      "Warning": 48
+    },
+    "external": {
+      "Error": 0,
+      "Warning": 48
+    }
+  },
+  "physicalDevice": "NOT RUN",
+  "longCiEmulatorColdCache": "NOT REPEATED",
+  "production": "UNCHANGED"
+}

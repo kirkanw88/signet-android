@@ -24,7 +24,7 @@ jobs:
             "build-tools;36.0.0"
       - run: python3 scripts/fetch-native.py
       - name: Verify dependencies, test, lint and build APKs
-        run: chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease
+        run: chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon :core:test :app:testSignetDebugUnitTest :app:testExternalDebugUnitTest :app:lintSignetDebug :app:lintExternalDebug :app:assembleDebug :app:assembleRelease
       - name: Verify installable APK signatures, ABIs and 16 KB alignment
         run: python3 scripts/verify-apks.py
       - uses: actions/upload-artifact@v4
@@ -41,8 +41,8 @@ jobs:
         with:
           name: signet-apks
           path: |
-            app/build/outputs/apk/debug/*.apk
-            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/**/debug/*.apk
+            app/build/outputs/apk/**/release/*.apk
   runtime:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
@@ -99,7 +99,7 @@ jobs:
           wait "$signet_emulator_pid"
       - run: python3 scripts/fetch-native.py
       - name: Compile instrumented APKs with strict verification
-        run: chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest
+        run: chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon :app:assembleSignetDebug :app:assembleSignetRelease :app:assembleSignetDebugAndroidTest
       - name: Run Android UI and native TUN tests
         shell: bash
         run: |
@@ -126,8 +126,8 @@ jobs:
           adb shell input keyevent HOME
           sleep 5
           adb logcat -d > tests/evidence/runtime/boot-logcat.txt
-          adb install app/build/outputs/apk/debug/app-x86_64-debug.apk
-          adb install app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb install app/build/outputs/apk/signet/debug/app-signet-x86_64-debug.apk
+          adb install app/build/outputs/apk/androidTest/signet/debug/app-signet-debug-androidTest.apk
           adb shell appops set com.signet.client ACTIVATE_VPN allow
           adb shell pm grant com.signet.client android.permission.POST_NOTIFICATIONS
           for port in 10888 10889 10890 10891 10894 18480 19095; do adb reverse tcp:$port tcp:$port; done
@@ -136,10 +136,10 @@ jobs:
           ! grep -Eq 'FAILURES|INSTRUMENTATION_FAILED|Process crashed' tests/evidence/runtime/ui-instrumentation.txt
           adb pull /sdcard/Android/data/com.signet.client/files/country-frames tests/evidence/runtime/countries
           adb pull /sdcard/Android/data/com.signet.client/files/ui-state tests/evidence/runtime/ui-state
-          adb install -r app/build/outputs/apk/release/app-x86_64-release.apk
+          adb install -r app/build/outputs/apk/signet/release/app-signet-x86_64-release.apk
           python3 scripts/capture-matrix.py
           adb shell dumpsys meminfo com.signet.client > tests/evidence/runtime/meminfo-release.txt
-          adb install -r app/build/outputs/apk/debug/app-x86_64-debug.apk
+          adb install -r app/build/outputs/apk/signet/debug/app-signet-x86_64-debug.apk
           adb shell appops set com.signet.client ACTIVATE_VPN allow
           adb shell pm grant com.signet.client android.permission.POST_NOTIFICATIONS
           adb shell am instrument -w -r -e localVpn true -e class com.signet.client.ClientIntegrationTest,com.signet.client.TemplateTransportTest com.signet.client.test/androidx.test.runner.AndroidJUnitRunner | tee tests/evidence/runtime/native-instrumentation.txt

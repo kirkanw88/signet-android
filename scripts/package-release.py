@@ -3,8 +3,10 @@ import hashlib, pathlib, shutil, zipfile, re, subprocess
 root=pathlib.Path(__file__).resolve().parents[1]
 out=root/'release';out.mkdir(exist_ok=True)
 version=re.search(r'versionName = "([^"]+)"',(root/'app/build.gradle.kts').read_text()).group(1)
-for abi in ('arm64-v8a','armeabi-v7a','x86_64'):
-    shutil.copy2(root/f'app/build/outputs/apk/release/app-{abi}-release.apk',out/f'signet-{version}-{abi}.apk')
+for edition in ('signet','external'):
+    prefix='signet' if edition=='signet' else 'signet-external'
+    for abi in ('arm64-v8a','armeabi-v7a','x86_64'):
+        shutil.copy2(root/f'app/build/outputs/apk/{edition}/release/app-{edition}-{abi}-release.apk',out/f'{prefix}-{version}-{abi}.apk')
 archive=out/f'signet-android-{version}-source.zip'
 excluded={'.gradle','.kotlin','.git','build','release','.idea','__pycache__'}
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:

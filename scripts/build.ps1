@@ -10,6 +10,6 @@ Push-Location $buildPath
 try {
     python scripts/fetch-native.py
     if ($LASTEXITCODE -ne 0) { throw 'Native verification failed' }
-    & .\gradlew.bat :core:test :app:lintDebug :app:assembleRelease --no-daemon
+    & .\gradlew.bat :core:test :app:lintSignetDebug :app:lintExternalDebug :app:assembleRelease --dependency-verification strict --no-daemon
     if ($LASTEXITCODE -ne 0) { throw 'Android build failed' }
 } finally { Pop-Location }
