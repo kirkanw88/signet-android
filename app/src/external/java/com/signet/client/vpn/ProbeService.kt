@@ -32,7 +32,7 @@ class ProbeService:Service() {
     }
     private val controller=libXray.DialerController { fd->
         listener.protectFd(fd)&&runCatching {
-            val physical=network?:error("NO_NETWORK")
+            val physical=network?:throw CoreFailure("NO_NETWORK")
             ParcelFileDescriptor.fromFd(fd.toInt()).use{physical.bindSocket(it.fileDescriptor)}
             true
         }.getOrDefault(false)
@@ -41,17 +41,21 @@ class ProbeService:Service() {
     private fun bootstrap(resolve:Boolean=true){
         val manager=getSystemService(ConnectivityManager::class.java)
         network=physicalNetwork()
-        val physical=network?:error("NO_NETWORK")
+        val physical=network?:throw CoreFailure("NO_NETWORK")
         if(!resolve)return
         val dns=manager.getLinkProperties(physical)?.dnsServers.orEmpty()
-        val address=(dns.firstOrNull{it is Inet4Address}?:dns.firstOrNull())?.hostAddress?:fallbackDns
-        libXray.LibXray.setDNS(controller,if(address.contains(':'))"[$address]:53"else"$address:53")
+        val addresses=(dns.filterIsInstance<Inet4Address>()+dns.filterNot{it is Inet4Address}).mapNotNull{it.hostAddress}.plus(fallbackDns).distinct()
+        for(address in addresses){
+            try{libXray.LibXray.setDNS(controller,if(address.contains(':'))"[$address]:53"else"$address:53");return}catch(e:Exception){/* Try another advertised resolver. */}
+        }
+        throw CoreFailure("DNS_SETUP_ERROR")
     }
+
     private val incoming=Messenger(Handler(Looper.getMainLooper()){message->
         val fd=message.data.getParcelable<ParcelFileDescriptor>("requestFd")?:return@Handler true
         val reply=message.replyTo
         scope.launch {
-            val result=lock.withLock { runCatching { val raw=ParcelFileDescriptor.AutoCloseInputStream(fd).use{String(it.readLimited(16*1024*1024),Charsets.UTF_8)};execute(JSONObject(raw)) }.getOrElse{JSONObject().put("status",if(network==null)"NO_NETWORK"else"PROBE_ERROR")} }
+            val result=lock.withLock { runCatching { val raw=ParcelFileDescriptor.AutoCloseInputStream(fd).use{String(it.readLimited(16*1024*1024),Charsets.UTF_8)};execute(JSONObject(raw)) }.getOrElse{if(it is CancellationException)throw it;JSONObject().put("status",if(it is CoreFailure)it.code else"PROBE_ERROR")} }
             runCatching{reply.send(Message.obtain(null,1).apply{data=Bundle().apply{putString("result",result.toString())}})}
         };true
     })
@@ -68,12 +72,12 @@ class ProbeService:Service() {
         } else if(options.mode==ProbeMode.TCP||options.mode==ProbeMode.HTTPS) {
             val result=coroutineScope {servers.map{s->async { direct(s,options) }}.awaitAll()}
             result.forEach(out::put)
-        } else if(options.mode==ProbeMode.OUTBOUND && servers.none{it.isAuto}) {
-            val configs=JSONArray();servers.forEach{s->val c=JSONObject(s.config);c.remove("inbounds");c.remove("env");c.remove("metrics");configs.put(JSONObject().put("xrayJson",c.toString()).put("outboundTag",s.outboundTag))}
-            val values=NativeCore.call("pingBatch",JSONObject().put("configs",configs).put("timeout",(options.timeoutMs+999)/1000).put("url",options.url)).getJSONArray("results")
-            for(i in 0 until values.length()){val r=values.getJSONObject(i);out.put(JSONObject().put("id",servers[i].id).put("delay",if(r.optBoolean("success"))r.optLong("delay")else JSONObject.NULL).put("status",if(r.optBoolean("success"))"OK"else"FAILED"))}
+        } else if(options.mode==ProbeMode.OUTBOUND) {
+            val results=OutboundProbeBatch.measure(servers.filterNot{it.isAuto},options,{payload->NativeCore.call("pingBatch",payload)})
+                .associateBy{it.getString("id")}.toMutableMap()
+            for(server in servers.filter{it.isAuto})results[server.id]=fullProfile(server,options)
+            for(server in servers)out.put(results.getValue(server.id))
         } else {
-            // Full profile, including AUTO DNS/routing/balancers, is never flattened into pingBatch.
             for(server in servers)out.put(fullProfile(server,options))
         }
         return JSONObject().put("results",out)
@@ -111,27 +115,28 @@ class ProbeService:Service() {
         }.getOrElse {JSONObject().put("id",server.id).put("status",ConnectionHealth.category(it))}
     }
     private suspend fun fullProfile(server:Server,options:ProbeSettings,validateOnly:Boolean=false):JSONObject {
-        if(!validateOnly)bootstrap() // Restore after each managed full-profile shutdown.
         val started=SystemClock.elapsedRealtime()
-        val assetsDir=File(filesDir,"geo").apply{mkdirs()}
-        listOf("geoip.dat","geosite.dat").forEach{name->val target=File(assetsDir,name);if(!target.exists())assets.open(name).use{input->target.outputStream().use(input::copyTo)}}
-        val port=NativeCore.call("getFreePorts",JSONObject().put("count",1)).getJSONArray("ports").getInt(0)
-        val secret=UUID.randomUUID().toString()
-        val config=Profiles.probeRuntime(server,port,assetsDir.absolutePath,secret)
-        var client:OkHttpClient?=null
+        var client:OkHttpClient?=null;var attemptedRun=false;var stage="ASSET_ERROR"
         return try {
+            val assetsDir=GeoAssets.prepare(this)
+            stage="DNS_SETUP_ERROR";if(!validateOnly)bootstrap()
+            stage="CONFIG_ERROR"
+            val port=NativeCore.call("getFreePorts",JSONObject().put("count",1)).getJSONArray("ports").getInt(0)
+            val secret=UUID.randomUUID().toString()
+            val config=Profiles.probeRuntime(server,port,assetsDir.absolutePath,secret)
             NativeCore.call("testXray",JSONObject().put("xrayJson",config.toString()))
             if(validateOnly)return JSONObject().put("id",server.id).put("status","VALID")
+            stage="CORE_ERROR";attemptedRun=true
             NativeCore.call("runXray",JSONObject().put("xrayJson",config.toString()))
+            stage="REQUEST"
             client=OkHttpClient.Builder().proxy(java.net.Proxy(java.net.Proxy.Type.HTTP,InetSocketAddress("127.0.0.1",port)))
                 .proxyAuthenticator { _,response->if(response.request.header("Proxy-Authorization")!=null)null else response.request.newBuilder().header("Proxy-Authorization",Credentials.basic("signet",secret)).build() }
                 .followRedirects(false).followSslRedirects(false).callTimeout(options.timeoutMs.toLong(),TimeUnit.MILLISECONDS).build()
             client.newCall(Request.Builder().url(options.url).build()).awaitResponse().use {check(it.handshake!=null)}
             JSONObject().put("id",server.id).put("delay",SystemClock.elapsedRealtime()-started).put("status","OK")
         } catch(e:CancellationException){throw e}
-        catch(e:Exception){JSONObject().put("id",server.id).put("status",ConnectionHealth.category(e))}
-        finally {runCatching{NativeCore.call("stopXray")};client?.connectionPool?.evictAll();client?.dispatcher?.executorService?.shutdown()}
+        catch(e:Exception){JSONObject().put("id",server.id).put("status",if(e is CoreFailure)e.code else if(stage=="REQUEST")ConnectionHealth.category(e)else stage)}
+        finally {if(attemptedRun)runCatching{NativeCore.call("stopXray")};client?.connectionPool?.evictAll();client?.dispatcher?.executorService?.shutdown()}
     }
     override fun onDestroy(){scope.cancel();super.onDestroy();android.os.Process.killProcess(android.os.Process.myPid())}
 }
-

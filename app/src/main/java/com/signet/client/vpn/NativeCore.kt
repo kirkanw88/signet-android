@@ -3,6 +3,8 @@ package com.signet.client.vpn
 import libXray.LibXray
 import org.json.JSONObject
 
+class CoreFailure(val code:String):IllegalStateException("Ошибка ядра: $code")
+
 object NativeCore {
     @Volatile private var protector: android.net.VpnService?=null
     @Volatile private var underlying:android.net.Network?=null
@@ -26,7 +28,7 @@ object NativeCore {
     @Synchronized fun call(method: String, payload: JSONObject = JSONObject()): JSONObject {
         val response = JSONObject(LibXray.invoke(JSONObject().put("apiVersion", 3).put("method", method).put("payload", payload).toString()))
         if(!response.optBoolean("success"))com.signet.client.data.ConnectionLog.add("CORE",method,"FAILED")
-        check(response.optBoolean("success")) { "Ошибка ядра: $method" }
+        if(!response.optBoolean("success"))throw CoreFailure(com.signet.core.ProbeErrors.native(response.optString("error")))
         return response.optJSONObject("data") ?: JSONObject()
     }
     fun version(): String = runCatching { call("xrayVersion").getString("version") }.getOrDefault("недоступно")

@@ -37,7 +37,7 @@ object Probes {
                 val reply=Messenger(Handler(Looper.getMainLooper()){m->
                     val result=runCatching {
                         val response=JSONObject(m.data.getString("result")?:"{}")
-                        val values=response.optJSONArray("results")?:return@runCatching servers.associate{it.id to ProbeMeasurement(null,if(!com.signet.client.BuildConfig.SIGNET_ACCOUNT&&response.optString("status") in setOf("NO_NETWORK","PROBE_ERROR"))response.getString("status")else serviceFailure)}
+                        val values=response.optJSONArray("results")?:return@runCatching servers.associate{it.id to ProbeMeasurement(null,if(!com.signet.client.BuildConfig.SIGNET_ACCOUNT&&response.optString("status") in ProbeErrors.codes)response.getString("status")else serviceFailure)}
                         servers.associate{s->val value=(0 until values.length()).map{values.getJSONObject(it)}.firstOrNull{it.optString("id")==s.id};s.id to ProbeMeasurement(if(value?.isNull("delay")==false)value.optLong("delay")else null,value?.optString("status")?:"FAILED")}
                     }.getOrElse{servers.associate{it.id to ProbeMeasurement(null,serviceFailure)}}
                     if(continuation.isActive)continuation.resume(result);true

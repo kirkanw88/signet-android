@@ -106,7 +106,7 @@ object Profiles {
         val stats = config.optJSONObject("stats") ?: JSONObject(); config.put("stats", stats)
         val policy = config.optJSONObject("policy") ?: JSONObject()
         val system = policy.optJSONObject("system") ?: JSONObject()
-        system.put("statsOutboundUplink", true).put("statsOutboundDownlink", true)
+        system.put("statsOutboundUplink", true).put("statsOutboundDownlink", true).put("statsInboundUplink",true).put("statsInboundDownlink",true)
         policy.put("system", system); config.put("policy", policy)
         return config
     }

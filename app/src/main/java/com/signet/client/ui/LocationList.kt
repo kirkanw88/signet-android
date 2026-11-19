@@ -85,6 +85,12 @@ import com.signet.core.*
             val problem=if(BuildConfig.SIGNET_ACCOUNT)null else when(server.probeMessage){
                 "SERVICE_ERROR","PROBE_ERROR","IO"->"Сбой Ping"
                 "NO_NETWORK"->"Нет сети"
+                "CONFIG_ERROR"->"Ошибка профиля"
+                "CORE_ERROR"->"Ошибка ядра"
+                "CORE_BUSY"->"Измеритель занят"
+                "ASSET_ERROR"->"Ошибка геоданных"
+                "DNS_SETUP_ERROR"->"DNS измерителя"
+                "HTTP_ERROR"->"Ответ сайта"
                 "DNS"->"Ошибка DNS"
                 "TLS"->"Ошибка TLS"
                 "TIMEOUT"->"Таймаут"

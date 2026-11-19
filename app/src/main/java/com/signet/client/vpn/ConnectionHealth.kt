@@ -35,6 +35,7 @@ object ConnectionHealth {
     fun category(error:Throwable):String {
         val causes=generateSequence(error){it.cause}.take(12).toList()
         return when {
+            causes.any{it is CoreFailure}->(causes.first{it is CoreFailure} as CoreFailure).code
             causes.any{it is SSLException}->"TLS"
             causes.any{it is UnknownHostException}->"DNS"
             causes.any{it is SocketTimeoutException||it is java.io.InterruptedIOException}->"TIMEOUT"

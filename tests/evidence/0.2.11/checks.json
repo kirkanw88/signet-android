@@ -1,0 +1,32 @@
+{
+  "version": "0.2.11",
+  "edition": "external",
+  "gradleVerification": "strict",
+  "tests": {
+    "layoutAssetsErrors": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "external": {
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "debugRelease": "PASS",
+  "duration": "3m 43s",
+  "lint": {
+    "errors": 0,
+    "warnings": 48
+  },
+  "layoutAndTraffic": "measured control height; counter deltas; JVM invariants PASS",
+  "geodata": "filesystem corruption recovery and atomic replacement PASS",
+  "probe": "native invoke mocked failure isolation PASS; actual Android provider NOT RUN",
+  "physicalAndroid": "NOT RUN",
+  "longCiEmulatorColdCache": "NOT RUN",
+  "production": "UNCHANGED",
+  "signetRelease": "UNCHANGED 0.2.6"
+}

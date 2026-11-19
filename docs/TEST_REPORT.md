@@ -1,3 +1,31 @@
+# Signet VPN 0.2.11 — проверка 19.11.2026
+
+Только universal external. Пользователь уточнил: Ping сообщает о сбое при выключенном VPN в режиме по умолчанию. [Изменения](RELEASE_0_2_11.md): измерение реальной высоты управления перед планетой, карточка скоростей/счётчиков, изоляция batch ошибок и восстановление геоданных.
+
+У главной был подтверждённый дефект фиксированного резерва 230 dp/минимума планеты 280 dp, который не учитывал фактическую высоту подписки и трафика. SubcomposeLayout измеряет управление/статус до назначения высоты GL-view. Скорость рассчитывается по дельтам счётчиков и фактическому elapsedRealtime; источник — TUN inbound, при отсутствии — прежний outbound fallback. Первые/сброшенные выборки не создают выбросов.
+
+В Ping подтверждены пути общего отказа: native batch start exception не изолировался по профилям; подготовка полного профиля могла бросить исключение до обработки конкретного сервера; наличие файла геоданных не доказывало завершённость копии. Исправлены эти пути, но точная причина пользовательского инцидента на устройстве не установлена. Native bundle проверен на наличие pingBatch/API keys; версия ядра и зависимости не менялись.
+
+| Проверка | Результат |
+|---|---|
+| Core targeted JVM | HomeMeasurementsTest, VerifiedAssetsTest, ProbeErrorsTest: 6/6, failures/errors 0 |
+| External app JVM | 16/16, failures/errors 0 |
+| Layout/rates | Высоты 320–900 px с различными блоками, дельты/elapsed, сброс и rollback PASS |
+| Corrupt geodata | Реальные временные файлы: неполная копия восстанавливается, плохая замена оставляет старый файл, pending очищается PASS |
+| Batch isolation | Mock native invoke: плохой профиль не срывает хороший; один сбой не повторяется и не получает fake latency PASS |
+| Native error privacy | Наружу только код; host/token из fixture не передаются PASS |
+| Android Lint external | 0 errors / 48 warnings |
+| Debug / Release external | PASS, strict verification, 3m 43s |
+| APK | Три ABI, external 0.2.11/code 13, v2 signature, zip/ELF 16 KB PASS |
+| Physical Android screenshot / actual metrics / native Ping provider | NOT RUN; исправление конкретного случая телефона не подтверждено |
+| Long CI / emulator / cold cache / production changes | Не запускались; Signet 0.2.6 и production не изменены |
+
+После изменения расположения тестовых временных файлов на `core/build/test-assets` повторены только 6 core tests (21 s с запуском Gradle), полный Android build не повторялся. В тестах cleanup не рекурсивный. Нет новых зависимостей, геоданных из сети, исключений Dependency Verification или отключения TLS. Шейдеры не менялись; фиксируются только высота viewport и счётчики.
+
+[Checks](../tests/evidence/0.2.11/checks.json), [APK](../tests/evidence/0.2.11/apk-verification.json). Исходный JSON/DNS/routing AUTO не меняется для замера. Подробные native messages не сохраняются; вместо «Сбой Ping» доступны безопасные коды ошибок профиля/ядра/геоданных/подготовки DNS.
+
+---
+
 # Signet VPN 0.2.10 — проверка 19.11.2026
 
 Только universal external. [Изменения](RELEASE_0_2_10.md): WorkManager 1 час с UPDATE для старого задания, High и уведомления о новых версиях постоянно, названия хостов, компактные строки и прокрутка. Для повторного DNS-сообщения добавлен проверяемый резервный путь через тот же виртуальный DNS внутри TUN; при отсутствии ответа ошибка сохраняется. Прежний default example.com однократно заменяется gstatic; остальные пользовательские адреса не меняются.

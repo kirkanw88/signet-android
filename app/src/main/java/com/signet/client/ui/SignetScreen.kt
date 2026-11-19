@@ -9,6 +9,8 @@ import androidx.compose.foundation.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -173,22 +175,44 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         }
         state.subscriptions.firstOrNull{sub->sub.servers.any{it.id==server?.id}}?.let{SubscriptionUsage(it)}
         vpn.error?.let{Text(it,color=Warning,fontSize=14.sp,lineHeight=20.sp,maxLines=3,overflow=TextOverflow.Ellipsis)}
+        if(phase==VpnPhase.CONNECTED)Surface(color=Surface,shape=RoundedCornerShape(16.dp),modifier=Modifier.testTag("home-traffic").fillMaxWidth().padding(vertical=6.dp)){
+            Row(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=8.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)){
+                Column(Modifier.weight(1f)){
+                    Text("↑ Отправка",color=Muted,fontSize=11.sp)
+                    Text("${bytes(vpn.uploadRate)}/с",fontSize=16.sp,fontWeight=FontWeight.SemiBold,maxLines=1)
+                    Text("Всего ${bytes(vpn.uploaded)}",color=Muted,fontSize=10.sp,maxLines=1)
+                }
+                Column(Modifier.weight(1f)){
+                    Text("↓ Получение",color=Muted,fontSize=11.sp)
+                    Text("${bytes(vpn.downloadRate)}/с",fontSize=16.sp,fontWeight=FontWeight.SemiBold,maxLines=1)
+                    Text("Всего ${bytes(vpn.downloaded)}",color=Muted,fontSize=10.sp,maxLines=1)
+                }
+            }
+        }
         GlassButton(onClick={if(active)model.stop()else if(server==null)add()else connect()},enabled=phase!=VpnPhase.DISCONNECTING,modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=58.dp)) {
             if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Primary)else Icon(Icons.Outlined.PowerSettingsNew,null)
             Text(if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else"Подключиться",Modifier.padding(start=8.dp),maxLines=2)
         }
-        if(phase==VpnPhase.CONNECTED)Text("↑ ${bytes(vpn.uploaded)}    ↓ ${bytes(vpn.downloaded)}",color=Muted,fontSize=11.sp,modifier=Modifier.padding(top=6.dp))
+
     }
+    val density=LocalDensity.current
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val viewport=maxHeight
+        val viewport=with(density){(maxHeight-12.dp).roundToPx().coerceAtLeast(0)}
         val scroll=rememberScrollState()
-        if(LocalConfiguration.current.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE)Row(Modifier.fillMaxSize().verticalScroll(scroll).heightIn(min=viewport).padding(horizontal=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(18.dp)) {
-            Globe(server,phase,state.settings,Modifier.weight(1.2f).height((viewport-32.dp).coerceAtLeast(280.dp)))
-            Column(Modifier.weight(1f),horizontalAlignment=Alignment.CenterHorizontally){Text(status,fontSize=22.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text);controls()}
-        } else Column(Modifier.fillMaxSize().verticalScroll(scroll).heightIn(min=viewport).padding(horizontal=16.dp).padding(bottom=12.dp),horizontalAlignment=Alignment.CenterHorizontally) {
-            Text(status,fontSize=24.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text,maxLines=1)
-            Globe(server,phase,state.settings,Modifier.height((viewport-230.dp).coerceAtLeast(280.dp)).fillMaxWidth())
-            controls()
+        if(LocalConfiguration.current.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE)Row(Modifier.fillMaxSize().padding(horizontal=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(18.dp)){
+            Globe(server,phase,state.settings,Modifier.weight(1.2f).fillMaxHeight())
+            Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(scroll),horizontalAlignment=Alignment.CenterHorizontally){Text(status,fontSize=22.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text);controls()}
+        }else SubcomposeLayout(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal=16.dp).padding(bottom=12.dp)){constraints->
+            val natural=constraints.copy(minHeight=0,maxHeight=Constraints.Infinity)
+            val footer=subcompose("controls"){Column(Modifier.fillMaxWidth()){controls()}}.single().measure(natural)
+            val heading=subcompose("status"){Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center){Text(status,fontSize=24.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text,maxLines=1)}}.single().measure(natural)
+            val height=com.signet.core.HomeMeasurements.globeHeight(viewport,heading.height,footer.height)
+            val planet=if(height>0)subcompose("globe"){Globe(server,phase,state.settings,Modifier.fillMaxSize())}.single().measure(Constraints.fixed(constraints.maxWidth,height))else null
+            layout(constraints.maxWidth,(heading.height+height+footer.height).coerceAtLeast(viewport)){
+                heading.placeRelative(0,0)
+                planet?.placeRelative(0,heading.height)
+                footer.placeRelative(0,heading.height+height)
+            }
         }
     }
 }

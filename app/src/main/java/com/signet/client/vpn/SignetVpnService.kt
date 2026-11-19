@@ -25,7 +25,7 @@ import java.net.*
 import java.util.concurrent.TimeUnit
 
 enum class VpnPhase { DISCONNECTED, CONNECTING, CONNECTED, RECONNECTING, DISCONNECTING, ERROR }
-data class VpnStatus(val phase: VpnPhase = VpnPhase.DISCONNECTED, val serverId: String? = null, val since: Long = 0, val uploaded: Long = 0, val downloaded: Long = 0, val error: String? = null,val tunActive:Boolean=false)
+data class VpnStatus(val phase: VpnPhase = VpnPhase.DISCONNECTED, val serverId: String? = null, val since: Long = 0, val uploaded: Long = 0, val downloaded: Long = 0, val error: String? = null,val tunActive:Boolean=false,val uploadRate:Long=0,val downloadRate:Long=0)
 object VpnState { val status = MutableStateFlow(VpnStatus()) }
 
 class SignetVpnService : VpnService() {
@@ -92,10 +92,13 @@ class SignetVpnService : VpnService() {
             val bootstrap=linkDns.firstOrNull{it is Inet4Address}?:linkDns.firstOrNull()
             val dns=bootstrap?.hostAddress?:settings.dns
             ConnectionLog.add("DNS","BOOTSTRAP",if(bootstrap!=null)"NETWORK"else"FALLBACK")
+            val assetDir=if(!com.signet.client.BuildConfig.SIGNET_ACCOUNT)GeoAssets.prepare(this)else {
             val assetDir = File(filesDir, "geo").apply { mkdirs() }
             for (asset in listOf("geoip.dat", "geosite.dat")) {
                 val target = File(assetDir, asset)
                 if (!target.exists()) runCatching { assets.open(asset).use { input -> target.outputStream().use(input::copyTo) } }
+            }
+                assetDir
             }
             NativeCore.attach(this,if(dns.contains(':'))"[$dns]:53"else"$dns:53",physical)
             val builder = Builder().setSession("Signet VPN").setMtu(1500).addAddress("172.19.0.1", 30).addRoute("0.0.0.0", 0)
@@ -147,6 +150,7 @@ class SignetVpnService : VpnService() {
     }
     private suspend fun watch(server: Server) {
         val client = OkHttpClient.Builder().proxy(java.net.Proxy.NO_PROXY).callTimeout(2, TimeUnit.SECONDS).build()
+        val traffic=com.signet.core.TrafficMeter()
         var nextHealth=SystemClock.elapsedRealtime()+30_000;var failures=0
         try {
             while (currentCoroutineContext().isActive && requested) {
@@ -165,9 +169,14 @@ class SignetVpnService : VpnService() {
                 runCatching {
                     client.newCall(Request.Builder().url("http://127.0.0.1:$metricsPort/debug/vars").build()).execute().use { response ->
                         val raw = response.body?.byteStream()?.use { String(it.readLimited(512*1024),Charsets.UTF_8) } ?: return@use
-                        val stats = JSONObject(raw).optJSONObject("stats")?.optJSONObject("outbound") ?: return@use
-                        val tags=if(server.isAuto || server.outboundTag.isEmpty())stats.keys().asSequence().toList()else listOf(server.outboundTag)
-                        VpnState.status.update { it.copy(uploaded = tags.sumOf { tag->stats.optJSONObject(tag)?.optLong("uplink")?:0L }, downloaded = tags.sumOf { tag->stats.optJSONObject(tag)?.optLong("downlink")?:0L }) }
+                        val all=JSONObject(raw).optJSONObject("stats")?:return@use
+                        val inbound=all.optJSONObject("inbound")?.optJSONObject(TemplateCompatibility.inboundTag(JSONObject(server.config)))
+                        val stats=all.optJSONObject("outbound")
+                        val tags=if(stats==null)emptyList()else if(server.isAuto||server.outboundTag.isEmpty())stats.keys().asSequence().toList()else listOf(server.outboundTag)
+                        val uploaded=(inbound?.optLong("uplink")?:tags.sumOf{stats?.optJSONObject(it)?.optLong("uplink")?:0L}).coerceAtLeast(0)
+                        val downloaded=(inbound?.optLong("downlink")?:tags.sumOf{stats?.optJSONObject(it)?.optLong("downlink")?:0L}).coerceAtLeast(0)
+                        val rates=traffic.sample(uploaded,downloaded,SystemClock.elapsedRealtime())
+                        VpnState.status.update{it.copy(uploaded=uploaded,downloaded=downloaded,uploadRate=rates.upload,downloadRate=rates.download)}
                     }
                 }
             }
