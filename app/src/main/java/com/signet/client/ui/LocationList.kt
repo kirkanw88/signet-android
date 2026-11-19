@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
     var query by rememberSaveable{mutableStateOf("")};var favoriteOnly by rememberSaveable{mutableStateOf(false)}
     var sort by rememberSaveable{mutableStateOf(false)};var tools by rememberSaveable{mutableStateOf(false)}
     var removeId by rememberSaveable{mutableStateOf<String?>(null)}
+    var settingsId by rememberSaveable{mutableStateOf<String?>(null)}
     val context=LocalContext.current
     val displays=remember(state.subscriptions){state.subscriptions.flatMap{ServerDisplayModel.all(it.servers,hostNames=!BuildConfig.SIGNET_ACCOUNT).entries}.associate{it.key to it.value}}
     val filtering=query.isNotBlank()||favoriteOnly
@@ -72,17 +73,16 @@ import androidx.compose.ui.platform.LocalContext
                         Row(verticalAlignment=Alignment.CenterVertically){
                             Icon(Icons.Outlined.ExpandMore,if(expanded)"Свернуть подписку"else"Развернуть подписку",Modifier.size(24.dp).rotate(angle),tint=AppColors.accent)
                             Column(Modifier.weight(1f).padding(start=6.dp)){
-                                Row(verticalAlignment=Alignment.CenterVertically){
-                                    if(pinned)Icon(Icons.Outlined.PushPin,"Закреплена",Modifier.padding(end=4.dp).size(14.dp),tint=AppColors.accent)
-                                    Text(label,fontSize=16.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
-                                }
+                                Text(label,fontSize=16.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
                                 Text("Серверов: ${sub.servers.size} · Обновление 1 ч",color=AppColors.muted,fontSize=10.sp)
                             }
                             IconButton(onClick={refreshSubscription(sub.id)},enabled=sub.url!=null&&!state.busy){if(sub.id in refreshingSubscriptions)CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Refresh,"Обновить $label",tint=AppColors.accent)}
                             IconButton(onClick={pingSubscription(sub.id)},enabled=canPing&&sub.servers.isNotEmpty()&&(!probing||here)){Icon(if(here)Icons.Outlined.StopCircle else Icons.Outlined.Speed,if(here)"Остановить Ping"else"Ping $label",tint=AppColors.accent)}
                             Box {
                                 IconButton(onClick={menu=true}){Icon(Icons.Outlined.MoreVert,"Действия с подпиской",tint=AppColors.muted)}
+                                if(pinned)Icon(Icons.Outlined.PushPin,"Закреплена",Modifier.align(Alignment.TopEnd).padding(top=3.dp,end=3.dp).size(12.dp),tint=AppColors.accent)
                                 DropdownMenu(expanded=menu,onDismissRequest={menu=false}){
+                                    if(!BuildConfig.SIGNET_ACCOUNT)DropdownMenuItem(text={Text("Настройка")},leadingIcon={Icon(Icons.Outlined.Settings,null)},onClick={menu=false;settingsId=sub.id})
                                     DropdownMenuItem(text={Text(if(pinned)"Открепить подписку"else"Закрепить подписку")},leadingIcon={Icon(Icons.Outlined.PushPin,null)},onClick={menu=false;pinSubscription(sub.id)})
                                     DropdownMenuItem(text={Text("Экспорт ссылки")},enabled=sub.url!=null,onClick={menu=false;sub.url?.let{ClipboardTransfers.copy(context,"Subscription",it);android.widget.Toast.makeText(context,"Ссылка скопирована",android.widget.Toast.LENGTH_SHORT).show()}})
                                     DropdownMenuItem(text={Text("Удалить подписку")},onClick={menu=false;removeId=sub.id})
@@ -102,6 +102,19 @@ import androidx.compose.ui.platform.LocalContext
         }
         if(state.subscriptions.isEmpty()||(filtering&&matches==0))item(key="empty"){Text(if(state.subscriptions.isEmpty())"Добавьте подписку, чтобы увидеть серверы"else"Ничего не найдено",Modifier.padding(vertical=24.dp),color=AppColors.muted)}
     }
+    settingsId?.let{id->state.subscriptions.firstOrNull{it.id==id}?.let{sub->
+        AlertDialog(onDismissRequest={settingsId=null},title={Text("Настройка подписки")},text={
+            Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)){
+                Text(SubscriptionMetadata.text(sub.title,200),fontWeight=FontWeight.SemiBold)
+                val url=sub.url
+                if(url!=null){
+                    OutlinedTextField(value=url,onValueChange={},readOnly=true,label={Text("Ссылка подписки")},minLines=2,maxLines=5,modifier=Modifier.fillMaxWidth())
+                    TextButton(onClick={ClipboardTransfers.copy(context,"Subscription",url);android.widget.Toast.makeText(context,"Ссылка скопирована",android.widget.Toast.LENGTH_SHORT).show()}){Icon(Icons.Outlined.ContentCopy,null);Text("Копировать ссылку",Modifier.padding(start=8.dp))}
+                }else Text("Подписка добавлена из конфигурации. Ссылки для обновления нет.",color=AppColors.muted)
+                TextButton(onClick={pinSubscription(id)}){Icon(Icons.Outlined.PushPin,null);Text(if(id in state.settings.pinnedSubscriptions)"Открепить подписку"else"Закрепить подписку",Modifier.padding(start=8.dp))}
+            }
+        },confirmButton={TextButton(onClick={settingsId=null}){Text("Закрыть")}},dismissButton={TextButton(onClick={settingsId=null;removeId=id}){Text("Удалить подписку",color=AppColors.warning)}})
+    }}
     removeId?.let{id->
         val label=state.subscriptions.firstOrNull{it.id==id}?.title.orEmpty()
         AlertDialog(onDismissRequest={removeId=null},title={Text("Удалить подписку?")},text={Text("$label\nУдалится только эта подписка с устройства. Если она используется, VPN будет отключён.")},confirmButton={TextButton(onClick={removeSubscription(id);removeId=null}){Text("Удалить")}},dismissButton={TextButton(onClick={removeId=null}){Text("Отмена")}})

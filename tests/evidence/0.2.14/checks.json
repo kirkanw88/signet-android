@@ -1,0 +1,17 @@
+{
+  "version": "0.2.14",
+  "edition": "external",
+  "gradleVerification": "strict",
+  "debugRelease": "PASS",
+  "duration": "2m 36s",
+  "lint": {
+    "errors": 0,
+    "warnings": 48
+  },
+  "scope": "home add menu (clipboard/QR/manual), subscription settings (URL/copy/pin/unpin/delete), remove duplicate settings entry and motion option",
+  "jvmTests": "NOT RUN for UI-only changes; no new tests",
+  "physicalAndroid": "NOT RUN",
+  "longCiEmulatorColdCache": "NOT RUN",
+  "production": "UNCHANGED",
+  "signetRelease": "UNCHANGED 0.2.6"
+}

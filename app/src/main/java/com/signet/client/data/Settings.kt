@@ -28,7 +28,7 @@ class SettingsStore(private val context: Context) {
         val p = context.settingsStore.data.first()
         return Settings(p[booleanPreferencesKey("reconnect")] ?: true, p[booleanPreferencesKey("autoConnect")] ?: false,
             p[stringPreferencesKey("dns")] ?: "1.1.1.1", if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)p[stringPreferencesKey("graphics")] ?: "Balanced"else com.signet.core.UniversalDefaults.GRAPHICS,
-            p[booleanPreferencesKey("reduceMotion")] ?: false, p[stringPreferencesKey("appMode")] ?: "all",
+            if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)p[booleanPreferencesKey("reduceMotion")] ?: false else false, p[stringPreferencesKey("appMode")] ?: "all",
             p[stringSetPreferencesKey("packages")] ?: emptySet(), if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)SignetLinks.CABINET else "", true,
             p[stringPreferencesKey("probes")]?.let { runCatching { ProbeSettings.parse(it) }.getOrNull() }?:ProbeSettings(),if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)p[booleanPreferencesKey("automaticUpdates")]?:true else true,
             p[stringPreferencesKey("connectionCheckUrl")]?.takeIf{com.signet.core.SubscriptionMetadata.safeLink(it)!=null}?:(if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"https://example.com"else com.signet.core.UniversalDefaults.CONNECTION_URL),p[booleanPreferencesKey("logging")]?:false,p[stringPreferencesKey("theme")]?.takeIf{it in setOf("dark","light","system")}?:"dark",p[stringSetPreferencesKey("collapsedSubscriptions")]?:emptySet(),p[stringSetPreferencesKey("pinnedSubscriptions")]?:emptySet())
@@ -36,7 +36,7 @@ class SettingsStore(private val context: Context) {
     suspend fun save(s: Settings) = context.settingsStore.edit {
         it[booleanPreferencesKey("reconnect")] = s.reconnect; it[booleanPreferencesKey("autoConnect")] = s.autoConnect
         it[stringPreferencesKey("dns")] = s.dns; it[stringPreferencesKey("graphics")] = if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)s.graphics else com.signet.core.UniversalDefaults.GRAPHICS
-        it[booleanPreferencesKey("reduceMotion")] = s.reduceMotion; it[stringPreferencesKey("appMode")] = s.appMode
+        it[booleanPreferencesKey("reduceMotion")] = com.signet.client.BuildConfig.SIGNET_ACCOUNT&&s.reduceMotion; it[stringPreferencesKey("appMode")] = s.appMode
         it[stringSetPreferencesKey("packages")] = s.packages; it[stringPreferencesKey("cabinet")] = if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)SignetLinks.CABINET else ""
         it[booleanPreferencesKey("hwid")] = true
         require(com.signet.core.SubscriptionMetadata.safeLink(s.connectionCheckUrl)!=null)

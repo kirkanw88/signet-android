@@ -65,13 +65,13 @@ private val Accent:Color @Composable get()=AppColors.accent
                 Text("Ваш доступ и приложение",fontSize=16.sp,color=SecondaryInk,modifier=Modifier.padding(vertical=4.dp))
                 SettingsCard {
                     MenuItem(Icons.Outlined.CreditCard,"Подписки","Добавить, отсканировать QR или обновить",subscriptions)
-                    MenuItem(Icons.Outlined.Public,"Серверы","Выбрать локацию и измерить задержку",servers)
+                    if(BuildConfig.SIGNET_ACCOUNT)MenuItem(Icons.Outlined.Public,"Серверы","Выбрать локацию и измерить задержку",servers)
                     if(BuildConfig.SIGNET_ACCOUNT)MenuItem(Icons.Outlined.PersonOutline,"Аккаунт","Войти, купить или продлить доступ",{section="account"})
                 }
                 SettingsCard {
                     MenuItem(Icons.Outlined.VpnKey,"Соединение","Автоподключение и проверка связи",{section="connection"})
                     MenuItem(Icons.Outlined.Route,"Маршрутизация","DNS, приложения и шаблон Xray",{section="routing"})
-                    MenuItem(Icons.Outlined.Palette,"Оформление","Тема, планета и анимация",{section="appearance"})
+                    MenuItem(Icons.Outlined.Palette,"Оформление",if(BuildConfig.SIGNET_ACCOUNT)"Тема, планета и анимация"else"Светлая, тёмная и системная темы",{section="appearance"})
                     MenuItem(Icons.Outlined.SystemUpdate,"Обновления",update.available?.let{"Доступна версия ${it.version}"}?:"Новая версия приложения",{section="updates"})
                     MenuItem(Icons.Outlined.Troubleshoot,"Диагностика","Причина ошибки и отчёт без ключей",{section="diagnostics";model.diagnostics()})
                     MenuItem(Icons.Outlined.Article,"Журнал подключения","Логирование, просмотр и экспорт",{section="logs"})
@@ -120,8 +120,8 @@ private val Accent:Color @Composable get()=AppColors.accent
                         }
                     }
                 }
-                SettingsCard {
-                    if(BuildConfig.SIGNET_ACCOUNT)listOf(Triple("High","Высокое качество","До 60 кадров/с"),Triple("Balanced","Баланс","До 30 кадров/с"),Triple("Battery Saver","Экономия энергии","До 10 кадров/с")).forEach{(mode,label,detail)->
+                if(BuildConfig.SIGNET_ACCOUNT)SettingsCard {
+                    listOf(Triple("High","Высокое качество","До 60 кадров/с"),Triple("Balanced","Баланс","До 30 кадров/с"),Triple("Battery Saver","Экономия энергии","До 10 кадров/с")).forEach{(mode,label,detail)->
                         Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(graphics=mode))}.padding(12.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(s.graphics==mode,{model.save(s.copy(graphics=mode))});Column(Modifier.padding(start=8.dp)){Text(label,fontSize=17.sp,color=Ink);Text(detail,fontSize=14.sp,color=SecondaryInk)}}
                     }
                     SettingsToggle("Уменьшить движение","Спокойная анимация планеты",s.reduceMotion){model.save(s.copy(reduceMotion=it))}

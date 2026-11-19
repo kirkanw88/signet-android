@@ -114,6 +114,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                     if(page!=0)Text(if(page==3)"Настройки"else"Подписки",color=AppColors.text,fontSize=20.sp,fontWeight=FontWeight.Medium)
                     if(page==0&&!BuildConfig.SIGNET_ACCOUNT)Text("v${BuildConfig.VERSION_NAME}",fontSize=13.sp,color=AppColors.muted)
                     Row {
+                        if(page==0&&!BuildConfig.SIGNET_ACCOUNT)IconButton(onClick={addMenu=true},enabled=!state.busy&&state.subscriptions.size<8,modifier=Modifier.testTag("home-add-subscription")){Icon(Icons.Outlined.Add,"Добавить подписку",tint=if(state.busy||state.subscriptions.size>=8)AppColors.muted else Primary)}
                         if(BuildConfig.SIGNET_ACCOUNT)IconButton(onClick={model.openAccount("support")}){Icon(Icons.Outlined.SupportAgent,"Техническая поддержка",tint=AppColors.muted)}
                         IconButton(onClick={page=if(page==3)0 else 3}) { Icon(if(page==3)Icons.Outlined.Close else Icons.Outlined.Settings,if(page==3)"Закрыть настройки"else"Настройки",tint=AppColors.muted) }
                     }
@@ -121,7 +122,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 SnackbarHost(snackbar,Modifier.fillMaxWidth()){data->Snackbar(data,containerColor=Surface,contentColor=AppColors.text,shape=RoundedCornerShape(16.dp),modifier=Modifier.padding(horizontal=16.dp))}
                 update.available?.let{UpdateBanner(it,model)}
                 when(page) {
-                    0 -> Home(state,vpn,model,connect,{page=2;addMenu=true},{showServers=true})
+                    0 -> Home(state,vpn,model,connect,{if(BuildConfig.SIGNET_ACCOUNT)page=2;addMenu=true},{showServers=true})
                     2 -> Subscriptions(state,{addMenu=true},model::remove,model::refresh,model::openAccount,if(BuildConfig.SIGNET_ACCOUNT)model.account else null, model, {
                         runCatching{ClipboardTransfers.read(context,16*1024).also{require(com.signet.core.SubscriptionMetadata.safeLink(it)!=null)}}
                             .onSuccess{input=it;ageKey="";oauthConsent=false;add=true}.onFailure{model.repository.notify("В буфере нет корректной HTTPS ссылки подписки")}
@@ -141,10 +142,11 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         if(BuildConfig.SIGNET_ACCOUNT&&accountPage!=null)MobileAccountScreen(model,accountPage!!){model.accountPage.value=null}
         UpdateWindow(model)
         if(addMenu)ModalBottomSheet(onDismissRequest={addMenu=false},containerColor=Surface,contentColor=AppColors.text){
-            Column(Modifier.fillMaxWidth().padding(horizontal=20.dp).padding(bottom=24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal=20.dp).padding(bottom=24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
                 Text("Добавить подписку",fontSize=24.sp,fontWeight=FontWeight.SemiBold)
                 GlassButton(onClick={addMenu=false;runCatching{ClipboardTransfers.read(context,16*1024).also{require(com.signet.core.SubscriptionMetadata.safeLink(it)!=null)}}.onSuccess{input=it;ageKey="";oauthConsent=false;add=true}.onFailure{model.repository.notify("В буфере нет корректной ссылки подписки")}},modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.ContentPaste,null);Text("Вставить из буфера обмена",Modifier.padding(start=10.dp))}
                 GlassButton(onClick={addMenu=false;qr.launch(Intent(context,QrScannerActivity::class.java))},modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.QrCodeScanner,null);Text("Отсканировать QR-код",Modifier.padding(start=10.dp))}
+                if(!BuildConfig.SIGNET_ACCOUNT)GlassButton(onClick={addMenu=false;input="";ageKey="";oauthConsent=false;add=true},modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.Edit,null);Text("Добавить вручную",Modifier.padding(start=10.dp))}
             }
         }
         if(add) AlertDialog(onDismissRequest={add=false;input="";ageKey="";oauthConsent=false},title={Text("Добавить подписку")},text={
