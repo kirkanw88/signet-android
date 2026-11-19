@@ -223,13 +223,15 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
 @Composable private fun Globe(server:Server?,phase:VpnPhase,settings:Settings,modifier:Modifier,imagery:com.signet.client.graphics.CapitalImagery?) {
     val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
     var renderer by remember{mutableStateOf<com.signet.client.graphics.GlobeRenderer?>(null)}
+    var photoCovered by remember{mutableStateOf(false)}
+    val parentScroll=!BuildConfig.SIGNET_ACCOUNT&&LocalConfiguration.current.orientation!=android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val emptyMarker=remember{kotlinx.coroutines.flow.MutableStateFlow(com.signet.client.graphics.CapitalMarker())}
     val marker by (renderer?.capitalMarker?:emptyMarker).collectAsStateWithLifecycle()
     val lightTheme=!AppColors.dark
     var labelSize by remember{mutableStateOf(IntSize.Zero)}
     var area by remember{mutableStateOf(IntSize.Zero)}
     Box(modifier.testTag("home-globe").clip(RoundedCornerShape(if(AppColors.dark)0.dp else 24.dp)).onSizeChanged{area=it}) {
-        AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);renderer=it.globe}},modifier=Modifier.fillMaxSize(),onRelease={it.releaseHost()},update={it.bindHost(lifecycle);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,!BuildConfig.SIGNET_ACCOUNT)})
+        AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);renderer=it.globe}},modifier=Modifier.fillMaxSize(),onRelease={it.releaseHost()},update={it.bindHost(lifecycle);it.photoCover(photoCovered);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,parentScroll)})
         AnimatedVisibility(marker.visible,enter=fadeIn(tween(350)),exit=fadeOut(tween(150)),modifier=Modifier.offset{
             IntOffset((marker.x-labelSize.width/2).coerceIn(0,(area.width-labelSize.width).coerceAtLeast(0)),(marker.y-labelSize.height).coerceAtLeast(0))
         }) {
@@ -238,7 +240,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 Icon(Icons.Outlined.LocationOn,null,tint=Primary,modifier=Modifier.size(28.dp))
             }
         }
-        if(!BuildConfig.SIGNET_ACCOUNT&&imagery!=null)CapitalView(server?.countryCode,phase,marker.visible,imagery)
+        if(!BuildConfig.SIGNET_ACCOUNT&&imagery!=null)CapitalView(server?.countryCode,phase,marker.visible,imagery){photoCovered=it}
     }
 }
 

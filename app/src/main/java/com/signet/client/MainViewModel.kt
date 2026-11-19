@@ -24,7 +24,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     init { viewModelScope.launch(Dispatchers.IO){runCatching{updates.restore()}} }
     fun checkUpdates(automatic:Boolean=false){viewModelScope.launch(Dispatchers.IO){try{val result=updates.check(automatic);if(!automatic){updates.state.value.available?.let(installer::offer);if(result.isNotBlank())repository.notify(result)}}catch(e:CancellationException){throw e}catch(e:Exception){if(!automatic)repository.notify("Не удалось проверить обновления")}}}
     fun dismissUpdate(){viewModelScope.launch(Dispatchers.IO){updates.dismiss()}}
-    override fun onCleared(){installer.close();capitalImagery?.close();mobileAccount?.close();updates.close();super.onCleared()}
+    override fun onCleared(){installer.close();mobileAccount?.close();updates.close();super.onCleared()}
     val repository: Repository = get(Repository::class.java)
     val state = repository.state
     val vpn = VpnState.status.asStateFlow()

@@ -1,0 +1,967 @@
+{
+  "VA": {
+    "file": "Basilica_di_San_Pietro_in_Vaticano_September_2015-1a.jpg",
+    "title": "St. Peter's Basilica",
+    "cityView": false
+  },
+  "SM": {
+    "file": "Guaita_Fortress_-_San_Marino_-_2024_02_13_-_GT_02_(details).jpg",
+    "title": "Guaita",
+    "cityView": false
+  },
+  "LU": {
+    "file": "Adolphe_Bridge_post_2017_renovation_works_-_7_August_2018.jpg",
+    "title": "Adolphe Bridge",
+    "cityView": false
+  },
+  "FM": {
+    "file": "Palikir_2025-Presidential2.jpg",
+    "title": "Palikir",
+    "cityView": false
+  },
+  "MH": {
+    "file": "Eneko_Islet_02.JPG",
+    "title": "Majuro",
+    "cityView": false
+  },
+  "MC": {
+    "file": "МОНАКО_-_panoramio_(4).jpg",
+    "title": "Prince's Palace of Monaco",
+    "cityView": false
+  },
+  "AD": {
+    "file": "Casa_de_la_Vall_d'Andorra_la_vella_(AFCEC_BORDAS_X_595).jpeg",
+    "title": "Casa de la Vall",
+    "cityView": false
+  },
+  "TT": {
+    "file": "POS_Redhouse.JPG",
+    "title": "Red House (Trinidad and Tobago)",
+    "cityView": false
+  },
+  "SZ": {
+    "file": "Mbabane_(6035476964).jpg",
+    "title": "Mbabane",
+    "cityView": false
+  },
+  "SI": {
+    "file": "Le_triple_pont_(Ljubljana)_(9380933958).jpg",
+    "title": "Triple Bridge",
+    "cityView": false
+  },
+  "SK": {
+    "file": "Bratislava_-_Burg_(b).JPG",
+    "title": "Bratislava Castle",
+    "cityView": false
+  },
+  "CH": {
+    "file": "Zytglogge_01.jpg",
+    "title": "Zytglogge",
+    "cityView": false
+  },
+  "DM": {
+    "file": "Roseau_Cathedral.jpg",
+    "title": "Roseau Cathedral",
+    "cityView": false
+  },
+  "DJ": {
+    "file": "Hamoudi_Mosque_(210510633).jpeg",
+    "title": "Hamoudi Mosque",
+    "cityView": false
+  },
+  "GM": {
+    "file": "Gambia_banjul_arch22.JPG",
+    "title": "Arch 22",
+    "cityView": false
+  },
+  "MK": {
+    "file": "08_Skopje.jpg",
+    "title": "Stone Bridge (Skopje)",
+    "cityView": false
+  },
+  "BB": {
+    "file": "Barbados,_Karibik_-_The_West-Wing_of_the_Parliament_of_Barbados_and_the_Clock_Tower_-_panoramio.jpg",
+    "title": "Parliament Buildings (Barbados)",
+    "cityView": false
+  },
+  "BI": {
+    "file": "Cathédrale_Regina_Mundi_de_Bujumbura,_2006.jpg",
+    "title": "Regina Mundi Cathedral, Bujumbura",
+    "cityView": false
+  },
+  "LC": {
+    "file": "Cathedral_Basilica_of_the_Immaculate_Conception,_Jan_2020.jpg",
+    "title": "Cathedral Basilica of the Immaculate Conception, Castries",
+    "cityView": false
+  },
+  "KN": {
+    "file": "Independence_Square_with_fountain_and_Basseterre_Co-Cathedral_of_Immaculate_Conception.JPG",
+    "title": "Independence Square (Basseterre)",
+    "cityView": false
+  },
+  "MU": {
+    "file": "Mosquée_-_panoramio.jpg",
+    "title": "Jummah Mosque (Mauritius)",
+    "cityView": false
+  },
+  "GD": {
+    "file": "Grenada,_Karibik_-_Fort_George_-_panoramio.jpg",
+    "title": "Fort George, Grenada",
+    "cityView": false
+  },
+  "BH": {
+    "file": "AlFatehMosque.jpg",
+    "title": "Al Fateh Grand Mosque",
+    "cityView": false
+  },
+  "AG": {
+    "file": "Exploring_st-_john's_antigua_-_5.jpg",
+    "title": "St. John's Cathedral (Antigua and Barbuda)",
+    "cityView": false
+  },
+  "TN": {
+    "file": "Minaret_et_patio_de_la_mosquée_Zitouna_au_centre_de_la_Médina_de_Tunis.jpg",
+    "title": "Al-Zaytuna Mosque",
+    "cityView": false
+  },
+  "TL": {
+    "file": "Immaculate_Conception_Cathedral_(Dili),_2023_(04).jpg",
+    "title": "Immaculate Conception Cathedral, Dili",
+    "cityView": false
+  },
+  "VU": {
+    "file": "Port_Vila_aerial.jpg",
+    "title": "Port Vila",
+    "cityView": false
+  },
+  "HN": {
+    "file": "Catedral_Metropolitana_de_San_Miguel_Arcángel_de_Tegucigalpa.jpg",
+    "title": "Tegucigalpa Cathedral",
+    "cityView": false
+  },
+  "GY": {
+    "file": "20191121_Guyana_0048_Georgetown_sRGB_(49295795336).jpg",
+    "title": "St. George's Cathedral, Georgetown",
+    "cityView": false
+  },
+  "IS": {
+    "file": "Hallgrimskirkja_mai_2026.jpg",
+    "title": "Hallgrímskirkja",
+    "cityView": false
+  },
+  "HT": {
+    "file": "Palacio_presidencial_de_Haiti.jpg",
+    "title": "National Palace (Haiti)",
+    "cityView": false
+  },
+  "UG": {
+    "file": "Aerial_view_of_the_Gaddafi_mosque_in_Uganda.jpg",
+    "title": "Uganda National Mosque",
+    "cityView": false
+  },
+  "SR": {
+    "file": "Sint-Petrus-en-Pauluskathedraal.jpg",
+    "title": "Saint Peter and Paul Cathedral, Paramaribo",
+    "cityView": false
+  },
+  "TJ": {
+    "file": "National_Museum_of_Tajikistan_Национальный_музей_Таджикистана(0)_Осорхонаи_милли.jpg",
+    "title": "Tajikistan National Museum",
+    "cityView": false
+  },
+  "PY": {
+    "file": "Palacio_de_los_López_Asunción_1.jpg",
+    "title": "Palacio de los López",
+    "cityView": false
+  },
+  "NI": {
+    "file": "Кафедральный_собор_в_Манагуа.jpg",
+    "title": "Old Cathedral of Managua",
+    "cityView": false
+  },
+  "PK": {
+    "file": "Ali_Mujtaba_WLM2017_FAISAL_MOSQUE_019.jpg",
+    "title": "Faisal Mosque",
+    "cityView": false
+  },
+  "NP": {
+    "file": "Swayambhunath_2018.jpg",
+    "title": "Swayambhunath",
+    "cityView": false
+  },
+  "ZA": {
+    "file": "Table_Mountain_DanieVDM.jpg",
+    "title": "Table Mountain",
+    "cityView": false
+  },
+  "PA": {
+    "file": "Panama_Catedral_Metropolitana.jpg",
+    "title": "Metropolitan Cathedral of Panama City",
+    "cityView": false
+  },
+  "MA": {
+    "file": "Hassan_Tower,_Rabat,_Marocco_(صومعة_حسان_).jpg",
+    "title": "Hassan Tower",
+    "cityView": false
+  },
+  "MD": {
+    "file": "Arcul_de_Triumf_din_Chișinău_04_-_February_-_2020_16.23.29_43.jpg",
+    "title": "Triumphal Arch, Chișinău",
+    "cityView": false
+  },
+  "MZ": {
+    "file": "Maputo_Train_Station.jpg",
+    "title": "Maputo Central Railway Station",
+    "cityView": false
+  },
+  "SO": {
+    "file": "Mogadishu1936.jpg",
+    "title": "Arba'a Rukun Mosque",
+    "cityView": false
+  },
+  "LK": {
+    "file": "Gangaramaya_Temple.JPG",
+    "title": "Gangaramaya Temple",
+    "cityView": false
+  },
+  "MN": {
+    "file": "Chinggis_Square.jpg",
+    "title": "Sükhbaatar Square",
+    "cityView": false
+  },
+  "NG": {
+    "file": "Abuja_National_Mosque.jpg",
+    "title": "Abuja National Mosque",
+    "cityView": false
+  },
+  "GW": {
+    "file": "Catedral_de_Bissau_(1).jpg",
+    "title": "Bissau Cathedral",
+    "cityView": false
+  },
+  "JO": {
+    "file": "Amman_Citadel.jpg",
+    "title": "Amman Citadel",
+    "cityView": false
+  },
+  "LT": {
+    "file": "Gedimino_kalnas_120.jpg",
+    "title": "Gediminas's Tower",
+    "cityView": false
+  },
+  "LV": {
+    "file": "House_of_Blackheads_at_Dusk_3,_Riga,_Latvia_-_Diliff.jpg",
+    "title": "House of the Blackheads (Riga)",
+    "cityView": false
+  },
+  "KG": {
+    "file": "Bishkek_P9170507_014_(40103613941).jpg",
+    "title": "Ala-Too Square",
+    "cityView": false
+  },
+  "LS": {
+    "file": "Mokorotlo.jpg",
+    "title": "Mokorotlo",
+    "cityView": false
+  },
+  "MG": {
+    "file": "Reconstructed_Rova_Antananarivo_Madagascar.jpg",
+    "title": "Rova of Antananarivo",
+    "cityView": false
+  },
+  "EC": {
+    "file": "El_Voto_Nacional_._Quito,_Ecuador.JPG",
+    "title": "Basílica del Voto Nacional",
+    "cityView": false
+  },
+  "CR": {
+    "file": "National_Theatre_of_Costa_Rica.jpg",
+    "title": "National Theatre of Costa Rica",
+    "cityView": false
+  },
+  "TD": {
+    "file": "Mosquée_Roi_Fayçal_de_N'djamena.jpg",
+    "title": "N'Djamena Grand Mosque",
+    "cityView": false
+  },
+  "GQ": {
+    "file": "Santa_Isabel_Malabo_20131224_140204.jpg",
+    "title": "St. Elizabeth's Cathedral, Malabo",
+    "cityView": false
+  },
+  "ER": {
+    "file": "Asmara,_cattedrale_cattolica,_01.JPG",
+    "title": "Church of Our Lady of the Rosary, Asmara",
+    "cityView": false
+  },
+  "HR": {
+    "file": "Zagreb_Church_of_St._Mark_(34411766366).jpg",
+    "title": "St. Mark's Church, Zagreb",
+    "cityView": false
+  },
+  "EE": {
+    "file": "Catedral_de_Alejandro_Nevsky,_Tallin,_Estonia,_2012-08-11,_DD_46.JPG",
+    "title": "Alexander Nevsky Cathedral, Tallinn",
+    "cityView": false
+  },
+  "MW": {
+    "file": "K.a.r-.clocktower-in-lilongwe.jpg",
+    "title": "Lilongwe",
+    "cityView": false
+  },
+  "FJ": {
+    "file": "Sacred_Heart_Cathedral,_Suva_Fiji_July_2014.jpg",
+    "title": "Sacred Heart Cathedral, Suva",
+    "cityView": false
+  },
+  "LB": {
+    "file": "Mohammad_Al-Amin_Mosque_during_2019_Lebanese_revolution.jpg",
+    "title": "Mohammad Al-Amin Mosque",
+    "cityView": false
+  },
+  "CG": {
+    "file": "Basilique_Sainte-anne.jpg",
+    "title": "Basilica of Sainte-Anne-du-Congo in Brazzaville",
+    "cityView": false
+  },
+  "CI": {
+    "file": "Cathédrale_Saint-Paul_3.jpg",
+    "title": "St. Paul's Cathedral, Abidjan",
+    "cityView": false
+  },
+  "CA": {
+    "file": "Ottawa_-_ON_-_Stadtansicht.jpg",
+    "title": "Parliament Hill",
+    "cityView": false
+  },
+  "RS": {
+    "file": "Hram_svetog_save_beograd_0005_(edited).jpg",
+    "title": "Church of Saint Sava",
+    "cityView": false
+  },
+  "BN": {
+    "file": "Sultan_Omar_Ali_Saifuddin_Mosque_with_the_ceremonial_ship.jpg",
+    "title": "Omar Ali Saifuddien Mosque",
+    "cityView": false
+  },
+  "BO": {
+    "file": "Plaza_Murillo_en_La_Paz_-_Bolivia.jpg",
+    "title": "Plaza Murillo",
+    "cityView": false
+  },
+  "AL": {
+    "file": "Skanderbeg_square_from_the_Municipality_building_rooftop.jpeg",
+    "title": "Skanderbeg Square",
+    "cityView": false
+  },
+  "AM": {
+    "file": "Հանրապետության_Հրապարակ.jpg",
+    "title": "Republic Square, Yerevan",
+    "cityView": false
+  },
+  "AZ": {
+    "file": "Maiden_tower_IMG_8521.jpg",
+    "title": "Maiden Tower (Baku)",
+    "cityView": false
+  },
+  "KH": {
+    "file": "Le_Palais_Royal_(Phnom_Penh)_(6997773481).jpg",
+    "title": "Royal Palace of Cambodia",
+    "cityView": false
+  },
+  "BJ": {
+    "file": "Cotonoucathedral.jpg",
+    "title": "Cotonou Cathedral",
+    "cityView": false
+  },
+  "BG": {
+    "file": "Catedral_de_Alejandro_Nevski_--_2019_--_Sofía,_Bulgaria.jpg",
+    "title": "Saint Alexander Nevsky Cathedral, Sofia",
+    "cityView": false
+  },
+  "BT": {
+    "file": "Tashichho_Dzong,_Bhutan_02.jpg",
+    "title": "Tashichho Dzong",
+    "cityView": false
+  },
+  "AU": {
+    "file": "Parliament_House_at_dusk,_Canberra_ACT.jpg",
+    "title": "Parliament House, Canberra",
+    "cityView": false
+  },
+  "BA": {
+    "file": "Sebilj_(by_day).jpg",
+    "title": "Sebilj in Sarajevo",
+    "cityView": false
+  },
+  "TO": {
+    "file": "Royal_Palace,_Nuku'alofa,_Nov_18.jpg",
+    "title": "Royal Palace, Tonga",
+    "cityView": false
+  },
+  "MT": {
+    "file": "St_John's_Co-Cathedral,_Valletta_001.jpg",
+    "title": "St John's Co-Cathedral",
+    "cityView": false
+  },
+  "MV": {
+    "file": "Male'_Hukuru_Miskiy_1.jpg",
+    "title": "Malé Friday Mosque",
+    "cityView": false
+  },
+  "IL": {
+    "file": "Westernwall2.jpg",
+    "title": "Western Wall",
+    "cityView": false
+  },
+  "BS": {
+    "file": "Queen's_staircase,_Nassau,_Bahamas.jpg",
+    "title": "Queen's Staircase",
+    "cityView": false
+  },
+  "NZ": {
+    "file": "Beehive,_Wellington,_New_Zealand.jpg",
+    "title": "The Beehive",
+    "cityView": false
+  },
+  "VN": {
+    "file": "Hanoi_Temple_of_Literature_(cropped).jpg",
+    "title": "Temple of Literature, Hanoi",
+    "cityView": false
+  },
+  "TR": {
+    "file": "Ataturk's_Mausoleum_(6225341313).jpg",
+    "title": "Anıtkabir",
+    "cityView": false
+  },
+  "HU": {
+    "file": "Hungarian_Parliament_Building_from_across_the_Danube,_2025-01-11.jpg",
+    "title": "Hungarian Parliament Building",
+    "cityView": false
+  },
+  "YE": {
+    "file": "Old_City,_Sana'a,_Yemen_(15335600470).jpg",
+    "title": "Great Mosque of Sanaa",
+    "cityView": false
+  },
+  "SY": {
+    "file": "Umayyad_Mosque,_Damascus.jpg",
+    "title": "Umayyad Mosque",
+    "cityView": false
+  },
+  "PT": {
+    "file": "Torre_Belém_April_2009-4a.jpg",
+    "title": "Belém Tower",
+    "cityView": false
+  },
+  "NO": {
+    "file": "Oslo_Opera_House_-_2025.jpg",
+    "title": "Oslo Opera House",
+    "cityView": false
+  },
+  "PL": {
+    "file": "Royal_Castle_in_Warsaw,_Poland,_2022,_03.jpg",
+    "title": "Royal Castle, Warsaw",
+    "cityView": false
+  },
+  "KP": {
+    "file": "Tower_of_Juche_Idea,_Pyongyang,_North_Korea_(2909246855).jpg",
+    "title": "Juche Tower",
+    "cityView": false
+  },
+  "TZ": {
+    "file": "St._Joseph_in_Dar_es_Salaam_ShiftN.jpg",
+    "title": "St. Joseph's Cathedral, Dar es Salaam",
+    "cityView": false
+  },
+  "IE": {
+    "file": "The_entrance_of_the_historic_Trinity_College_(Unsplash).jpg",
+    "title": "Trinity College Dublin",
+    "cityView": false
+  },
+  "CU": {
+    "file": "El_Capitolio_Havana_Cuba.jpg",
+    "title": "National Capitol of Cuba",
+    "cityView": false
+  },
+  "DO": {
+    "file": "Maison_du_gouverneur_Don_Diego_Colomb.jpg",
+    "title": "Alcázar de Colón",
+    "cityView": false
+  },
+  "GH": {
+    "file": "Independence_Arch_Accra_Ghana.jpg",
+    "title": "Independence Arch",
+    "cityView": false
+  },
+  "FI": {
+    "file": "Kirkko3.png",
+    "title": "Helsinki Cathedral",
+    "cityView": false
+  },
+  "DK": {
+    "file": "I12_174_Schloss_Rosenborg.jpg",
+    "title": "Rosenborg Castle",
+    "cityView": false
+  },
+  "BR": {
+    "file": "Catedral_Metropolitana_de_Brasilia.jpg",
+    "title": "Cathedral of Brasília",
+    "cityView": false
+  },
+  "BE": {
+    "file": "Grand-Place,_Brussels_-_panorama,_June_2018.jpg",
+    "title": "Grand-Place",
+    "cityView": false
+  },
+  "BD": {
+    "file": "লাল_কেল্লার_মায়া.jpg",
+    "title": "Lalbagh Fort",
+    "cityView": false
+  },
+  "AO": {
+    "file": "Luanda-SMiguelFort2.jpg",
+    "title": "Fortress of São Miguel",
+    "cityView": false
+  },
+  "DZ": {
+    "file": "Martyrs_Memorial._Algiers,_Algeria.jpg",
+    "title": "Maqam Echahid",
+    "cityView": false
+  },
+  "VE": {
+    "file": "Panteon_Nacional_de_Caracas.jpg",
+    "title": "National Pantheon of Venezuela",
+    "cityView": false
+  },
+  "UA": {
+    "file": "80-391-0151_Kyiv_St.Sophia's_Cathedral_RB_18_2_(cropped).jpg",
+    "title": "Saint Sophia Cathedral, Kyiv",
+    "cityView": false
+  },
+  "ES": {
+    "file": "Palacio_Real_de_Madrid_Julio_2016_(cropped).jpg",
+    "title": "Royal Palace of Madrid",
+    "cityView": false
+  },
+  "SE": {
+    "file": "Stockholms_stadshus_February_2026_02.jpg",
+    "title": "Stockholm City Hall",
+    "cityView": false
+  },
+  "TH": {
+    "file": "เจดีย์ประธานทรงปรางค์วัดอรุณ2.jpg",
+    "title": "Wat Arun",
+    "cityView": false
+  },
+  "PE": {
+    "file": "Lima_convento_san_francisco_de_asis.jpg",
+    "title": "Basilica and Convent of San Francisco, Lima",
+    "cityView": false
+  },
+  "NL": {
+    "file": "Paleis_op_de_Dam_2026.jpg",
+    "title": "Royal Palace of Amsterdam",
+    "cityView": false
+  },
+  "PH": {
+    "file": "Catedral_de_la_Inmaculada_Concepción,_Manila,_Filipinas,_2023-08-26,_DD_21.jpg",
+    "title": "Manila Cathedral",
+    "cityView": false
+  },
+  "DE": {
+    "file": "Brandenburger_Tor_abends.jpg",
+    "title": "Brandenburg Gate",
+    "cityView": false
+  },
+  "CD": {
+    "file": "Palais_de_la_nation.jpg",
+    "title": "Palais de la Nation (Kinshasa)",
+    "cityView": false
+  },
+  "IN": {
+    "file": "India_Gate_front.jpg",
+    "title": "India Gate",
+    "cityView": false
+  },
+  "GR": {
+    "file": "The_Parthenon_in_Athens.jpg",
+    "title": "Parthenon",
+    "cityView": false
+  },
+  "IQ": {
+    "file": "نصب_الشهيد_2024.jpg",
+    "title": "Al-Shaheed Monument",
+    "cityView": false
+  },
+  "ET": {
+    "file": "Addis_Ababa_Ethiopia_2.jpg",
+    "title": "Holy Trinity Cathedral, Addis Ababa",
+    "cityView": false
+  },
+  "IR": {
+    "file": "Azadi_Tower_(29358497718).jpg",
+    "title": "Azadi Tower",
+    "cityView": false
+  },
+  "AR": {
+    "file": "Casa_Rosada_exterior_from_Plaza_de_Mayo.JPG",
+    "title": "Casa Rosada",
+    "cityView": false
+  },
+  "AF": {
+    "file": "Вадим_Чуприна-Кабул_VADIM_CHUPRINA_©_Kabul_09.jpg",
+    "title": "Darul Aman Palace",
+    "cityView": false
+  },
+  "AT": {
+    "file": "Wien_-_Stephansdom_(1).JPG",
+    "title": "St. Stephen's Cathedral, Vienna",
+    "cityView": false
+  },
+  "US": {
+    "file": "US_Capitol_east_side.JPG",
+    "title": "United States Capitol",
+    "cityView": false
+  },
+  "GB": {
+    "file": "Elizabeth_Tower_and_the_north_front_of_the_Palace_of_Westminster,_London.jpg",
+    "title": "Big Ben",
+    "cityView": false
+  },
+  "SA": {
+    "file": "Masmak_Fort_(12753717253).jpg",
+    "title": "Al Masmak Palace",
+    "cityView": false
+  },
+  "RU": {
+    "file": "Saint_Basil's_Cathedral_in_Moscow.jpg",
+    "title": "Saint Basil's Cathedral",
+    "cityView": false
+  },
+  "MX": {
+    "file": "Catedral_y_Sagrario_Metropolitano_33.jpg",
+    "title": "Mexico City Metropolitan Cathedral",
+    "cityView": false
+  },
+  "IT": {
+    "file": "Colosseo_2020.jpg",
+    "title": "Colosseum",
+    "cityView": false
+  },
+  "CN": {
+    "file": "The_Forbidden_City_-_View_from_Coal_Hill.jpg",
+    "title": "Forbidden City",
+    "cityView": false
+  },
+  "KE": {
+    "file": "KICC_nairobi_kenya.jpg",
+    "title": "Kenyatta International Convention Centre",
+    "cityView": false
+  },
+  "CO": {
+    "file": "Plaza_de_Bolívar_desde_el_Museo_de_la_Independencia.JPG",
+    "title": "Plaza de Bolívar",
+    "cityView": false
+  },
+  "EG": {
+    "file": "Flickr_-_HuTect_ShOts_-_Citadel_of_Salah_El.Din_and_Masjid_Muhammad_Ali_قلعة_صلاح_الدين_الأيوبي_ومسجد_محمد_علي_-_Cairo_-_Egypt_-_17_04_2010_(4).jpg",
+    "title": "Cairo Citadel",
+    "cityView": false
+  },
+  "JP": {
+    "file": "Sensoji_2023.jpg",
+    "title": "Sensō-ji",
+    "cityView": false
+  },
+  "FR": {
+    "file": "Tour_Eiffel_Wikimedia_Commons_(cropped).jpg",
+    "title": "Eiffel Tower",
+    "cityView": false
+  },
+  "CL": {
+    "file": "Palacio_de_La_Moneda_-_miguelreflex.jpg",
+    "title": "La Moneda Palace",
+    "cityView": false
+  },
+  "SG": {
+    "file": "Singapore_Skyline_2019-10.jpg",
+    "title": "Merlion",
+    "cityView": false
+  },
+  "LI": {
+    "file": "Schlossvaduz.jpg",
+    "title": "Vaduz Castle",
+    "cityView": false
+  },
+  "TV": {
+    "file": "Parliament._Government_building_in_Funafuti.jpg",
+    "title": "Government Building, Tuvalu",
+    "cityView": false
+  },
+  "RW": {
+    "file": "Kigali_convention_centre.jpg",
+    "title": "Kigali Convention Centre",
+    "cityView": false
+  },
+  "QA": {
+    "file": "Fisherman_on_the_Doha_Corniche_next_to_the_Islamic_Museum.jpg",
+    "title": "Museum of Islamic Art, Doha",
+    "cityView": false
+  },
+  "ME": {
+    "file": "Millennium_Bridge_in_Podgorica.JPG",
+    "title": "Millennium Bridge (Podgorica)",
+    "cityView": false
+  },
+  "UY": {
+    "file": "Montevideo_Palacio_Salvo-20110506-RM-114438.jpg",
+    "title": "Palacio Salvo",
+    "cityView": false
+  },
+  "TG": {
+    "file": "Lomé-Monument_de_l'Indépendance.jpg",
+    "title": "Monument de l'Indépendance",
+    "cityView": false
+  },
+  "AE": {
+    "file": "Sheikh_Zayed_Grand_Mosque_in_Abu_Dhabi_-_panoramio.jpg",
+    "title": "Sheikh Zayed Grand Mosque",
+    "cityView": false
+  },
+  "TM": {
+    "file": "The Ashgabat Independence Monument with forecourt and statues, photographed in August 2024..jpg",
+    "title": "Independence Monument, Ashgabat",
+    "cityView": false
+  },
+  "ZM": {
+    "file": "National_Museum_in_Lusaka,_Zambia_-_2014.jpg",
+    "title": "Lusaka National Museum",
+    "cityView": false
+  },
+  "NE": {
+    "file": "Niamey_skyline_from_grand_mosque.jpg",
+    "title": "Niamey skyline",
+    "cityView": true
+  },
+  "SL": {
+    "file": "National_Museum_of_Sierra_Leone_at_Cotton_tree_in_Freetown_-_Mapillary_(Yp2BPDsT7TyNtrN6lZ4z9Q).jpg",
+    "title": "Sierra Leone National Museum",
+    "cityView": false
+  },
+  "PG": {
+    "file": "Papua_New_Guinea,_Parliament,_Port_Moresby.jpg",
+    "title": "National Parliament House (Papua New Guinea)",
+    "cityView": false
+  },
+  "SB": {
+    "file": "The_National_Parliament_Building,_Honiara,_Solomon_Islands.jpg",
+    "title": "National Parliament of Solomon Islands",
+    "cityView": false
+  },
+  "OM": {
+    "file": "Sultan_Qaboos_Grand_Mosque_(1).jpg",
+    "title": "Sultan Qaboos Grand Mosque",
+    "cityView": false
+  },
+  "NA": {
+    "file": "Iglesia_de_Cristo,_Windhoek,_Namibia,_2018-08-04,_DD_02.jpg",
+    "title": "Christuskirche, Windhoek",
+    "cityView": false
+  },
+  "SV": {
+    "file": "Monumento_al_Divino_Salvador_del_Mundo_-_Plaza_Salvador_del_Mundo.JPG",
+    "title": "Monument to the Divine Saviour of the World",
+    "cityView": false
+  },
+  "GT": {
+    "file": "CatedralGuatemala.jpg",
+    "title": "Metropolitan Cathedral of Guatemala City",
+    "cityView": false
+  },
+  "GA": {
+    "file": "Church_of_Notre-Dame_de_Lourdes,_Libreville.jpg",
+    "title": "Notre-Dame de Lourdes Church",
+    "cityView": false
+  },
+  "MR": {
+    "file": "Saudi_mosque_in_Nouakchott.jpg",
+    "title": "Saudi Mosque, Nouakchott",
+    "cityView": false
+  },
+  "ML": {
+    "file": "Dome_of_the_Grande_Mosque,_Bamako_(6923661).jpg",
+    "title": "Great Mosque of Bamako",
+    "cityView": false
+  },
+  "GE": {
+    "file": "Sameba_Cathedral,_Courtyard_2,_Tbilisi,_Georgia.jpg",
+    "title": "Holy Trinity Cathedral of Tbilisi",
+    "cityView": false
+  },
+  "KZ": {
+    "file": "Baiterek.jpg",
+    "title": "Baiterek",
+    "cityView": false
+  },
+  "GN": {
+    "file": "Grande_Mosquée_Fayçal_de_Conakry_3.jpg",
+    "title": "Conakry Grand Mosque",
+    "cityView": false
+  },
+  "BZ": {
+    "file": "Belmopan_Belize_View.jpg",
+    "title": "Belmopan",
+    "cityView": true
+  },
+  "CM": {
+    "file": "Monument_Reunification_4.JPG",
+    "title": "Reunification Monument",
+    "cityView": false
+  },
+  "BY": {
+    "file": "5_50_64_2f_-_Belarus_National_Library,_Minsk_2009_(3901618837).jpg",
+    "title": "National Library of Belarus",
+    "cityView": false
+  },
+  "BW": {
+    "file": "Three_Dikgosi_monument_in_Gaborone.jpg",
+    "title": "Three Dikgosi Monument",
+    "cityView": false
+  },
+  "BF": {
+    "file": "Monument_aux_héros_nationaux_-_Ouagadougou_-_2024.jpg",
+    "title": "Monument to the National Heroes",
+    "cityView": false
+  },
+  "MM": {
+    "file": "Naypyidaw_--_Uppatasanti_Pagoda_Plaza_at_sunset.JPG",
+    "title": "Uppatasanti Pagoda",
+    "cityView": false
+  },
+  "ST": {
+    "file": "Sao_Tome_Cathedral_1_(15626548814).jpg",
+    "title": "Cathedral of São Tomé",
+    "cityView": false
+  },
+  "CV": {
+    "file": "Praia-Palácio_Presidencial_(1).jpg",
+    "title": "Presidential Palace (Cape Verde)",
+    "cityView": false
+  },
+  "CY": {
+    "file": "Detail_of_Selimiye_Mosque,_North_Nicosia,_Cyprus.jpg",
+    "title": "Selimiye Mosque, Nicosia",
+    "cityView": false
+  },
+  "RO": {
+    "file": "Bucharest-palace-of-parliament-may-2016-001.jpg",
+    "title": "Palace of the Parliament",
+    "cityView": false
+  },
+  "SD": {
+    "file": "Masjed_Alnileen.JPG",
+    "title": "Al-Nilin Mosque",
+    "cityView": false
+  },
+  "LR": {
+    "file": "Grand_Masonic_Temple_in_Monrovia_early_morning.jpg",
+    "title": "Grand Masonic Temple",
+    "cityView": false
+  },
+  "MY": {
+    "file": "Petronas_Towers_at_Night_-_from_the_base_upwards.jpg",
+    "title": "Petronas Towers",
+    "cityView": false
+  },
+  "CZ": {
+    "file": "Charles_Bridge_Covid.jpg",
+    "title": "Charles Bridge",
+    "cityView": false
+  },
+  "KW": {
+    "file": "Kuwait_towers.jpg",
+    "title": "Kuwait Towers",
+    "cityView": false
+  },
+  "SN": {
+    "file": "African_Renaissance_Monument_(5502494604).jpg",
+    "title": "African Renaissance Monument",
+    "cityView": false
+  },
+  "KR": {
+    "file": "Gyeonghoeru_(Royal_Banquet_Hall)_at_Gyeongbokgung_Palace,_Seoul.jpg",
+    "title": "Gyeongbokgung",
+    "cityView": false
+  },
+  "TW": {
+    "file": "Taipei_Taiwan_Taipei-101-Tower-01.jpg",
+    "title": "Taipei 101",
+    "cityView": false
+  },
+  "ID": {
+    "file": "The_National_Monument_(Monas),_Jakarta_from_afar.jpg",
+    "title": "National Monument (Indonesia)",
+    "cityView": false
+  },
+  "ZW": {
+    "file": "Eastgate_Centre,_Harare,_Zimbabwe.jpg",
+    "title": "Eastgate Centre, Harare",
+    "cityView": false
+  },
+  "UZ": {
+    "file": "Kukeldash_Madrasah_inner_yard.jpg",
+    "title": "Kukeldash Madrasah (Tashkent)",
+    "cityView": false
+  },
+  "PW": {
+    "file": "Ngerulmud_01.jpg",
+    "title": "National Capitol of Palau",
+    "cityView": false
+  },
+  "KI": {
+    "file": "KiribatiParliamentHouse.jpg",
+    "title": "House of Assembly (Kiribati)",
+    "cityView": false
+  },
+  "KM": {
+    "file": "Moroni_Friday_Mosque_Comoros.jpg",
+    "title": "Old Friday Mosque (Moroni)",
+    "cityView": false
+  },
+  "VC": {
+    "file": "St._Vincenter_-_Cathedral,_Kingstown.jpg",
+    "title": "St. Mary's Cathedral of the Assumption, Kingstown",
+    "cityView": false
+  },
+  "JM": {
+    "file": "Emancipation_Park-Statues-1.jpg",
+    "title": "Emancipation Park",
+    "cityView": false
+  },
+  "LA": {
+    "file": "Vientiane-Patu_Xay-10-Allee-gje.jpg",
+    "title": "Patuxai",
+    "cityView": false
+  },
+  "CF": {
+    "file": "Une_foule_devant_la_Cathédrale_de_Bangui,_le_7_mai_2018.jpg",
+    "title": "Notre-Dame of Bangui Cathedral",
+    "cityView": false
+  },
+  "SC": {
+    "file": "Big_Ben_Clock_Tower_-_Victoria_-_Mahe_-_Seychelles_-_01.jpg",
+    "title": "Victoria Clocktower",
+    "cityView": false
+  },
+  "WS": {
+    "file": "Apia_Cathedral.jpg",
+    "title": "Immaculate Conception Cathedral (Apia)",
+    "cityView": false
+  },
+  "LY": {
+    "file": "Marcus_Aurelius_Arch_Tripoli_Libya.jpg",
+    "title": "Arch of Marcus Aurelius",
+    "cityView": false
+  }
+}

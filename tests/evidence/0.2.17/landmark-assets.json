@@ -1,0 +1,13 @@
+{
+  "photos": 193,
+  "coverage": "ALL catalogue capitals",
+  "encodedBytes": 19566932,
+  "maxBitmapPixels": 1022400,
+  "maxRgb565Bytes": 2044800,
+  "authorLicenseSourceSha256": "PASS",
+  "offline": "no network or API key needed",
+  "cityViewFallbacks": [
+    "NE",
+    "BZ"
+  ]
+}

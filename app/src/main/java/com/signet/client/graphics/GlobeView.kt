@@ -27,10 +27,11 @@ data class CapitalMarker(val name:String="",val x:Int=0,val y:Int=0,val visible:
 
 class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(context) {
     val globe = GlobeRenderer(context.applicationContext,highQuality)
-    private var lastX = 0f; private var lastY = 0f
-    private var startX=0f;private var startY=0f;private var gestureAxis=0
+    private var activePointer=MotionEvent.INVALID_POINTER_ID
     private var allowParentScroll=false
     private val touchSlop=android.view.ViewConfiguration.get(context).scaledTouchSlop
+    private val drag=com.signet.core.GlobeDrag(touchSlop.toFloat())
+    private var coveredByPhoto=false
     init {
         setEGLContextClientVersion(2)
         if(highQuality)setEGLConfigChooser { egl,display ->
@@ -49,6 +50,13 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
     fun update(server: Server?, phase: VpnPhase, quality: String, reduced: Boolean, lightTheme:Boolean=false,parentScroll:Boolean=false) {
         allowParentScroll=parentScroll
         queueEvent { globe.lightTheme=lightTheme;globe.update(server, phase, quality, reduced) }
+        if(rendering)requestRender()
+    }
+    fun photoCover(covered:Boolean){
+        if(coveredByPhoto==covered)return
+        coveredByPhoto=covered
+        if(covered){drag.reset();activePointer=MotionEvent.INVALID_POINTER_ID;parent?.requestDisallowInterceptTouchEvent(false)}
+        renderMode=if(covered)RENDERMODE_WHEN_DIRTY else RENDERMODE_CONTINUOUSLY
         if(rendering)requestRender()
     }
     private var hostLifecycle:Lifecycle?=null
@@ -71,6 +79,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
         lifecycle.addObserver(hostObserver);syncRendering()
     }
     fun releaseHost(){
+        drag.reset();activePointer=MotionEvent.INVALID_POINTER_ID;parent?.requestDisallowInterceptTouchEvent(false)
         hostLifecycle?.removeObserver(hostObserver);hostLifecycle=null
         if(session.transition(false,false)==false){rendering=false;onPause()}
     }
@@ -82,21 +91,32 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
         queueEvent{globe.backdropRect(location[0],location[1],rootWidth,rootHeight)}
     }
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        when (event.action) {
-            MotionEvent.ACTION_DOWN -> { lastX = event.x; lastY = event.y;startX=event.x;startY=event.y;gestureAxis=0;parent.requestDisallowInterceptTouchEvent(!allowParentScroll) }
-            MotionEvent.ACTION_MOVE -> {
-                if(allowParentScroll){
-                    val dx=event.x-startX;val dy=event.y-startY
-                    if(gestureAxis==0&&max(abs(dx),abs(dy))>touchSlop)gestureAxis=if(abs(dy)>abs(dx))2 else 1
-                    if(gestureAxis==2){parent.requestDisallowInterceptTouchEvent(false);return false}
-                    if(gestureAxis==0)return true
-                    parent.requestDisallowInterceptTouchEvent(true)
-                }
-                val dx = event.x - lastX; val dy = event.y - lastY
-                queueEvent { globe.drag(dx * .25f, dy * .2f) }; lastX = event.x; lastY = event.y
+        if(coveredByPhoto)return false
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                activePointer=event.getPointerId(0);drag.down(event.x,event.y)
+                // Hold interception until the axis is known, otherwise Compose scrolling can cancel the first MOVE.
+                parent?.requestDisallowInterceptTouchEvent(true)
             }
-            MotionEvent.ACTION_UP -> { performClick(); parent.requestDisallowInterceptTouchEvent(false) }
-            MotionEvent.ACTION_CANCEL -> {gestureAxis=0;parent.requestDisallowInterceptTouchEvent(false)}
+            MotionEvent.ACTION_MOVE -> {
+                var index=event.findPointerIndex(activePointer)
+                if(index<0){
+                    if(event.pointerCount==0)return true
+                    index=0;activePointer=event.getPointerId(index);drag.rebase(event.getX(index),event.getY(index))
+                }
+                val step=drag.move(event.getX(index),event.getY(index),allowParentScroll)
+                if(step.axis==com.signet.core.GlobeDragAxis.SCROLL){parent?.requestDisallowInterceptTouchEvent(false);return true}
+                if(step.axis==com.signet.core.GlobeDragAxis.ROTATE){
+                    parent?.requestDisallowInterceptTouchEvent(true)
+                    queueEvent { globe.drag(step.dx*.25f,step.dy*.2f) };requestRender()
+                }
+            }
+            MotionEvent.ACTION_POINTER_UP -> if(event.getPointerId(event.actionIndex)==activePointer){
+                val index=if(event.actionIndex==0)1 else 0
+                activePointer=event.getPointerId(index);drag.rebase(event.getX(index),event.getY(index))
+            }
+            MotionEvent.ACTION_UP -> { if(drag.axis==com.signet.core.GlobeDragAxis.PENDING)performClick();drag.reset();activePointer=MotionEvent.INVALID_POINTER_ID;parent?.requestDisallowInterceptTouchEvent(false) }
+            MotionEvent.ACTION_CANCEL -> {drag.reset();activePointer=MotionEvent.INVALID_POINTER_ID;parent?.requestDisallowInterceptTouchEvent(false)}
         }
         return true
     }

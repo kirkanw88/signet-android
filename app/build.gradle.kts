@@ -1,14 +1,9 @@
-import java.util.Properties
-
 plugins {
     id("com.android.application")
     kotlin("android")
     kotlin("kapt")
     id("org.jetbrains.kotlin.plugin.compose")
 }
-val imagerySecrets=Properties().apply{rootProject.file("secrets.properties").takeIf{it.isFile}?.inputStream()?.use{load(it)}}
-val imageryKey=System.getenv("SIGNET_MAPTILER_API_KEY")?:imagerySecrets.getProperty("maptiler.apiKey","")
-require(imageryKey.isEmpty()||imageryKey.matches(Regex("[A-Za-z0-9_-]{10,128}"))){"Invalid satellite API key format"}
 android {
     namespace = "com.signet.client"
     compileSdk = 36
@@ -18,7 +13,6 @@ android {
         targetSdk = 36
         versionCode = 8
         versionName = "0.2.6"
-        buildConfigField("String","MAPTILER_API_KEY","\"\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     flavorDimensions += "edition"
@@ -30,9 +24,8 @@ android {
             manifestPlaceholders["importScheme"] = "signet"
         }
         create("external") {
-            versionCode = 18
-            versionName = "0.2.16"
-            buildConfigField("String","MAPTILER_API_KEY","\"$imageryKey\"")
+            versionCode = 19
+            versionName = "0.2.17"
             dimension = "edition"
             applicationIdSuffix = ".external"
             buildConfigField("boolean", "SIGNET_ACCOUNT", "false")

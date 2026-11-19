@@ -1,0 +1,25 @@
+{
+  "version": "0.2.17",
+  "edition": "external",
+  "gradleVerification": "strict",
+  "coreTests": {
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "debugRelease": "PASS",
+  "duration": "2m 26s",
+  "lint": {
+    "errors": 0,
+    "warnings": 48
+  },
+  "photos": "193/193; every image hash and catalogue matched inside all three release APKs",
+  "photoBytes": 19566932,
+  "credentialBoundary": "MapTiler key/service absent from APK; local secrets ignored",
+  "gesture": "direction lock/noise/rebase/reset/non-scrollable rotation and lifecycle reentry JVM PASS",
+  "physicalAndroidAndFullUiAudit": "NOT RUN; UI review based on source, not current screenshots",
+  "longCiEmulatorColdCache": "NOT RUN",
+  "production": "UNCHANGED",
+  "signetRelease": "UNCHANGED 0.2.6"
+}

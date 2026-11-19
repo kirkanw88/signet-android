@@ -2,48 +2,36 @@ package com.signet.client.graphics
 
 import android.content.Context
 import android.graphics.*
-import com.signet.client.BuildConfig
 import com.signet.client.data.*
-import com.signet.client.vpn.*
-import com.signet.core.CapitalTiles
 import kotlinx.coroutines.*
-import okhttp3.*
-import java.io.File
-import java.util.concurrent.TimeUnit
+import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicBoolean
 
 data class CapitalCity(val code:String,val name:String,val latitude:Double,val longitude:Double)
+data class LandmarkPhoto(val bitmap:Bitmap,val city:String,val landmark:String,val author:String,val license:String,val source:String,val licenseUrl:String,val cityView:Boolean)
 
-/** One bounded bitmap; HTTP cache is private, temporary, and capped at 8 MiB. */
+/** Offline catalogue: one decoded photograph, no service, credentials or growing photo cache. */
 class CapitalImagery(context:Context) {
-    private val cache=Cache(File(context.cacheDir,"capital-imagery"),8L*1024*1024)
-    private val tunnelDns=TunnelDns()
-    private val client=OkHttpClient.Builder().cache(cache).followRedirects(false).retryOnConnectionFailure(false)
-        .dns(object:Dns{override fun lookup(hostname:String):List<java.net.InetAddress>{val vpn=VpnState.status.value;return if(vpn.phase==VpnPhase.CONNECTED&&vpn.tunActive)tunnelDns.lookup(hostname)else Dns.SYSTEM.lookup(hostname)}})
-        .connectTimeout(6,TimeUnit.SECONDS).readTimeout(8,TimeUnit.SECONDS).callTimeout(10,TimeUnit.SECONDS).build()
-    suspend fun load(city:CapitalCity):Bitmap=withContext(Dispatchers.IO){withTimeout(25_000){
-        if(BuildConfig.MAPTILER_API_KEY.isBlank())throw CapitalFailure(CapitalError.CONFIG)
-        val plan=CapitalTiles.plan(city.latitude,city.longitude)
-        var mosaic:Bitmap?=null
-        try {
-            var tileSize=0
-            for(batch in plan.tiles.chunked(3)){
-                ensureActive()
-                val fetched=coroutineScope{batch.map{tile->async{tile to CapitalTileDownload.fetch(client,BuildConfig.MAPTILER_API_KEY,plan.zoom,tile.x,tile.y)}}.awaitAll()}
-                for((tile,bytes) in fetched){
-                val bounds=BitmapFactory.Options().apply{inJustDecodeBounds=true}
-                BitmapFactory.decodeByteArray(bytes,0,bytes.size,bounds)
-                require(bounds.outWidth==bounds.outHeight&&bounds.outWidth in setOf(256,512))
-                if(mosaic==null){tileSize=bounds.outWidth;mosaic=Bitmap.createBitmap(tileSize*3,tileSize*3,Bitmap.Config.RGB_565)}
-                require(bounds.outWidth==tileSize)
-                val bitmap=checkNotNull(BitmapFactory.decodeByteArray(bytes,0,bytes.size,BitmapFactory.Options().apply{inPreferredConfig=Bitmap.Config.RGB_565}))
-                try{Canvas(checkNotNull(mosaic)).drawBitmap(bitmap,tile.column*tileSize.toFloat(),tile.row*tileSize.toFloat(),null)}finally{bitmap.recycle()}
-                }
-            }
-            val size=tileSize*2
-            val left=(plan.centerX*tileSize-size/2).toInt().coerceIn(0,tileSize*3-size)
-            val top=(plan.centerY*tileSize-size/2).toInt().coerceIn(0,tileSize*3-size)
-            Bitmap.createBitmap(checkNotNull(mosaic),left,top,size,size)
-        }finally{mosaic?.recycle()}
-    }}
-    fun close(){client.dispatcher.cancelAll();client.connectionPool.evictAll();client.dispatcher.executorService.shutdown();runCatching{cache.close()}}
+    private val application=context.applicationContext
+    private val cleaned=AtomicBoolean(false)
+    private val catalogue by lazy{application.assets.open("landmarks.json").bufferedReader().use{JSONObject(it.readText())}}
+    suspend fun load(city:CapitalCity):LandmarkPhoto=withContext(Dispatchers.IO){
+        if(cleaned.compareAndSet(false,true)){
+            val old=java.io.File(application.cacheDir,"capital-imagery")
+            runCatching{if(old.canonicalFile.parentFile==application.cacheDir.canonicalFile){
+                old.listFiles()?.filter{it.isFile&&it.canonicalFile.parentFile==old.canonicalFile}?.forEach{it.delete()}
+                old.delete()
+            }}
+        }
+        val item=catalogue.optJSONObject(city.code)?:throw CapitalFailure(CapitalError.NO_IMAGERY)
+        val asset=item.getString("asset")
+        require(asset.matches(Regex("landmarks/[a-z]{2}\\.(webp|jpg|png)")))
+        val bytes=application.assets.open(asset).use{it.readLimited(1024*1024)}
+        ensureActive()
+        val bounds=BitmapFactory.Options().apply{inJustDecodeBounds=true}
+        BitmapFactory.decodeByteArray(bytes,0,bytes.size,bounds)
+        require(bounds.outWidth in 1..1280&&bounds.outHeight in 1..1280)
+        val bitmap=BitmapFactory.decodeByteArray(bytes,0,bytes.size,BitmapFactory.Options().apply{inPreferredConfig=Bitmap.Config.RGB_565})?:throw CapitalFailure(CapitalError.IMAGE)
+        LandmarkPhoto(bitmap,item.getString("city"),item.getString("landmark"),item.getString("author"),item.getString("license"),item.getString("source"),item.optString("licenseUrl"),item.optBoolean("cityView"))
+    }
 }
