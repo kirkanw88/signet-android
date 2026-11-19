@@ -69,8 +69,8 @@ class GlobeVisualTest {
             }
             compose.onNodeWithText("Турция").performClick()
             compose.onNodeWithTag("server-sheet").assertExists()
-            compose.onNodeWithContentDescription("Проверить задержку").assertExists()
-            compose.onNodeWithContentDescription("Обновить подписки").assertExists()
+            compose.onNodeWithContentDescription("Ping всех подписок").assertExists()
+            compose.onNodeWithContentDescription("Обновить все подписки").assertExists()
             compose.onNodeWithText("Ping").assertDoesNotExist()
             compose.onNodeWithText("Германия").performScrollTo().performClick()
             compose.waitUntil(10_000){repository.state.value.selected==sub.servers.single{it.countryCode=="DE"}.id&&compose.onAllNodesWithTag("server-sheet").fetchSemanticsNodes().isEmpty()}
