@@ -1,0 +1,25 @@
+{
+  "version": "0.2.15",
+  "edition": "external",
+  "gradleVerification": "strict",
+  "coreTests": {
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "debugRelease": "PASS",
+  "duration": "3m 9s",
+  "lint": {
+    "errors": 0,
+    "warnings": 49
+  },
+  "liveImagery": "PASS: Riga, nine tiles, 1024x1024 snapshot; see imagery-service.json",
+  "imageryMemory": "8 MiB HTTP cache; bounded tiles; transient mosaic recycled; shared ViewModel client",
+  "clientCredential": "configured in APK as intended; absent from public source set; local file ignored",
+  "jvmAppTests": "NOT RUN; existing HTTP/profile code unchanged",
+  "physicalAndroidCameraTransitionAndPackageInstaller": "NOT RUN",
+  "longCiEmulatorColdCache": "NOT RUN",
+  "production": "UNCHANGED",
+  "signetRelease": "UNCHANGED 0.2.6"
+}

@@ -42,6 +42,12 @@ class NativeUpdater(private val context:Context,private val scope:CoroutineScope
     fun offer(release:AppRelease){if(job?.isActive==true)return;UpdateInstallation.state.value=InstallProgress(true,release)}
     fun cancel(){call?.cancel();job?.cancel();val saved=UpdateInstallation.prefs(context);UpdateInstallation.abandon(context,saved.getInt("session",-1));saved.edit().clear().apply();UpdateInstallation.state.update{it.copy(visible=false,confirmation=null)}}
     fun hide(){UpdateInstallation.state.update{it.copy(visible=false)}}
+    fun confirm(activity:Context){
+        val confirmation=state.value.confirmation?:return
+        runCatching{activity.startActivity(confirmation)}.onSuccess{
+            UpdateInstallation.state.update{it.copy(phase=InstallPhase.INSTALLING,message="Установка обновления в Android")}
+        }.onFailure{UpdateInstallation.state.update{it.copy(phase=InstallPhase.ERROR,message="Не удалось открыть установщик Android")}}
+    }
     fun start(){
         if(job?.isCompleted==false)return
         val release=state.value.release?:return

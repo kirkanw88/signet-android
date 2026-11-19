@@ -203,14 +203,14 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         val viewport=with(density){(maxHeight-12.dp).roundToPx().coerceAtLeast(0)}
         val scroll=rememberScrollState()
         if(LocalConfiguration.current.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE)Row(Modifier.fillMaxSize().padding(horizontal=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(18.dp)){
-            Globe(server,phase,state.settings,Modifier.weight(1.2f).fillMaxHeight())
+            Globe(server,phase,state.settings,Modifier.weight(1.2f).fillMaxHeight(),model.capitalImagery)
             Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(scroll),horizontalAlignment=Alignment.CenterHorizontally){Text(status,fontSize=22.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text);controls()}
         }else SubcomposeLayout(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal=16.dp).padding(bottom=12.dp)){constraints->
             val natural=constraints.copy(minHeight=0,maxHeight=Constraints.Infinity)
             val footer=subcompose("controls"){Column(Modifier.fillMaxWidth()){controls()}}.single().measure(natural)
             val heading=subcompose("status"){Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center){Text(status,fontSize=24.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text,maxLines=1)}}.single().measure(natural)
             val height=com.signet.core.HomeMeasurements.globeHeight(viewport,heading.height,footer.height)
-            val planet=if(height>0)subcompose("globe"){Globe(server,phase,state.settings,Modifier.fillMaxSize())}.single().measure(Constraints.fixed(constraints.maxWidth,height))else null
+            val planet=if(height>0)subcompose("globe"){Globe(server,phase,state.settings,Modifier.fillMaxSize(),model.capitalImagery)}.single().measure(Constraints.fixed(constraints.maxWidth,height))else null
             layout(constraints.maxWidth,(heading.height+height+footer.height).coerceAtLeast(viewport)){
                 heading.placeRelative(0,0)
                 planet?.placeRelative(0,heading.height)
@@ -220,7 +220,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     }
 }
 
-@Composable private fun Globe(server:Server?,phase:VpnPhase,settings:Settings,modifier:Modifier) {
+@Composable private fun Globe(server:Server?,phase:VpnPhase,settings:Settings,modifier:Modifier,imagery:com.signet.client.graphics.CapitalImagery?) {
     val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
     var renderer by remember{mutableStateOf<com.signet.client.graphics.GlobeRenderer?>(null)}
     val emptyMarker=remember{kotlinx.coroutines.flow.MutableStateFlow(com.signet.client.graphics.CapitalMarker())}
@@ -238,6 +238,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 Icon(Icons.Outlined.LocationOn,null,tint=Primary,modifier=Modifier.size(28.dp))
             }
         }
+        if(!BuildConfig.SIGNET_ACCOUNT&&imagery!=null)CapitalView(server?.countryCode,phase,marker.visible,imagery)
     }
 }
 

@@ -1,0 +1,15 @@
+{
+  "provider": "MapTiler satellite-v2",
+  "city": "Riga",
+  "zoom": 17,
+  "tiles": 9,
+  "tilePixels": 512,
+  "snapshotPixels": [
+    1024,
+    1024
+  ],
+  "downloadBytes": 227485,
+  "status": "PASS",
+  "apiKey": "NOT INCLUDED",
+  "note": "Live service sample only; Android rendering not exercised"
+}

@@ -1,3 +1,33 @@
+# Signet VPN 0.2.15 — проверка 19.11.2026
+
+Только universal external, code 17. [Изменения](RELEASE_0_2_15.md): снимок центра столицы MapTiler вместо увеличения мировой текстуры; анимация проверки/установки APK.
+
+| Проверка | Результат |
+|---|---|
+| Core JVM | CapitalTilesTest 2/2, failures/errors/skipped 0 |
+| Геометрия участка | Девять соседних tiles, центр обычных столиц внутри участка, dateline X wrapping, ограничение Y, отклонение NaN/недопустимой широты PASS |
+| Живой MapTiler | Ключ принят; satellite-v2, Riga zoom 17, 9 tiles 512×512, итог 1024×1024, 227485 bytes PASS |
+| Визуальная проверка источника | Полученный снимок открыт локально: различимы крыши, дороги, квартал у Riga Castle; это исходный снимок, не скриншот Android |
+| Credential/source boundary | Локальный secrets.properties игнорируется; клиентский ключ есть в APK, отсутствует в наборе публичных исходников PASS |
+| Android Lint external | 0 errors / 49 warnings |
+| Debug / Release external | PASS, strict verification, финальный проход 3m 9s |
+| APK | 3 ABI, 0.2.15/code 17; подпись/manifest/zip/ELF 16 KB см. ниже |
+| Android city transition / installer / cancel / permission / package replacement | NOT RUN на физическом устройстве |
+| Остальные JVM / long CI / emulator / cold cache | Не повторялись; новые зависимости не добавлялись |
+| Production / Signet 0.2.6 | Не изменены |
+
+Основная логика снимков не участвует в VPN health: асинхронная загрузка либо показывает фото, либо оставляет планету с отдельным сообщением. LaunchedEffect отменяет запрос при смене столицы/active/disposal. Кэш ограничен 8 МБ; декодированию предшествует проверка размеров и лимит ответа 512 КБ. Один HTTP-клиент/кэш принадлежит ViewModel, что исключает одновременное открытие одного cache journal при пересоздании Compose-экрана. В RAM остаётся текущий кадр и короткий исходящий кадр анимации, не коллекция городов; промежуточная мозаика/tiles recycle. При смене темы изображение не загружается заново. Реальное потребление RAM на устройстве не измерялось.
+
+Live source был проверен отдельно от Android. Пример satellite-v4 из текущей документации вернул 404; выбран подтверждённый satellite-v2. В публичный отчёт не сохранялись URL с key, сам key или HTTP body с credentials. Публичный исходный архив не содержит secrets.properties. Ключ — клиентский API key, не server/service token.
+
+Проверка/установка используют неопределённый progress, а download — действительное количество байтов; процент установки не симулируется. Confirm запускает Android и меняет этап на INSTALLING; DONE/ERROR приходят от PackageInstaller receiver. Системное окно не заменяется. Эти изменения начинают работать при обновлениях из 0.2.15, прежний APK не получает новый интерфейс до установки. Сохранились потоковая запись в PackageInstaller, проверка digest/размера и уборка session.
+
+Исправлена обнаруженная компилятором неоднозначность `java.util.Properties` в Gradle Kotlin DSL явным импортом. Финальный проход выполнен после корректировки владения cache и перехода снимка. TLS, Dependency Verification и проверки установки не отключались.
+
+[Checks](../tests/evidence/0.2.15/checks.json), [Image service](../tests/evidence/0.2.15/imagery-service.json), [APK verification](../tests/evidence/0.2.15/apk-verification.json).
+
+---
+
 # Signet VPN 0.2.14 — проверка 19.11.2026
 
 Только universal external, code 16. [Изменения](RELEASE_0_2_14.md): быстрое добавление подписки с главной (QR/буфер/вручную), настройка подписки (ссылка/копирование/закрепление/удаление), удаление дубля «Серверы» и опции уменьшения движения.

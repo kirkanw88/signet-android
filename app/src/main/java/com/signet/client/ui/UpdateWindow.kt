@@ -10,6 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -31,7 +33,7 @@ import com.signet.client.data.InstallPhase
     fun dismiss(){model.installer.cancel();model.dismissUpdate()}
     Dialog(onDismissRequest={if(!busy)dismiss()}){
         Surface(shape=RoundedCornerShape(28.dp),color=AppColors.surface,border=BorderStroke(1.dp,Color(0xFF538099))){
-            Column(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(AppColors.tint,AppColors.surface))).padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).background(Brush.verticalGradient(listOf(AppColors.tint,AppColors.surface))).padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
                 Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
                     Icon(Icons.Outlined.SystemUpdate,null,tint=AppColors.accent,modifier=Modifier.size(32.dp))
                     Text("Обновление Signet",fontSize=22.sp,fontWeight=FontWeight.SemiBold,color=AppColors.text)
@@ -39,8 +41,17 @@ import com.signet.client.data.InstallPhase
                 Text("${BuildConfig.VERSION_NAME}  →  ${state.release?.version}",fontSize=18.sp,color=AppColors.accent)
                 Text(state.message.ifBlank{"Доступна новая версия приложения"},color=AppColors.text,lineHeight=22.sp)
                 val total=state.release?.size?:0
-                if(total>0){
-                    LinearProgressIndicator(progress={(state.bytes.toDouble()/total).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth(),color=AppColors.accent,trackColor=AppColors.border)
+                if(state.phase==InstallPhase.VERIFYING||state.phase==InstallPhase.INSTALLING){
+                    val animation=rememberInfiniteTransition(label="installation")
+                    val pulse by animation.animateFloat(.9f,1.08f,infiniteRepeatable(tween(1000),RepeatMode.Reverse),label="installation-pulse")
+                    Box(Modifier.fillMaxWidth().height(96.dp),contentAlignment=Alignment.Center){
+                        CircularProgressIndicator(Modifier.size(80.dp),color=AppColors.accent,strokeWidth=3.dp)
+                        Icon(Icons.Outlined.SystemUpdate,null,tint=AppColors.accent,modifier=Modifier.size(34.dp).scale(pulse))
+                    }
+                    LinearProgressIndicator(modifier=Modifier.fillMaxWidth(),color=AppColors.accent,trackColor=AppColors.border)
+                }else if(total>0&&state.phase==InstallPhase.DOWNLOADING){
+                    val progress by animateFloatAsState((state.bytes.toDouble()/total).toFloat().coerceIn(0f,1f),label="download-progress")
+                    LinearProgressIndicator(progress={progress},modifier=Modifier.fillMaxWidth(),color=AppColors.accent,trackColor=AppColors.border)
                     Text("${"%.1f".format(state.bytes/(1024.0*1024))} / ${"%.1f".format(total/(1024.0*1024))} МБ",color=AppColors.muted,fontSize=13.sp)
                 }
                 when(state.phase){
@@ -49,7 +60,7 @@ import com.signet.client.data.InstallPhase
                         GlassButton(onClick={context.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,Uri.parse("package:${context.packageName}")))},modifier=Modifier.fillMaxWidth()){Text("Разрешить установку")}
                         GlassButton(onClick={model.installer.start()},modifier=Modifier.fillMaxWidth()){Text("Продолжить")}
                     }
-                    InstallPhase.CONFIRM->GlassButton(onClick={state.confirmation?.let{runCatching{context.startActivity(it)}}},enabled=state.confirmation!=null,modifier=Modifier.fillMaxWidth()){Text("Установить")}
+                    InstallPhase.CONFIRM->GlassButton(onClick={model.installer.confirm(context)},enabled=state.confirmation!=null,modifier=Modifier.fillMaxWidth()){Text("Установить")}
                     InstallPhase.DONE->GlassButton(onClick={model.installer.hide()},modifier=Modifier.fillMaxWidth()){Text("Готово")}
                     else->Unit
                 }
