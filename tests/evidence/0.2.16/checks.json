@@ -1,0 +1,26 @@
+{
+  "version": "0.2.16",
+  "edition": "external",
+  "gradleVerification": "strict",
+  "targetedAppTests": {
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "debugRelease": "PASS",
+  "duration": "4m 14s",
+  "lint": {
+    "errors": 0,
+    "warnings": 49
+  },
+  "liveProviderCheck": "HTTP 200 image/jpeg, 32450 bytes; no key/URL stored",
+  "failurePath": "CONNECTING load suppressed; new CONNECTED effect; one transient retry; safe error code and manual retry",
+  "tunnelDnsTests": "Local TCP fixture: stale system failure recovers with real answer; absent answer remains failure PASS",
+  "httpTests": "Bytes preserved; AUTH/QUOTA/404/503/redirect classification and retry flags; size limit PASS",
+  "credentialBoundary": "Key present in compiled client, absent from public source set",
+  "physicalAndroidAndCustomerFailure": "NOT RUN; exact device exception unknown",
+  "longCiEmulatorColdCache": "NOT RUN",
+  "production": "UNCHANGED",
+  "signetRelease": "UNCHANGED 0.2.6"
+}

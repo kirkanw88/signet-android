@@ -1,3 +1,32 @@
+# Signet VPN 0.2.16 — проверка 19.11.2026
+
+Universal external, code 18. [Изменения](RELEASE_0_2_16.md): исправление начала загрузки снимка во время создания TUN, ограниченный повтор, DNS того же VPN и доступная диагностика.
+
+Подтверждённый дефект: в 0.2.15 `active` был одинаковым для CONNECTING/CONNECTED, поэтому LaunchedEffect не перезапускался после переключения сети, а ошибка загрузки сохранялась. Теперь эффект запускается только после CONNECTED, задержка 350 мс; при переподключении отменяется и запускается заново. Это исправление конкретного пути отказа, но точная ошибка телефона неизвестна: прежняя версия её скрывала. ADB не обнаружил подключённых устройств.
+
+| Проверка | Результат |
+|---|---|
+| Targeted app JVM | CapitalTileDownloadTest 3 + TunnelDnsTest 2 = 5/5, failures/errors/skipped 0 |
+| HTTP layer | Неизменённые bytes, корректный host/UA без HWID; AUTH/QUOTA/NO_IMAGERY/SERVICE/redirect; oversized payload rejected PASS |
+| Retry classification | Только transient ошибки допускают повтор; raw HTTP body/key не попадают в исключение PASS |
+| DNS fixture | Системный UnknownHost → настоящий TCP DNS ответ; отсутствие ответа остаётся UnknownHost PASS |
+| Live MapTiler | Контрольный tile HTTP 200, image/jpeg, 32450 bytes; ключ не изменён |
+| Android Lint external | 0 errors / 49 warnings |
+| Debug / Release external | PASS, strict verification, 4m 14s |
+| APK | 3 ABI, 0.2.16/code 18; подпись/manifest/zip/ELF 16 KB см. ниже |
+| Physical device / exact failed city / UI reconnect race | NOT RUN |
+| Long CI / emulator / cold cache / production | Не запускались; Signet 0.2.6 и production не изменены |
+
+DNS fallback используется только при CONNECTED и активном TUN, после системного UnknownHost. Сокет не защищается от VPN и не привязывается к физической сети; внешние resolver, pinned IP и отключение TLS не добавлены. Фотография не участвует в проверке готовности VPN. Тест DNS — локальный TCP fixture, не проверка реального клиентского TUN.
+
+Сеть снимков вынесена в CapitalTileDownload с типизированной безопасной ошибкой. В журнале — только IMAGERY LOAD_START/READY/LOAD_FAILED и фиксированный код; URL, ключи, сырые тела/сообщения исключений не логируются. UI показывает код и «Повторить». Автоматически максимум две попытки, при второй transient ошибке повторов больше нет; AUTH/QUOTA/TLS/404/SIZE не повторяются автоматически. Каждый снимок получает не более девяти tiles, конкурентность максимум три; память ограничена одной мозаикой, текущим кадром и тремя буферами ответов, кэш 8 МБ. Целевые проверки не воспроизводят Android Compose lifecycle; переход CONNECTED проверен по коду.
+
+Клиентский ключ проверен в APK, отсутствует в публичном исходном наборе; secrets.properties остаётся игнорируемым. Новые зависимости/метаданные верификации не добавлялись.
+
+[Checks](../tests/evidence/0.2.16/checks.json), [APK verification](../tests/evidence/0.2.16/apk-verification.json).
+
+---
+
 # Signet VPN 0.2.15 — проверка 19.11.2026
 
 Только universal external, code 17. [Изменения](RELEASE_0_2_15.md): снимок центра столицы MapTiler вместо увеличения мировой текстуры; анимация проверки/установки APK.

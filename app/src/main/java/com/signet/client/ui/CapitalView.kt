@@ -17,7 +17,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.signet.client.BuildConfig
+import com.signet.client.data.CapitalError
+import com.signet.client.data.ConnectionLog
 import com.signet.client.graphics.*
 import com.signet.client.vpn.VpnPhase
 import kotlinx.coroutines.*
@@ -25,14 +26,27 @@ import org.json.JSONObject
 
 @Composable fun CapitalView(country:String?,phase:VpnPhase,settled:Boolean,source:CapitalImagery){
     val context=LocalContext.current
-    val active=phase in setOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED)
+    val active=phase==VpnPhase.CONNECTED
     val cities=remember{context.assets.open("capitals.json").bufferedReader().use{JSONObject(it.readText())}}
     val city=remember(country){country?.let{code->cities.optJSONObject(code)?.let{CapitalCity(code,it.getString("name"),it.getDouble("latitude"),it.getDouble("longitude"))}}}
     var snapshot by remember(country,active){mutableStateOf<Bitmap?>(null)}
-    var unavailable by remember(country,active){mutableStateOf(false)}
-    LaunchedEffect(city,active){
+    var failure by remember(country,active){mutableStateOf<CapitalError?>(null)}
+    var retry by remember(country){mutableIntStateOf(0)}
+    LaunchedEffect(city,active,retry){
         if(!active||city==null)return@LaunchedEffect
-        try{snapshot=source.load(city)}catch(e:TimeoutCancellationException){unavailable=true}catch(e:CancellationException){throw e}catch(e:Exception){unavailable=true}
+        failure=null
+        delay(350)
+        repeat(2){attempt->
+            try{
+                ConnectionLog.add("IMAGERY","LOAD_START")
+                snapshot=source.load(city);ConnectionLog.add("IMAGERY","READY");return@LaunchedEffect
+            }catch(e:Exception){
+                if(e is CancellationException&&e !is TimeoutCancellationException)throw e
+                val code=CapitalError.from(e)
+                ConnectionLog.add("IMAGERY","LOAD_FAILED",code.name)
+                if(attempt==0&&code.retryable){delay(1000)}else{failure=code;return@LaunchedEffect}
+            }
+        }
     }
     val visible=phase==VpnPhase.CONNECTED&&settled&&snapshot!=null
     val approach by animateFloatAsState(if(visible)1f else .86f,tween(1300),label="capital-approach")
@@ -48,8 +62,9 @@ import org.json.JSONObject
     if(active&&city!=null&&phase==VpnPhase.CONNECTED&&settled&&snapshot==null){
         Box(Modifier.fillMaxSize(),contentAlignment=Alignment.BottomCenter){
             Row(Modifier.padding(12.dp).background(AppColors.surface,RoundedCornerShape(12.dp)).padding(10.dp),verticalAlignment=Alignment.CenterVertically){
-                if(!unavailable)CircularProgressIndicator(Modifier.size(16.dp),strokeWidth=2.dp)
-                Text(if(unavailable)"Снимок столицы недоступен"else"Загрузка снимка столицы…",Modifier.padding(start=8.dp),style=MaterialTheme.typography.labelSmall)
+                if(failure==null)CircularProgressIndicator(Modifier.size(16.dp),strokeWidth=2.dp)
+                Text(failure?.let{"${it.label} (${it.name})"}?:"Загрузка снимка столицы…",Modifier.weight(1f).padding(start=8.dp),style=MaterialTheme.typography.labelSmall)
+                if(failure!=null)TextButton(onClick={retry++}){Text("Повторить")}
             }
         }
     }

@@ -1,0 +1,62 @@
+[
+  {
+    "edition": "external",
+    "package": "com.signet.client.external",
+    "abi": "arm64-v8a",
+    "version": "0.2.16",
+    "versionCode": 18,
+    "bytes": 50409731,
+    "sha256": "5450103810cf289b079bd91112ad0754ec9279d1d1501f3351800bcdb5b61ea3",
+    "certificateSha256": "8158ed1e88c0d5e485abed87d63209f295021a482fc6c51d108e44fdce0448b1",
+    "cabinetApiPresent": false,
+    "signatureV2": "PASS",
+    "zip16k": "PASS",
+    "elf16k": "PASS",
+    "manifest": "PASS",
+    "nativeLibraries": [
+      "lib/arm64-v8a/libandroidx.graphics.path.so",
+      "lib/arm64-v8a/libdatastore_shared_counter.so",
+      "lib/arm64-v8a/libgojni.so"
+    ]
+  },
+  {
+    "edition": "external",
+    "package": "com.signet.client.external",
+    "abi": "armeabi-v7a",
+    "version": "0.2.16",
+    "versionCode": 18,
+    "bytes": 49685737,
+    "sha256": "88e8009aee9d6305c641cce8671d361002eab5c5873adb1e5afc9719cf6cda89",
+    "certificateSha256": "8158ed1e88c0d5e485abed87d63209f295021a482fc6c51d108e44fdce0448b1",
+    "cabinetApiPresent": false,
+    "signatureV2": "PASS",
+    "zip16k": "PASS",
+    "elf16k": "PASS",
+    "manifest": "PASS",
+    "nativeLibraries": [
+      "lib/armeabi-v7a/libandroidx.graphics.path.so",
+      "lib/armeabi-v7a/libdatastore_shared_counter.so",
+      "lib/armeabi-v7a/libgojni.so"
+    ]
+  },
+  {
+    "edition": "external",
+    "package": "com.signet.client.external",
+    "abi": "x86_64",
+    "version": "0.2.16",
+    "versionCode": 18,
+    "bytes": 52786938,
+    "sha256": "c64a44b772373d5f3eb3751fe7da816f345b372f609bdbc00c0f7f4a63db5a1f",
+    "certificateSha256": "8158ed1e88c0d5e485abed87d63209f295021a482fc6c51d108e44fdce0448b1",
+    "cabinetApiPresent": false,
+    "signatureV2": "PASS",
+    "zip16k": "PASS",
+    "elf16k": "PASS",
+    "manifest": "PASS",
+    "nativeLibraries": [
+      "lib/x86_64/libandroidx.graphics.path.so",
+      "lib/x86_64/libdatastore_shared_counter.so",
+      "lib/x86_64/libgojni.so"
+    ]
+  }
+]

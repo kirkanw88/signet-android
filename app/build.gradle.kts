@@ -30,8 +30,8 @@ android {
             manifestPlaceholders["importScheme"] = "signet"
         }
         create("external") {
-            versionCode = 17
-            versionName = "0.2.15"
+            versionCode = 18
+            versionName = "0.2.16"
             buildConfigField("String","MAPTILER_API_KEY","\"$imageryKey\"")
             dimension = "edition"
             applicationIdSuffix = ".external"
