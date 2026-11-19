@@ -1,0 +1,50 @@
+[
+  {
+    "theme": "dark",
+    "text": "onSurface",
+    "background": "surface",
+    "contrast": 16.17
+  },
+  {
+    "theme": "dark",
+    "text": "onSurfaceVariant",
+    "background": "surface",
+    "contrast": 9.7
+  },
+  {
+    "theme": "dark",
+    "text": "primary",
+    "background": "surface",
+    "contrast": 9.17
+  },
+  {
+    "theme": "dark",
+    "text": "onPrimaryContainer",
+    "background": "primaryContainer",
+    "contrast": 11.27
+  },
+  {
+    "theme": "light",
+    "text": "onSurface",
+    "background": "surface",
+    "contrast": 15.7
+  },
+  {
+    "theme": "light",
+    "text": "onSurfaceVariant",
+    "background": "surface",
+    "contrast": 6.83
+  },
+  {
+    "theme": "light",
+    "text": "primary",
+    "background": "surface",
+    "contrast": 6.46
+  },
+  {
+    "theme": "light",
+    "text": "onPrimaryContainer",
+    "background": "primaryContainer",
+    "contrast": 10.04
+  }
+]

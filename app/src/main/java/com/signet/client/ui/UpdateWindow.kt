@@ -30,18 +30,18 @@ import com.signet.client.data.InstallPhase
     val busy=state.phase in setOf(InstallPhase.DOWNLOADING,InstallPhase.VERIFYING,InstallPhase.INSTALLING)
     fun dismiss(){model.installer.cancel();model.dismissUpdate()}
     Dialog(onDismissRequest={if(!busy)dismiss()}){
-        Surface(shape=RoundedCornerShape(28.dp),color=Color(0xFF0D1728),border=BorderStroke(1.dp,Color(0xFF538099))){
-            Column(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color(0xFF19394D),Color(0xFF0D1728)))).padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
+        Surface(shape=RoundedCornerShape(28.dp),color=AppColors.surface,border=BorderStroke(1.dp,Color(0xFF538099))){
+            Column(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(AppColors.tint,AppColors.surface))).padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
                 Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
-                    Icon(Icons.Outlined.SystemUpdate,null,tint=Color(0xFF8AD9FF),modifier=Modifier.size(32.dp))
-                    Text("Обновление Signet",fontSize=22.sp,fontWeight=FontWeight.SemiBold,color=Color.White)
+                    Icon(Icons.Outlined.SystemUpdate,null,tint=AppColors.accent,modifier=Modifier.size(32.dp))
+                    Text("Обновление Signet",fontSize=22.sp,fontWeight=FontWeight.SemiBold,color=AppColors.text)
                 }
-                Text("${BuildConfig.VERSION_NAME}  →  ${state.release?.version}",fontSize=18.sp,color=Color(0xFFB8E5FF))
-                Text(state.message.ifBlank{"Доступна новая версия приложения"},color=Color(0xFFE6EFFA),lineHeight=22.sp)
+                Text("${BuildConfig.VERSION_NAME}  →  ${state.release?.version}",fontSize=18.sp,color=AppColors.accent)
+                Text(state.message.ifBlank{"Доступна новая версия приложения"},color=AppColors.text,lineHeight=22.sp)
                 val total=state.release?.size?:0
                 if(total>0){
-                    LinearProgressIndicator(progress={(state.bytes.toDouble()/total).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth(),color=Color(0xFF78DCFF),trackColor=Color.White.copy(alpha=.12f))
-                    Text("${"%.1f".format(state.bytes/(1024.0*1024))} / ${"%.1f".format(total/(1024.0*1024))} МБ",color=Color(0xFFAABDD4),fontSize=13.sp)
+                    LinearProgressIndicator(progress={(state.bytes.toDouble()/total).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth(),color=AppColors.accent,trackColor=AppColors.border)
+                    Text("${"%.1f".format(state.bytes/(1024.0*1024))} / ${"%.1f".format(total/(1024.0*1024))} МБ",color=AppColors.muted,fontSize=13.sp)
                 }
                 when(state.phase){
                     InstallPhase.OFFER,InstallPhase.ERROR->GlassButton(onClick={model.installer.start()},modifier=Modifier.fillMaxWidth()){Text(if(state.phase==InstallPhase.ERROR)"Повторить"else"Обновить приложение")}

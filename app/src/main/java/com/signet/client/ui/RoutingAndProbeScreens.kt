@@ -29,7 +29,7 @@ import kotlinx.coroutines.*
 
 @Composable fun FullScreenPanel(title:String,close:()->Unit,content:@Composable ColumnScope.()->Unit) {
     Dialog(onDismissRequest=close,properties=DialogProperties(usePlatformDefaultWidth=false)) {
-        Surface(Modifier.fillMaxSize(),color=Color.Transparent,contentColor=Color.White) {
+        Surface(Modifier.fillMaxSize(),color=Color.Transparent,contentColor=AppColors.text) {
         SpaceBackdrop(Modifier.fillMaxSize()) {
             Column(Modifier.safeDrawingPadding().padding(horizontal=16.dp)) {
                 Row(Modifier.fillMaxWidth().padding(vertical=8.dp),verticalAlignment=Alignment.CenterVertically){Text(title,Modifier.weight(1f),style=MaterialTheme.typography.titleLarge);TextButton(onClick=close){Text("Закрыть")}}

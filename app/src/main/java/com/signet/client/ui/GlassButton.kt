@@ -16,11 +16,13 @@ import androidx.compose.ui.unit.dp
 /** A static glass surface: no backdrop bitmap, blur buffer or continuous animation. */
 @Composable fun GlassButton(onClick:()->Unit,modifier:Modifier=Modifier,enabled:Boolean=true,shape:Shape=RoundedCornerShape(22.dp),content:@Composable RowScope.()->Unit) {
     val alpha=if(enabled)1f else .4f
-    Surface(onClick=onClick,enabled=enabled,shape=shape,modifier=modifier,color=Color.Transparent,contentColor=if(enabled)Color(0xFFE7F8FF)else Color.White.copy(alpha=.35f),
-        border=BorderStroke(1.dp,Brush.verticalGradient(listOf(Color.White.copy(alpha=.65f*alpha),Color(0xFFB4E9FF).copy(alpha=.12f*alpha)))),
+    val fill=if(AppColors.dark)listOf(Color.White.copy(alpha=.20f*alpha),Color(0xFF73D8FF).copy(alpha=.13f*alpha),Color.White.copy(alpha=.045f*alpha))
+        else listOf(AppColors.surface.copy(alpha=.9f*alpha),AppColors.tint.copy(alpha=.8f*alpha),AppColors.surface.copy(alpha=.85f*alpha))
+    Surface(onClick=onClick,enabled=enabled,shape=shape,modifier=modifier,color=Color.Transparent,contentColor=AppColors.text.copy(alpha=alpha),
+        border=BorderStroke(1.dp,Brush.verticalGradient(listOf(AppColors.border.copy(alpha=alpha),AppColors.border.copy(alpha=.7f*alpha)))),
     ){
         ProvideTextStyle(MaterialTheme.typography.labelLarge){
-            Row(Modifier.background(Brush.verticalGradient(listOf(Color.White.copy(alpha=.20f*alpha),Color(0xFF73D8FF).copy(alpha=.13f*alpha),Color.White.copy(alpha=.045f*alpha))),shape)
+            Row(Modifier.background(Brush.verticalGradient(fill),shape)
                 .defaultMinSize(minWidth=58.dp,minHeight=48.dp).padding(horizontal=20.dp,vertical=12.dp),horizontalArrangement=Arrangement.Center,verticalAlignment=androidx.compose.ui.Alignment.CenterVertically,content=content)
         }
     }

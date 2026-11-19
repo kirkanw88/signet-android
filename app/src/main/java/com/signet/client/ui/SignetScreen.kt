@@ -41,13 +41,13 @@ import java.text.DateFormat
 import java.util.Date
 import kotlin.math.*
 
-private val Background=Color(0xFF050816)
-private val Surface=Color(0xFF10182A)
-private val Primary=Color(0xFF39C8FF)
-private val Muted=Color(0xFF9BAAC2)
-private val Green=Color(0xFF32E6A1)
-private val Warning=Color(0xFFFFC857)
-private val Error=Color(0xFFFF657A)
+private val Background:Color @Composable get()=MaterialTheme.colorScheme.background
+private val Surface:Color @Composable get()=AppColors.surface
+private val Primary:Color @Composable get()=AppColors.accent
+private val Muted:Color @Composable get()=AppColors.muted
+private val Green:Color @Composable get()=AppColors.success
+private val Warning:Color @Composable get()=AppColors.warning
+private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun SignetScreen(model: MainViewModel, connect: ()->Unit) {
@@ -92,26 +92,31 @@ private val Error=Color(0xFFFF657A)
     LaunchedEffect(state.message) { state.message?.let { message->
         try{snackbar.showSnackbar(message)}finally{if(model.repository.state.value.message==message)model.repository.clearMessage()}
     } }
-    LaunchedEffect(state.ready,state.settings.automaticUpdates){if(state.ready&&state.settings.automaticUpdates)model.checkUpdates(automatic=true)}
+    LaunchedEffect(state.ready,state.settings.automaticUpdates){
+        if(state.ready&&state.settings.automaticUpdates)lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED){
+            do{model.checkUpdates(automatic=true);if(BuildConfig.SIGNET_ACCOUNT)break;delay(2*60_000L)}while(true)
+        }
+    }
     LaunchedEffect(state.ready) { if(state.ready && state.settings.autoConnect && state.server != null && vpn.phase==VpnPhase.DISCONNECTED) connect() }
     val qr=rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         result.data?.getStringExtra("content")?.let { input=it;add=true }
     }
-    MaterialTheme(colorScheme=darkColorScheme(primary=Primary, secondary=Color(0xFF62F4E8), background=Background, surface=Surface, onSurface=Color.White, error=Error)) {
+    SignetTheme(if(BuildConfig.SIGNET_ACCOUNT)"dark"else state.settings.theme) {
         SpaceBackdrop(Modifier.fillMaxSize()) {
-        Scaffold(containerColor=Color.Transparent,contentColor=Color.White,snackbarHost={}) { insets ->
+        Scaffold(containerColor=Color.Transparent,contentColor=AppColors.text,snackbarHost={}) { insets ->
             Column(Modifier.fillMaxSize().padding(insets)) {
                 Row(Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
                     if(page==0)Image(painterResource(R.drawable.signet_logo),"Signet VPN",Modifier.width(80.dp).height(48.dp))
-                    else IconButton(onClick={page=if(page==2)3 else 0}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=Color.White)}
-                    if(page!=0)Text(if(page==3)"Настройки"else"Подписки",color=Color.White,fontSize=20.sp,fontWeight=FontWeight.Medium)
+                    else IconButton(onClick={page=if(page==2)3 else 0}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=AppColors.text)}
+                    if(page!=0)Text(if(page==3)"Настройки"else"Подписки",color=AppColors.text,fontSize=20.sp,fontWeight=FontWeight.Medium)
+                    if(page==0&&!BuildConfig.SIGNET_ACCOUNT)Text("v${BuildConfig.VERSION_NAME}",fontSize=13.sp,color=AppColors.muted)
                     Row {
-                        if(BuildConfig.SIGNET_ACCOUNT)IconButton(onClick={model.openAccount("support")}){Icon(Icons.Outlined.SupportAgent,"Техническая поддержка",tint=Color(0xFFCFDBEB))}
-                        IconButton(onClick={page=if(page==3)0 else 3}) { Icon(if(page==3)Icons.Outlined.Close else Icons.Outlined.Settings,if(page==3)"Закрыть настройки"else"Настройки",tint=Color(0xFFCFDBEB)) }
+                        if(BuildConfig.SIGNET_ACCOUNT)IconButton(onClick={model.openAccount("support")}){Icon(Icons.Outlined.SupportAgent,"Техническая поддержка",tint=AppColors.muted)}
+                        IconButton(onClick={page=if(page==3)0 else 3}) { Icon(if(page==3)Icons.Outlined.Close else Icons.Outlined.Settings,if(page==3)"Закрыть настройки"else"Настройки",tint=AppColors.muted) }
                     }
                 }
-                SnackbarHost(snackbar,Modifier.fillMaxWidth()){data->Snackbar(data,containerColor=Surface,contentColor=Color.White,shape=RoundedCornerShape(16.dp),modifier=Modifier.padding(horizontal=16.dp))}
-                update.available?.takeIf{it.version.toString()!=update.dismissed}?.let{UpdateBanner(it,model)}
+                SnackbarHost(snackbar,Modifier.fillMaxWidth()){data->Snackbar(data,containerColor=Surface,contentColor=AppColors.text,shape=RoundedCornerShape(16.dp),modifier=Modifier.padding(horizontal=16.dp))}
+                update.available?.let{UpdateBanner(it,model)}
                 when(page) {
                     0 -> Home(state,vpn,model,connect,{page=2;addMenu=true},{showServers=true})
                     2 -> Subscriptions(state,{addMenu=true},model::remove,model::refresh,model::openAccount,if(BuildConfig.SIGNET_ACCOUNT)model.account else null, {
@@ -125,14 +130,14 @@ private val Error=Color(0xFFFF657A)
         }
         if(showServers){
             val sheet=rememberModalBottomSheetState(skipPartiallyExpanded=true)
-            ModalBottomSheet(onDismissRequest={showServers=false},sheetState=sheet,containerColor=Surface,contentColor=Color.White,modifier=Modifier.testTag("server-sheet")) {
+            ModalBottomSheet(onDismissRequest={showServers=false},sheetState=sheet,containerColor=Surface,contentColor=AppColors.text,modifier=Modifier.testTag("server-sheet")) {
                 LocationList(state,vpn,probing,{id->model.select(id);scope.launch{sheet.hide();showServers=false}},model::favorite,{model.measure()},model::refresh,
                     Modifier.fillMaxWidth().fillMaxHeight(.88f).padding(horizontal=20.dp),activeProbes=activeProbes)
             }
         }
         if(BuildConfig.SIGNET_ACCOUNT&&accountPage!=null)MobileAccountScreen(model,accountPage!!){model.accountPage.value=null}
         UpdateWindow(model)
-        if(addMenu)ModalBottomSheet(onDismissRequest={addMenu=false},containerColor=Surface,contentColor=Color.White){
+        if(addMenu)ModalBottomSheet(onDismissRequest={addMenu=false},containerColor=Surface,contentColor=AppColors.text){
             Column(Modifier.fillMaxWidth().padding(horizontal=20.dp).padding(bottom=24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
                 Text("Добавить подписку",fontSize=24.sp,fontWeight=FontWeight.SemiBold)
                 GlassButton(onClick={addMenu=false;runCatching{ClipboardTransfers.read(context,16*1024).also{require(com.signet.core.SubscriptionMetadata.safeLink(it)!=null)}}.onSuccess{input=it;ageKey="";oauthConsent=false;add=true}.onFailure{model.repository.notify("В буфере нет корректной ссылки подписки")}},modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.ContentPaste,null);Text("Вставить из буфера обмена",Modifier.padding(start=10.dp))}
@@ -176,9 +181,9 @@ private val Error=Color(0xFFFF657A)
     }
     if(LocalConfiguration.current.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE)Row(Modifier.fillMaxSize().padding(horizontal=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(18.dp)) {
         Globe(server,phase,state.settings,Modifier.weight(1.2f).fillMaxHeight())
-        Column(Modifier.weight(1f),horizontalAlignment=Alignment.CenterHorizontally){Text(status,fontSize=22.sp,color=if(phase==VpnPhase.CONNECTED)Green else Color.White);controls()}
+        Column(Modifier.weight(1f),horizontalAlignment=Alignment.CenterHorizontally){Text(status,fontSize=22.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text);controls()}
     } else Column(Modifier.fillMaxSize().padding(horizontal=16.dp).padding(bottom=12.dp),horizontalAlignment=Alignment.CenterHorizontally) {
-        Text(status,fontSize=24.sp,color=if(phase==VpnPhase.CONNECTED)Green else Color.White,maxLines=1)
+        Text(status,fontSize=24.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text,maxLines=1)
         Globe(server,phase,state.settings,Modifier.weight(1f).fillMaxWidth())
         controls()
     }
@@ -195,7 +200,7 @@ private val Error=Color(0xFFFF657A)
     val marker by view.globe.capitalMarker.collectAsStateWithLifecycle()
     var labelSize by remember{mutableStateOf(IntSize.Zero)}
     var area by remember{mutableStateOf(IntSize.Zero)}
-    Box(modifier.testTag("home-globe").onSizeChanged{area=it}) {
+    Box(modifier.testTag("home-globe").clip(RoundedCornerShape(if(AppColors.dark)0.dp else 24.dp)).onSizeChanged{area=it}) {
         AndroidView(factory={view},modifier=Modifier.fillMaxSize(),update={it.update(server,phase,settings.graphics,settings.reduceMotion)})
         AnimatedVisibility(marker.visible,enter=fadeIn(tween(350)),exit=fadeOut(tween(150)),modifier=Modifier.offset{
             IntOffset((marker.x-labelSize.width/2).coerceIn(0,(area.width-labelSize.width).coerceAtLeast(0)),(marker.y-labelSize.height).coerceAtLeast(0))
@@ -243,7 +248,7 @@ private val Error=Color(0xFFFF657A)
 }
 
 @Composable private fun AccountAction(icon:androidx.compose.ui.graphics.vector.ImageVector,title:String,click:()->Unit){
-    Surface(onClick=click,color=Color(0xDC101B2D),shape=RoundedCornerShape(18.dp),border=BorderStroke(1.dp,Color.White.copy(alpha=.12f)),modifier=Modifier.fillMaxWidth()){
+    Surface(onClick=click,color=AppColors.surface,shape=RoundedCornerShape(18.dp),border=BorderStroke(1.dp,AppColors.text.copy(alpha=.12f)),modifier=Modifier.fillMaxWidth()){
         Row(Modifier.padding(horizontal=16.dp,vertical=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)){
             Icon(icon,null,tint=Primary,modifier=Modifier.size(23.dp));Text(title,Modifier.weight(1f),fontSize=16.sp);Icon(Icons.Outlined.ChevronRight,null,tint=Muted)
         }
@@ -257,7 +262,7 @@ private val Error=Color(0xFFFF657A)
     val used=((info["upload"]?:0).coerceAtLeast(0).toDouble()+(info["download"]?:0).coerceAtLeast(0)).coerceAtMost(Long.MAX_VALUE.toDouble()).toLong()
     Column(Modifier.fillMaxWidth().padding(vertical=6.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
         if(total!=null){
-            if(total>0)LinearProgressIndicator(progress={(used.toDouble()/total).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth(),color=if(used>=total)Warning else Primary,trackColor=Color.White.copy(alpha=.15f))
+            if(total>0)LinearProgressIndicator(progress={(used.toDouble()/total).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth(),color=if(used>=total)Warning else Primary,trackColor=AppColors.text.copy(alpha=.15f))
             Text(if(total>0)"${bytes(used)} из ${bytes(total)}"else"${bytes(used)} · Безлимитный трафик",color=if(total!=null&&total>0&&used>=total)Warning else Muted,fontSize=12.sp)
         }
         info["expire"]?.let{expiry->

@@ -13,7 +13,7 @@ data class Settings(
     val graphics: String = "Balanced", val reduceMotion: Boolean = false,
     val appMode: String = "all", val packages: Set<String> = emptySet(), val cabinet: String = if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)SignetLinks.CABINET else "",
     val hwid: Boolean = true, val probes:ProbeSettings=ProbeSettings(),val automaticUpdates:Boolean=true,
-    val connectionCheckUrl:String="https://example.com",val logging:Boolean=false
+    val connectionCheckUrl:String="https://example.com",val logging:Boolean=false,val theme:String="dark"
 )
 class SettingsStore(private val context: Context) {
     suspend fun load(): Settings {
@@ -23,7 +23,7 @@ class SettingsStore(private val context: Context) {
             p[booleanPreferencesKey("reduceMotion")] ?: false, p[stringPreferencesKey("appMode")] ?: "all",
             p[stringSetPreferencesKey("packages")] ?: emptySet(), if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)SignetLinks.CABINET else "", true,
             p[stringPreferencesKey("probes")]?.let { runCatching { ProbeSettings.parse(it) }.getOrNull() }?:ProbeSettings(),p[booleanPreferencesKey("automaticUpdates")]?:true,
-            p[stringPreferencesKey("connectionCheckUrl")]?.takeIf{com.signet.core.SubscriptionMetadata.safeLink(it)!=null}?:"https://example.com",p[booleanPreferencesKey("logging")]?:false)
+            p[stringPreferencesKey("connectionCheckUrl")]?.takeIf{com.signet.core.SubscriptionMetadata.safeLink(it)!=null}?:"https://example.com",p[booleanPreferencesKey("logging")]?:false,p[stringPreferencesKey("theme")]?.takeIf{it in setOf("dark","light","system")}?:"dark")
     }
     suspend fun save(s: Settings) = context.settingsStore.edit {
         it[booleanPreferencesKey("reconnect")] = s.reconnect; it[booleanPreferencesKey("autoConnect")] = s.autoConnect
@@ -36,5 +36,7 @@ class SettingsStore(private val context: Context) {
         it[stringPreferencesKey("probes")] = s.probes.validated().json().toString()
         it[booleanPreferencesKey("automaticUpdates")] = s.automaticUpdates
         it[booleanPreferencesKey("logging")] = s.logging
+        require(s.theme in setOf("dark","light","system"))
+        it[stringPreferencesKey("theme")] = s.theme
     }
 }

@@ -14,8 +14,9 @@ import androidx.compose.ui.platform.LocalContext
 @Composable fun SpaceBackdrop(modifier:Modifier=Modifier,content:@Composable BoxScope.()->Unit){
     val context=LocalContext.current
     val image=remember(context.assets){context.assets.open("space.png").use{BitmapFactory.decodeStream(it,null,BitmapFactory.Options().apply{inPreferredConfig=android.graphics.Bitmap.Config.RGB_565})}!!.asImageBitmap()}
-    Box(modifier.background(Color.Black)){
+    Box(modifier.background(androidx.compose.material3.MaterialTheme.colorScheme.background)){
         Image(image,null,Modifier.matchParentSize(),contentScale=ContentScale.Crop,alpha=.72f)
+        if(!AppColors.dark)Box(Modifier.matchParentSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background.copy(alpha=.97f)))
         content()
     }
 }

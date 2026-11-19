@@ -1,0 +1,30 @@
+{
+  "version": "0.2.8",
+  "edition": "external",
+  "gradleVerification": "strict",
+  "tests": {
+    "updates": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "external": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "debugRelease": "PASS",
+  "duration": "3m 1s",
+  "lint": {
+    "errors": 0,
+    "warnings": 48
+  },
+  "themeTextContrastMinimum": 6.46,
+  "physicalAndroid": "NOT RUN",
+  "longCiEmulatorColdCache": "NOT RUN",
+  "production": "UNCHANGED",
+  "signetRelease": "UNCHANGED 0.2.6"
+}

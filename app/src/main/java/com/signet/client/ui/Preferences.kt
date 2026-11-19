@@ -33,9 +33,9 @@ import com.signet.client.vpn.*
 import com.signet.core.SubscriptionMetadata
 import kotlinx.coroutines.*
 
-private val Ink=Color(0xFFF0F5FD)
-private val SecondaryInk=Color(0xFFB2C1D7)
-private val Accent=Color(0xFF8AD9FF)
+private val Ink:Color @Composable get()=AppColors.text
+private val SecondaryInk:Color @Composable get()=AppColors.muted
+private val Accent:Color @Composable get()=AppColors.accent
 
 @Composable fun Preferences(state:AppState,model:MainViewModel,subscriptions:()->Unit,servers:()->Unit,openDiagnostics:Boolean,diagnosticsHandled:()->Unit) {
     var section by rememberSaveable { mutableStateOf("main") }
@@ -71,12 +71,12 @@ private val Accent=Color(0xFF8AD9FF)
                 SettingsCard {
                     MenuItem(Icons.Outlined.VpnKey,"Соединение","Автоподключение и проверка связи",{section="connection"})
                     MenuItem(Icons.Outlined.Route,"Маршрутизация","DNS, приложения и шаблон Xray",{section="routing"})
-                    MenuItem(Icons.Outlined.Palette,"Оформление","Планета, качество и анимация",{section="appearance"})
-                    MenuItem(Icons.Outlined.SystemUpdate,"Обновления","Новая версия приложения",{section="updates"})
+                    MenuItem(Icons.Outlined.Palette,"Оформление","Тема, планета и анимация",{section="appearance"})
+                    MenuItem(Icons.Outlined.SystemUpdate,"Обновления",update.available?.let{"Доступна версия ${it.version}"}?:"Новая версия приложения",{section="updates"})
                     MenuItem(Icons.Outlined.Troubleshoot,"Диагностика","Причина ошибки и отчёт без ключей",{section="diagnostics";model.diagnostics()})
                     MenuItem(Icons.Outlined.Article,"Журнал подключения","Логирование, просмотр и экспорт",{section="logs"})
                 }
-                Text("Signet VPN ${BuildConfig.VERSION_NAME}"+if(BuildConfig.SIGNET_ACCOUNT)""else" · Сторонние подписки",fontSize=14.sp,color=SecondaryInk,modifier=Modifier.padding(8.dp))
+                Text("Signet VPN ${BuildConfig.VERSION_NAME}",fontSize=14.sp,color=SecondaryInk,modifier=Modifier.padding(8.dp))
             }
             "connection"->{
                 SettingsCard {
@@ -111,6 +111,15 @@ private val Accent=Color(0xFF8AD9FF)
                 }
             }
             "appearance"->{
+                if(!BuildConfig.SIGNET_ACCOUNT)SettingsCard {
+                    SettingsHeading("Тема приложения")
+                    listOf("light" to "Светлая","dark" to "Тёмная","system" to "Как на устройстве").forEach{(mode,label)->
+                        Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(theme=mode))}.padding(12.dp),verticalAlignment=Alignment.CenterVertically){
+                            RadioButton(s.theme==mode,{model.save(s.copy(theme=mode))})
+                            Text(label,Modifier.padding(start=8.dp),fontSize=17.sp,color=Ink)
+                        }
+                    }
+                }
                 SettingsCard {
                     listOf(Triple("High","Высокое качество","До 60 кадров/с"),Triple("Balanced","Баланс","До 30 кадров/с"),Triple("Battery Saver","Экономия энергии","До 10 кадров/с")).forEach{(mode,label,detail)->
                         Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(graphics=mode))}.padding(12.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(s.graphics==mode,{model.save(s.copy(graphics=mode))});Column(Modifier.padding(start=8.dp)){Text(label,fontSize=17.sp,color=Ink);Text(detail,fontSize=14.sp,color=SecondaryInk)}}
@@ -168,14 +177,14 @@ private val Accent=Color(0xFF8AD9FF)
 }
 
 @Composable private fun SettingsCard(content:@Composable ColumnScope.()->Unit){
-    Surface(shape=RoundedCornerShape(22.dp),color=Color(0xFF0E1728),border=BorderStroke(1.dp,Color.White.copy(alpha=.07f)),modifier=Modifier.fillMaxWidth()){
+    Surface(shape=RoundedCornerShape(22.dp),color=AppColors.surface,border=BorderStroke(1.dp,AppColors.border),modifier=Modifier.fillMaxWidth()){
         Column(Modifier.padding(6.dp),content=content)
     }
 }
 @Composable private fun SettingsHeading(text:String){Text(text,fontSize=18.sp,fontWeight=FontWeight.SemiBold,color=Ink,modifier=Modifier.padding(12.dp))}
 @Composable private fun MenuItem(icon:ImageVector,title:String,subtitle:String,onClick:()->Unit,enabled:Boolean=true){
     Row(Modifier.fillMaxWidth().clickable(enabled=enabled,onClick=onClick).padding(horizontal=12.dp,vertical=14.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)){
-        Box(Modifier.size(42.dp).background(Color(0xFF1B3146),RoundedCornerShape(14.dp)),contentAlignment=Alignment.Center){Icon(icon,null,tint=Accent,modifier=Modifier.size(23.dp))}
+        Box(Modifier.size(42.dp).background(AppColors.tint,RoundedCornerShape(14.dp)),contentAlignment=Alignment.Center){Icon(icon,null,tint=Accent,modifier=Modifier.size(23.dp))}
         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){Text(title,fontSize=17.sp,lineHeight=23.sp,fontWeight=FontWeight.Medium,color=Ink);Text(subtitle,fontSize=14.sp,lineHeight=20.sp,color=SecondaryInk)}
         if(enabled)Icon(Icons.Outlined.ChevronRight,null,tint=SecondaryInk,modifier=Modifier.size(20.dp))
     }
