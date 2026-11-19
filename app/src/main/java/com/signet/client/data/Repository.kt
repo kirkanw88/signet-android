@@ -68,7 +68,7 @@ class Repository(private val context: Context, private val vault: Vault, private
         require(state.value.servers.any { it.id == id && it.enabled }) { "Профиль недоступен" }
         commit(state.value.copy(selected=id))
     }
-    suspend fun settings(s: Settings) = mutex.withLock { val fixed=s.copy(cabinet=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)SignetLinks.CABINET else "",hwid=true);settingsStore.save(fixed);ConnectionLog.configure(fixed.logging); _state.update { it.copy(settings = fixed) } }
+    suspend fun settings(s: Settings) = mutex.withLock { val fixed=s.copy(graphics=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)s.graphics else UniversalDefaults.GRAPHICS,automaticUpdates=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)s.automaticUpdates else true,cabinet=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)SignetLinks.CABINET else "",hwid=true);settingsStore.save(fixed);ConnectionLog.configure(fixed.logging); _state.update { it.copy(settings = fixed) } }
     suspend fun favorite(id: String) = updateServers { if (it.id == id) it.copy(favorite = !it.favorite) else it }
     suspend fun success(id: String) = updateServers { if (it.id == id) it.copy(successes = it.successes + 1) else it }
     suspend fun edit(id: String, text: String) {
@@ -165,6 +165,6 @@ class Repository(private val context: Context, private val vault: Vault, private
         catch (e: Exception) { notify(if (e.message?.startsWith("HTTP ") == true) e.message!! else "Не удалось импортировать профиль. Проверьте ссылку и формат конфигурации.") }
         finally { _state.update { it.copy(busy = false) } }
     } }
-    suspend fun refreshAll(onlyDue:Boolean=false) { awaitReady(); state.value.subscriptions.filter { it.url != null && (!onlyDue || System.currentTimeMillis()-it.updated>=it.metadata.updateHours*3_600_000L) }.forEach { import(it.url!!, it.id) } }
+    suspend fun refreshAll(onlyDue:Boolean=false) { awaitReady(); state.value.subscriptions.filter { it.url != null && (!onlyDue || if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)System.currentTimeMillis()-it.updated>=it.metadata.updateHours*3_600_000L else UniversalDefaults.subscriptionDue(it.updated,System.currentTimeMillis())) }.forEach { import(it.url!!, it.id) } }
     suspend fun measurement(id: String, delay: Long?,mode:String="OUTBOUND",status:String?=null) = updateServers(persistent = false) { if (it.id == id) it.copy(latencyMs = delay, available = if(status in setOf("UNSUPPORTED","CONSENT_REQUIRED")||(!com.signet.client.BuildConfig.SIGNET_ACCOUNT&&status in setOf("NO_NETWORK","SERVICE_ERROR","PROBE_ERROR","DNS","TLS","IO","FAILED")))null else delay != null, checkedAt = System.currentTimeMillis(),probeMode=mode,probeMessage=status) else it }
 }

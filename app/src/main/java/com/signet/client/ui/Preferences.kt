@@ -121,7 +121,7 @@ private val Accent:Color @Composable get()=AppColors.accent
                     }
                 }
                 SettingsCard {
-                    listOf(Triple("High","Высокое качество","До 60 кадров/с"),Triple("Balanced","Баланс","До 30 кадров/с"),Triple("Battery Saver","Экономия энергии","До 10 кадров/с")).forEach{(mode,label,detail)->
+                    if(BuildConfig.SIGNET_ACCOUNT)listOf(Triple("High","Высокое качество","До 60 кадров/с"),Triple("Balanced","Баланс","До 30 кадров/с"),Triple("Battery Saver","Экономия энергии","До 10 кадров/с")).forEach{(mode,label,detail)->
                         Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(graphics=mode))}.padding(12.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(s.graphics==mode,{model.save(s.copy(graphics=mode))});Column(Modifier.padding(start=8.dp)){Text(label,fontSize=17.sp,color=Ink);Text(detail,fontSize=14.sp,color=SecondaryInk)}}
                     }
                     SettingsToggle("Уменьшить движение","Спокойная анимация планеты",s.reduceMotion){model.save(s.copy(reduceMotion=it))}
@@ -129,7 +129,7 @@ private val Accent:Color @Composable get()=AppColors.accent
             }
             "updates"->{
                 SettingsCard {
-                    SettingsToggle("Проверять автоматически","Сообщать о новой версии в приложении",s.automaticUpdates){model.save(s.copy(automaticUpdates=it))}
+                    if(BuildConfig.SIGNET_ACCOUNT)SettingsToggle("Проверять автоматически","Сообщать о новой версии в приложении",s.automaticUpdates){model.save(s.copy(automaticUpdates=it))}
                     GlassButton(onClick={model.checkUpdates()},enabled=!update.checking,modifier=Modifier.fillMaxWidth().padding(12.dp)){if(update.checking)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp);Text("Проверить обновление",Modifier.padding(start=8.dp))}
                     if(update.message.isNotBlank())Text(update.message,fontSize=15.sp,lineHeight=22.sp,color=SecondaryInk,modifier=Modifier.padding(12.dp))
                 }

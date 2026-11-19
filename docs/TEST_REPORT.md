@@ -1,3 +1,28 @@
+# Signet VPN 0.2.10 — проверка 19.11.2026
+
+Только universal external. [Изменения](RELEASE_0_2_10.md): WorkManager 1 час с UPDATE для старого задания, High и уведомления о новых версиях постоянно, названия хостов, компактные строки и прокрутка. Для повторного DNS-сообщения добавлен проверяемый резервный путь через тот же виртуальный DNS внутри TUN; при отсутствии ответа ошибка сохраняется. Прежний default example.com однократно заменяется gstatic; остальные пользовательские адреса не меняются.
+
+| Проверка | Результат |
+|---|---|
+| Targeted core JVM | UniversalDefaultsTest + DnsWireTest: 4/4, failures/errors 0 |
+| External app JVM | 14/14, failures/errors 0 |
+| Hourly policy / host labels | Граница 60 минут, откат часов, remarks вместо страны без изменения географии и JSON PASS |
+| DNS wire | Transaction ID, имя/тип вопроса, compressed answer, NXDOMAIN, обрезанный пакет и pointer loop PASS |
+| DNS recovery | Настоящий локальный TCP fixture: системный UnknownHost → адрес из DNS-ответа; неработающий резерв остаётся UnknownHost |
+| Android Lint external | 0 errors / 48 warnings |
+| Debug / Release external | PASS, strict verification, финальная сборка 2m 25s |
+| APK | Три ABI, external 0.2.10/code 12, v2 signature, zip/ELF 16 KB PASS |
+| Physical Android DNS / scroll gestures / hourly Doze scheduling / settings migration | NOT RUN; конкретный случай телефона без журнала не подтверждён |
+| Long CI / emulator / cold cache / production changes | Не запускались; production и исходный Signet release 0.2.6 не изменены |
+
+DNS fallback работает только для проверки через активный TUN; обычная проверка без VPN его не включает. TCP-сокет не protect/bind к физической сети. Нет внешнего DoH/DNS, подставленных Google IP, ослабления TLS или принудительного healthy. Запрашиваются A/AAAA у того же DNS-моста и политики JSON, принимаются только реальные ответы. Таймауты и размеры ограничены, журнал содержит коды без доменов/ключей. Точная причина сообщения на телефоне не установлена тестом с имитированным отказом resolver; это проверка исправленного пути, не подтверждение production-инцидента.
+
+Высокое качество включается с момента создания renderer; базовая текстура по-прежнему ограничена 2048 по ширине, детальные tiles используются по прежней схеме. Дополнительных bitmap/blur buffers и зависимостей нет. Вертикальные жесты GL-view передаются прокрутке, горизонтальные сохраняют вращение; реальные жесты на устройстве не измерялись. WorkManager UPDATE и внутренний фильтр давности согласованы на 1 час, но Android может отложить фактический фоновый запуск.
+
+[Checks](../tests/evidence/0.2.10/checks.json), [APK](../tests/evidence/0.2.10/apk-verification.json). Прежние шаблоны/GLSL не менялись, их проверки не повторялись. Ошибка первой компиляции затрагивала только запись тестового Dns mock; исправлена реализацией интерфейса, финальные тесты прошли.
+
+---
+
 # Signet VPN 0.2.9 — проверка 19.11.2026
 
 Исправления только универсальной редакции external: JSON/Signet_Auto, описания Remnawave и светлая тема. Signet с кабинетом не пересобирается и остаётся на 0.2.6. [Описание и обновление подписки](RELEASE_0_2_9.md).

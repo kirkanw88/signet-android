@@ -88,7 +88,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val previous=ConnectionHealth.latest.value
             _diagnostic.value="Проверяем HTTPS-соединение…"
             try {
-                val result=ConnectionHealth.check(state.value.settings.connectionCheckUrl,attempts=1,record=false)
+                val result=ConnectionHealth.check(state.value.settings.connectionCheckUrl,attempts=1,record=false,throughTunnel=vpn.value.phase==VpnPhase.CONNECTED)
                 val transport=state.value.server?.let{com.signet.core.ServerDisplayModel.from(it).transport}?:"Не выбран"
                 _diagnostic.value="Signet ${BuildConfig.VERSION_NAME}\nXray ${NativeCore.version()}\n\nVPN: ${vpn.value.phase}\nПрофиль: $transport\nРежим измерения: ${state.value.settings.probes.mode}\n\nПри подключении:\n${previous?.description?:"Проверка ещё не выполнялась"}\nПопыток: ${previous?.attempts?:0}\n\nСейчас:\n${result.description}\n\nПрофилей: ${state.value.subscriptions.size}\nСерверов: ${state.value.servers.size}\n\nАдреса серверов, ссылка подписки и ключи исключены."
             }catch(e:CancellationException){throw e}

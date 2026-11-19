@@ -25,8 +25,11 @@ import kotlinx.coroutines.flow.asStateFlow
 data class CapitalMarker(val name:String="",val x:Int=0,val y:Int=0,val visible:Boolean=false)
 
 class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(context) {
-    val globe = GlobeRenderer(context.applicationContext)
+    val globe = GlobeRenderer(context.applicationContext,highQuality)
     private var lastX = 0f; private var lastY = 0f
+    private var startX=0f;private var startY=0f;private var gestureAxis=0
+    private var allowParentScroll=false
+    private val touchSlop=android.view.ViewConfiguration.get(context).scaledTouchSlop
     init {
         setEGLContextClientVersion(2)
         if(highQuality)setEGLConfigChooser { egl,display ->
@@ -42,7 +45,8 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
         setRenderer(globe); preserveEGLContextOnPause = false
         contentDescription = "Интерактивная трёхмерная Земля. Проведите пальцем для вращения."
     }
-    fun update(server: Server?, phase: VpnPhase, quality: String, reduced: Boolean, lightTheme:Boolean=false) {
+    fun update(server: Server?, phase: VpnPhase, quality: String, reduced: Boolean, lightTheme:Boolean=false,parentScroll:Boolean=false) {
+        allowParentScroll=parentScroll
         queueEvent { globe.lightTheme=lightTheme;globe.update(server, phase, quality, reduced) }
     }
     override fun onLayout(changed:Boolean,left:Int,top:Int,right:Int,bottom:Int){
@@ -53,19 +57,27 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
     }
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
-            MotionEvent.ACTION_DOWN -> { lastX = event.x; lastY = event.y; parent.requestDisallowInterceptTouchEvent(true) }
+            MotionEvent.ACTION_DOWN -> { lastX = event.x; lastY = event.y;startX=event.x;startY=event.y;gestureAxis=0;parent.requestDisallowInterceptTouchEvent(!allowParentScroll) }
             MotionEvent.ACTION_MOVE -> {
+                if(allowParentScroll){
+                    val dx=event.x-startX;val dy=event.y-startY
+                    if(gestureAxis==0&&max(abs(dx),abs(dy))>touchSlop)gestureAxis=if(abs(dy)>abs(dx))2 else 1
+                    if(gestureAxis==2){parent.requestDisallowInterceptTouchEvent(false);return false}
+                    if(gestureAxis==0)return true
+                    parent.requestDisallowInterceptTouchEvent(true)
+                }
                 val dx = event.x - lastX; val dy = event.y - lastY
                 queueEvent { globe.drag(dx * .25f, dy * .2f) }; lastX = event.x; lastY = event.y
             }
             MotionEvent.ACTION_UP -> { performClick(); parent.requestDisallowInterceptTouchEvent(false) }
+            MotionEvent.ACTION_CANCEL -> {gestureAxis=0;parent.requestDisallowInterceptTouchEvent(false)}
         }
         return true
     }
     override fun performClick(): Boolean { super.performClick(); return true }
 }
 
-class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
+class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GLSurfaceView.Renderer {
     var lightTheme=false
     private val markerState=MutableStateFlow(CapitalMarker());val capitalMarker=markerState.asStateFlow()
     private var capitals:JSONObject?=null;private var capital:JSONObject?=null
@@ -90,7 +102,7 @@ class GlobeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     private var width = 1; private var height = 1
     private var yaw = -18f; private var pitch = 12f
     private var targetYaw: Float? = null; private var targetPitch = 12f
-    private var phase = VpnPhase.DISCONNECTED; private var quality = "Balanced"; private var reduced = false
+    private var phase = VpnPhase.DISCONNECTED; private var quality = if(initialHigh)"High"else"Balanced"; private var reduced = false
     private var selected: String? = null; private var country: String? = null
     private var vertex = floats(floatArrayOf()); private var uv = floats(floatArrayOf()); private var indices = shorts(shortArrayOf())
     private var count = 0

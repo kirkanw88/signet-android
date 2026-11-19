@@ -129,12 +129,12 @@ class SignetVpnService : VpnService() {
             startupStage="проверка HTTPS"
             // Android updates VPN routes/DNS asynchronously after establish(). Allow bounded warm-up retries.
             delay(300)
-            check(ConnectionHealth.check(settings.connectionCheckUrl).healthy)
+            check(ConnectionHealth.check(settings.connectionCheckUrl,throughTunnel=true).healthy)
             currentCoroutineContext().ensureActive()
             if (!requested) { stopCore(); return@withLock }
             VpnState.status.value = VpnStatus(VpnPhase.CONNECTED, selected.id, SystemClock.elapsedRealtime(),tunActive=true)
             repository.success(selected.id)
-            notification("Подключено · ${selected.countryName}")
+            notification("Подключено · ${if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)selected.countryName else com.signet.core.DisplayText.clean(selected.name)}")
             ConnectionLog.add("VPN","CONNECTED")
             monitor = scope.launch { watch(selected) }
         } catch (e: CancellationException) { stopCore(closeTun=false); throw e }
@@ -157,7 +157,7 @@ class SignetVpnService : VpnService() {
                     break
                 }
                 if(SystemClock.elapsedRealtime()>=nextHealth) {
-                    val reachable=ConnectionHealth.check(repository.state.value.settings.connectionCheckUrl,attempts=1).healthy
+                    val reachable=ConnectionHealth.check(repository.state.value.settings.connectionCheckUrl,attempts=1,throughTunnel=true).healthy
                     failures=if(reachable)0 else failures+1;nextHealth=SystemClock.elapsedRealtime()+30_000
                     if(reachable)retryCount=0
                     if(failures>=3){stopCore(closeTun=false);fail("VPN перестал передавать HTTPS-трафик");break}

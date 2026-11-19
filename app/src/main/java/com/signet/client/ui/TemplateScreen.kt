@@ -18,7 +18,7 @@ import org.json.JSONObject
     var result by remember{mutableStateOf<String?>(null)};var checking by remember{mutableStateOf(false)}
     FullScreenPanel("Шаблон Remnawave / Xray JSON",close) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
-            Text(ServerDisplayModel.from(server).title,style=MaterialTheme.typography.titleLarge)
+            Text(ServerDisplayModel.from(server,hostNames=!com.signet.client.BuildConfig.SIGNET_ACCOUNT).title,style=MaterialTheme.typography.titleLarge)
             Text(report.text())
             Text("Порядок routing.rules, DNS, outbounds и balancers сохраняется. Android заменяет слушающие inbounds одним TUN с указанным tag. Правила для других входов не получают Android-трафик.")
             Text("Статическая проверка и принятие JSON ядром не подтверждают сетевую маршрутизацию. Ping в режиме «Полный профиль» использует предоставленные правила; DNS/UDP/IPv6 и split tunneling требуют отдельного теста трафика.",style=MaterialTheme.typography.bodySmall)

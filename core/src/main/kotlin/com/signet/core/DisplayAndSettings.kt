@@ -13,8 +13,8 @@ object DisplayText {
 
 data class ServerDisplayModel(val id:String,val title:String,val description:String?,val country:String?,val group:String,val isAuto:Boolean,val transport:String) {
     companion object {
-        fun all(servers:List<Server>):Map<String,ServerDisplayModel> {
-            val bases=servers.associate{it.id to from(it)}
+        fun all(servers:List<Server>,hostNames:Boolean=false):Map<String,ServerDisplayModel> {
+            val bases=servers.associate{it.id to from(it,hostNames)}
             val titles=servers.groupingBy{(it.countryCode?:"")+":"+bases.getValue(it.id).title}.eachCount()
             val positions=mutableMapOf<String,Int>()
             return servers.associate { server->
@@ -23,7 +23,7 @@ data class ServerDisplayModel(val id:String,val title:String,val description:Str
                 server.id to base.copy(title=if((titles[key]?:0)>1)"${base.title} №$n"else base.title)
             }
         }
-        fun from(server:Server):ServerDisplayModel {
+        fun from(server:Server,hostNames:Boolean=false):ServerDisplayModel {
             val code=server.countryCode
             val white=server.name.contains(Regex("(?i)signet[ _-]*white"))
             val gaming=Regex("(?i)gaming|game|игров").containsMatchIn(server.name+" "+server.description.orEmpty())
@@ -42,7 +42,8 @@ data class ServerDisplayModel(val id:String,val title:String,val description:Str
                 listOfNotNull(protocol,network.takeIf{it.isNotBlank()},security).joinToString(" / ")
             }.getOrDefault("Xray")
             val autoTitle=if(Regex("(?i)signet[ _-]+auto(?:\\b|$)").containsMatchIn(server.name))"Signet_Auto"else"AUTO"
-            return ServerDisplayModel(server.id,if(server.isAuto&&!white)autoTitle else name,
+            val title=if(hostNames)DisplayText.clean(server.name,200).ifBlank{"Профиль"}else if(server.isAuto&&!white)autoTitle else name
+            return ServerDisplayModel(server.id,title,
                 server.description?.let{DisplayText.clean(it.replace(Regex("[\\r\\n]+")," "),300)}?.takeIf{it.isNotBlank()&&!it.equals(name,true)}?:if(server.isAuto)"Автоматическая маршрутизация"else null,
                 if(server.isAuto)null else code,if(server.isAuto)"AUTO"else server.countryName,server.isAuto,transport)
         }

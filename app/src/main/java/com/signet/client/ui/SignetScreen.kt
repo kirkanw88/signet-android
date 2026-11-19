@@ -93,7 +93,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         try{snackbar.showSnackbar(message)}finally{if(model.repository.state.value.message==message)model.repository.clearMessage()}
     } }
     LaunchedEffect(state.ready,state.settings.automaticUpdates){
-        if(state.ready&&state.settings.automaticUpdates)lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED){
+        if(state.ready&&(state.settings.automaticUpdates||!BuildConfig.SIGNET_ACCOUNT))lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED){
             do{model.checkUpdates(automatic=true);if(BuildConfig.SIGNET_ACCOUNT)break;delay(2*60_000L)}while(true)
         }
     }
@@ -163,7 +163,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     val phase=vpn.phase
     val active=vpn.tunActive||phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING)
     val server=if(phase==VpnPhase.CONNECTED)state.servers.firstOrNull{it.id==vpn.serverId}else state.server
-    val display=remember(state.servers,server?.id){com.signet.core.ServerDisplayModel.all(state.servers)[server?.id]}
+    val display=remember(state.servers,server?.id){com.signet.core.ServerDisplayModel.all(state.servers,hostNames=!BuildConfig.SIGNET_ACCOUNT)[server?.id]}
     val status=when(phase){VpnPhase.CONNECTED->"Подключено";VpnPhase.CONNECTING->"Подключение";VpnPhase.RECONNECTING->"Переподключение";VpnPhase.ERROR->"Ошибка подключения";VpnPhase.DISCONNECTING->"Отключение";else->"Не подключено"}
     @Composable fun controls() {
         Row(Modifier.fillMaxWidth().clickable(onClick=servers).padding(vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center) {
@@ -179,13 +179,17 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         }
         if(phase==VpnPhase.CONNECTED)Text("↑ ${bytes(vpn.uploaded)}    ↓ ${bytes(vpn.downloaded)}",color=Muted,fontSize=11.sp,modifier=Modifier.padding(top=6.dp))
     }
-    if(LocalConfiguration.current.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE)Row(Modifier.fillMaxSize().padding(horizontal=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(18.dp)) {
-        Globe(server,phase,state.settings,Modifier.weight(1.2f).fillMaxHeight())
-        Column(Modifier.weight(1f),horizontalAlignment=Alignment.CenterHorizontally){Text(status,fontSize=22.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text);controls()}
-    } else Column(Modifier.fillMaxSize().padding(horizontal=16.dp).padding(bottom=12.dp),horizontalAlignment=Alignment.CenterHorizontally) {
-        Text(status,fontSize=24.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text,maxLines=1)
-        Globe(server,phase,state.settings,Modifier.weight(1f).fillMaxWidth())
-        controls()
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val viewport=maxHeight
+        val scroll=rememberScrollState()
+        if(LocalConfiguration.current.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE)Row(Modifier.fillMaxSize().verticalScroll(scroll).heightIn(min=viewport).padding(horizontal=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(18.dp)) {
+            Globe(server,phase,state.settings,Modifier.weight(1.2f).height((viewport-32.dp).coerceAtLeast(280.dp)))
+            Column(Modifier.weight(1f),horizontalAlignment=Alignment.CenterHorizontally){Text(status,fontSize=22.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text);controls()}
+        } else Column(Modifier.fillMaxSize().verticalScroll(scroll).heightIn(min=viewport).padding(horizontal=16.dp).padding(bottom=12.dp),horizontalAlignment=Alignment.CenterHorizontally) {
+            Text(status,fontSize=24.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text,maxLines=1)
+            Globe(server,phase,state.settings,Modifier.height((viewport-230.dp).coerceAtLeast(280.dp)).fillMaxWidth())
+            controls()
+        }
     }
 }
 
@@ -202,7 +206,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     var labelSize by remember{mutableStateOf(IntSize.Zero)}
     var area by remember{mutableStateOf(IntSize.Zero)}
     Box(modifier.testTag("home-globe").clip(RoundedCornerShape(if(AppColors.dark)0.dp else 24.dp)).onSizeChanged{area=it}) {
-        AndroidView(factory={view},modifier=Modifier.fillMaxSize(),update={it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme)})
+        AndroidView(factory={view},modifier=Modifier.fillMaxSize(),update={it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,!BuildConfig.SIGNET_ACCOUNT)})
         AnimatedVisibility(marker.visible,enter=fadeIn(tween(350)),exit=fadeOut(tween(150)),modifier=Modifier.offset{
             IntOffset((marker.x-labelSize.width/2).coerceIn(0,(area.width-labelSize.width).coerceAtLeast(0)),(marker.y-labelSize.height).coerceAtLeast(0))
         }) {

@@ -1,0 +1,31 @@
+{
+  "version": "0.2.10",
+  "edition": "external",
+  "gradleVerification": "strict",
+  "tests": {
+    "hourlyHostDns": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "external": {
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "debugRelease": "PASS",
+  "duration": "2m 25s",
+  "lint": {
+    "errors": 0,
+    "warnings": 48
+  },
+  "dnsRecovery": "real localhost TCP fixture after simulated system UnknownHost; negative cases remain failures",
+  "physicalAndroidAndCustomerDnsIncident": "NOT CONFIRMED",
+  "scrollAndHourlyDozeAndMigrationOnDevice": "NOT RUN",
+  "longCiEmulatorColdCache": "NOT RUN",
+  "production": "UNCHANGED",
+  "signetRelease": "UNCHANGED 0.2.6"
+}
