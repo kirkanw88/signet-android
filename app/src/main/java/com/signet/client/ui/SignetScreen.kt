@@ -114,7 +114,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                     if(page==2)Text("Подписки",color=AppColors.text,fontSize=20.sp,fontWeight=FontWeight.Medium)
                     if(page==0&&!BuildConfig.SIGNET_ACCOUNT)Text("v${BuildConfig.VERSION_NAME}",fontSize=13.sp,color=AppColors.muted)
                     Row {
-                        if(page==0&&!BuildConfig.SIGNET_ACCOUNT)IconButton(onClick={addMenu=true},enabled=!state.busy&&state.subscriptions.size<8,modifier=Modifier.testTag("home-add-subscription")){Icon(Icons.Outlined.Add,"Добавить подписку",tint=if(state.busy||state.subscriptions.size>=8)AppColors.muted else Primary)}
+                        if(page==0&&!BuildConfig.SIGNET_ACCOUNT)IconButton(onClick={if(state.subscriptions.size>=8)model.repository.notify("Достигнут лимит 8 подписок. Удалите ненужную подписку, чтобы добавить новую.")else addMenu=true},enabled=!state.busy,modifier=Modifier.testTag("home-add-subscription")){Icon(Icons.Outlined.Add,"Добавить подписку",tint=if(state.busy||state.subscriptions.size>=8)AppColors.muted else Primary)}
                         if(BuildConfig.SIGNET_ACCOUNT)IconButton(onClick={model.openAccount("support")}){Icon(Icons.Outlined.SupportAgent,"Техническая поддержка",tint=AppColors.muted)}
                         if(page!=3)IconButton(onClick={page=3}) { Icon(Icons.Outlined.Settings,"Настройки",tint=AppColors.muted) }
                     }
