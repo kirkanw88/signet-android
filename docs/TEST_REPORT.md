@@ -27,6 +27,8 @@ Universal external, code 19. [Изменения](RELEASE_0_2_17.md): обычн
 
 [Checks](../tests/evidence/0.2.17/checks.json), [Photos](../tests/evidence/0.2.17/landmark-assets.json), [APK verification](../tests/evidence/0.2.17/apk-verification.json).
 
+[Выпуск v0.2.17](https://github.com/kirkanw88/signet-android/releases/tag/v0.2.17) опубликован из `f555773`: три external APK, исходники и SHA256SUMS. Загруженные digests совпали с локальными SHA-256. Анонимная universal-лента выбирает 0.2.17; общий latest остался 0.2.6. [Подтверждение](../tests/evidence/0.2.17/public-release.json). ARM64: 70008280 bytes, SHA-256 `5372c9be5ce3274b1dcc6cccac22c26bb4d10cded84a5e91a4bab00107ca31b5`.
+
 ---
 
 # Signet VPN 0.2.16 — проверка 19.11.2026
