@@ -6,6 +6,7 @@ import android.graphics.BitmapRegionDecoder
 import android.graphics.Rect
 import android.opengl.*
 import android.view.MotionEvent
+import androidx.lifecycle.*
 import com.signet.core.Geography
 import com.signet.core.GlobeGeometry
 import com.signet.core.MapPoint
@@ -48,7 +49,32 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
     fun update(server: Server?, phase: VpnPhase, quality: String, reduced: Boolean, lightTheme:Boolean=false,parentScroll:Boolean=false) {
         allowParentScroll=parentScroll
         queueEvent { globe.lightTheme=lightTheme;globe.update(server, phase, quality, reduced) }
+        if(rendering)requestRender()
     }
+    private var hostLifecycle:Lifecycle?=null
+    private var rendering=false
+    private val session=com.signet.core.GlobeSession()
+    private val hostObserver=LifecycleEventObserver{_,_->syncRendering()}
+    private fun syncRendering(){
+        val active=session.transition(isAttachedToWindow,hostLifecycle?.currentState?.isAtLeast(Lifecycle.State.RESUMED)==true)?:return
+        rendering=active
+        if(active){onResume();requestRender()}else onPause()
+    }
+    override fun onAttachedToWindow(){
+        super.onAttachedToWindow()
+        findViewTreeLifecycleOwner()?.lifecycle?.let{bindHost(it)}
+        syncRendering()
+    }
+    fun bindHost(lifecycle:Lifecycle){
+        if(hostLifecycle===lifecycle)return
+        hostLifecycle?.removeObserver(hostObserver);hostLifecycle=lifecycle
+        lifecycle.addObserver(hostObserver);syncRendering()
+    }
+    fun releaseHost(){
+        hostLifecycle?.removeObserver(hostObserver);hostLifecycle=null
+        if(session.transition(false,false)==false){rendering=false;onPause()}
+    }
+    override fun onDetachedFromWindow(){releaseHost();super.onDetachedFromWindow()}
     override fun onLayout(changed:Boolean,left:Int,top:Int,right:Int,bottom:Int){
         super.onLayout(changed,left,top,right,bottom)
         val location=IntArray(2);getLocationInWindow(location)

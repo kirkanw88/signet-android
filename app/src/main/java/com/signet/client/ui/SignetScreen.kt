@@ -55,6 +55,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
 @Composable fun SignetScreen(model: MainViewModel, connect: ()->Unit) {
     val storedState by model.state.collectAsStateWithLifecycle()
     val refreshing by model.refreshing.collectAsStateWithLifecycle()
+    val refreshingGroups by model.refreshingSubscriptions.collectAsStateWithLifecycle()
     val activeProbes by model.probingIds.collectAsStateWithLifecycle()
     val state=storedState.copy(busy=storedState.busy||refreshing)
     val vpn by model.vpn.collectAsStateWithLifecycle()
@@ -121,7 +122,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 update.available?.let{UpdateBanner(it,model)}
                 when(page) {
                     0 -> Home(state,vpn,model,connect,{page=2;addMenu=true},{showServers=true})
-                    2 -> Subscriptions(state,{addMenu=true},model::remove,model::refresh,model::openAccount,if(BuildConfig.SIGNET_ACCOUNT)model.account else null, {
+                    2 -> Subscriptions(state,{addMenu=true},model::remove,model::refresh,model::openAccount,if(BuildConfig.SIGNET_ACCOUNT)model.account else null, model, {
                         runCatching{ClipboardTransfers.read(context,16*1024).also{require(com.signet.core.SubscriptionMetadata.safeLink(it)!=null)}}
                             .onSuccess{input=it;ageKey="";oauthConsent=false;add=true}.onFailure{model.repository.notify("В буфере нет корректной HTTPS ссылки подписки")}
                     })
@@ -134,7 +135,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
             val sheet=rememberModalBottomSheetState(skipPartiallyExpanded=true)
             ModalBottomSheet(onDismissRequest={showServers=false},sheetState=sheet,containerColor=Surface,contentColor=AppColors.text,modifier=Modifier.testTag("server-sheet")) {
                 LocationList(state,vpn,probing,{id->model.select(id);scope.launch{sheet.hide();showServers=false}},model::favorite,{model.measure()},model::refresh,
-                    Modifier.fillMaxWidth().fillMaxHeight(.88f).padding(horizontal=20.dp),activeProbes=activeProbes)
+                    Modifier.fillMaxWidth().fillMaxHeight(.88f).padding(horizontal=20.dp),activeProbes=activeProbes,toggleSubscription=model::toggleSubscription,pinSubscription=model::pinSubscription,refreshSubscription=model::refreshSubscription,pingSubscription=model::measureSubscription,removeSubscription=model::remove,refreshingSubscriptions=refreshingGroups,addSubscription={showServers=false;addMenu=true})
             }
         }
         if(BuildConfig.SIGNET_ACCOUNT&&accountPage!=null)MobileAccountScreen(model,accountPage!!){model.accountPage.value=null}
@@ -165,7 +166,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     val phase=vpn.phase
     val active=vpn.tunActive||phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING)
     val server=if(phase==VpnPhase.CONNECTED)state.servers.firstOrNull{it.id==vpn.serverId}else state.server
-    val display=remember(state.servers,server?.id){com.signet.core.ServerDisplayModel.all(state.servers,hostNames=!BuildConfig.SIGNET_ACCOUNT)[server?.id]}
+    val display=remember(state.servers,server?.id){com.signet.core.ServerDisplayModel.all(state.subscriptions.firstOrNull{it.servers.any{node->node.id==server?.id}}?.servers.orEmpty(),hostNames=!BuildConfig.SIGNET_ACCOUNT)[server?.id]}
     val status=when(phase){VpnPhase.CONNECTED->"Подключено";VpnPhase.CONNECTING->"Подключение";VpnPhase.RECONNECTING->"Переподключение";VpnPhase.ERROR->"Ошибка подключения";VpnPhase.DISCONNECTING->"Отключение";else->"Не подключено"}
     @Composable fun controls() {
         Row(Modifier.fillMaxWidth().clickable(onClick=servers).padding(vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center) {
@@ -218,19 +219,15 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
 }
 
 @Composable private fun Globe(server:Server?,phase:VpnPhase,settings:Settings,modifier:Modifier) {
-    val context=LocalContext.current;val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
-    val view=remember { GlobeView(context,settings.graphics=="High") }
-    DisposableEffect(lifecycle,view){
-        val observer=LifecycleEventObserver{_,event->when(event){Lifecycle.Event.ON_RESUME->view.onResume();Lifecycle.Event.ON_PAUSE->view.onPause();else->Unit}}
-        lifecycle.addObserver(observer)
-        onDispose { lifecycle.removeObserver(observer);view.onPause() }
-    }
-    val marker by view.globe.capitalMarker.collectAsStateWithLifecycle()
+    val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    var renderer by remember{mutableStateOf<com.signet.client.graphics.GlobeRenderer?>(null)}
+    val emptyMarker=remember{kotlinx.coroutines.flow.MutableStateFlow(com.signet.client.graphics.CapitalMarker())}
+    val marker by (renderer?.capitalMarker?:emptyMarker).collectAsStateWithLifecycle()
     val lightTheme=!AppColors.dark
     var labelSize by remember{mutableStateOf(IntSize.Zero)}
     var area by remember{mutableStateOf(IntSize.Zero)}
     Box(modifier.testTag("home-globe").clip(RoundedCornerShape(if(AppColors.dark)0.dp else 24.dp)).onSizeChanged{area=it}) {
-        AndroidView(factory={view},modifier=Modifier.fillMaxSize(),update={it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,!BuildConfig.SIGNET_ACCOUNT)})
+        AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);renderer=it.globe}},modifier=Modifier.fillMaxSize(),onRelease={it.releaseHost()},update={it.bindHost(lifecycle);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,!BuildConfig.SIGNET_ACCOUNT)})
         AnimatedVisibility(marker.visible,enter=fadeIn(tween(350)),exit=fadeOut(tween(150)),modifier=Modifier.offset{
             IntOffset((marker.x-labelSize.width/2).coerceIn(0,(area.width-labelSize.width).coerceAtLeast(0)),(marker.y-labelSize.height).coerceAtLeast(0))
         }) {
@@ -242,7 +239,13 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     }
 }
 
-@Composable private fun Subscriptions(state:AppState,add:()->Unit,remove:(String)->Unit,refresh:()->Unit,account:(String)->Unit,mobile:MobileAccount?,paste:()->Unit){
+@Composable private fun Subscriptions(state:AppState,add:()->Unit,remove:(String)->Unit,refresh:()->Unit,account:(String)->Unit,mobile:MobileAccount?,model:MainViewModel,paste:()->Unit){
+    if(!BuildConfig.SIGNET_ACCOUNT){
+        val vpn by model.vpn.collectAsStateWithLifecycle();val probing by model.probing.collectAsStateWithLifecycle()
+        val active by model.probingIds.collectAsStateWithLifecycle();val refreshing by model.refreshingSubscriptions.collectAsStateWithLifecycle()
+        LocationList(state,vpn,probing,model::select,model::favorite,{model.measure()},model::refresh,Modifier.fillMaxSize().padding(horizontal=20.dp),activeProbes=active,toggleSubscription=model::toggleSubscription,pinSubscription=model::pinSubscription,refreshSubscription=model::refreshSubscription,pingSubscription=model::measureSubscription,removeSubscription=model::remove,refreshingSubscriptions=refreshing,addSubscription=add,management=true)
+        return
+    }
     val context=LocalContext.current
     val remote=if(mobile!=null){val observed by mobile.state.collectAsStateWithLifecycle();observed}else MobileAccountState()
     LaunchedEffect(remote.loggedIn){if(remote.loggedIn)mobile?.refresh()}
@@ -284,7 +287,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     }
 }
 
-@Composable private fun SubscriptionUsage(subscription:Subscription){
+@Composable internal fun SubscriptionUsage(subscription:Subscription){
     val info=subscription.info
     if(info.isEmpty())return
     val total=info["total"]?.coerceAtLeast(0)

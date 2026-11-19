@@ -1,3 +1,30 @@
+# Signet VPN 0.2.12 — проверка 19.11.2026
+
+Только universal external, code 14. [Изменения](RELEASE_0_2_12.md): отдельные сворачиваемые группы подписок, закрепление, сохранение состояния и управление каждой группой; исправление владения OpenGL-view при смене темы/возврате на главную.
+
+В прежнем коде GL-view удерживался через `remember` вне `AndroidView.factory`, а Compose disposal вызывал `onPause` независимо от attach/release. Теперь View принадлежит factory/onRelease; attach и RESUMED проверяются совместно, повторные события не вызывают лишнюю остановку. Модель проверяет повторный вход, паузу/возобновление и отсутствие pause от простого обновления состояния. Фактическое зависание на телефоне не воспроизводилось, поэтому устройство/GPU остаётся необходимой практической проверкой.
+
+| Проверка | Результат |
+|---|---|
+| Core targeted JVM | SubscriptionGroupsTest + GlobeSessionTest: 5/5, failures/errors 0 |
+| External app JVM | 16/16, failures/errors 0 |
+| Subscription identity | Одинаковый профиль в двух источниках имеет независимые ID; выбор другого источника сохраняется PASS |
+| Group state/order | Независимые сворачивания; pruning удалённых ID; refresh на прежнем месте; закреплённые сверху; открепление возвращает обычный порядок PASS |
+| GL lifecycle model | attach/resume, detach/reentry, pause/resume, повторные события PASS |
+| Android Lint external | 0 errors / 48 warnings |
+| Debug / Release external | PASS, strict verification, финальная сборка 3m 42s |
+| APK | 3 ABI, external 0.2.12/code 14; подпись, zip/ELF 16 KB — см. apk-verification.json |
+| Physical Android theme switch / QR / multiple live provider subscriptions | NOT RUN; Android-устройство не подключено |
+| Long CI / emulator / cold cache / production changes | Не запускались; исходный Signet 0.2.6 и production не изменены |
+
+Закрепление и сворачивание хранятся в DataStore отдельными наборами ID; сохранение прочих настроек не перезаписывает их устаревшей копией. Удаление очищает оба набора. Серверы лениво создаются внутри групп; прежние ограничения восемь подписок/500 профилей/8 МБ конфигураций сохранены. Native bundle, зависимости и метаданные Dependency Verification не менялись.
+
+Первый успешный проход до дополнительного запроса на закрепление занял 3m 44s. После закрепления выполнена финальная сборка и те же целевые проверки. Исправлен найденный компилятором неверный импорт ClipboardTransfers; исключения проверок и подавление ошибок не добавлялись.
+
+[Checks](../tests/evidence/0.2.12/checks.json), [APK verification](../tests/evidence/0.2.12/apk-verification.json).
+
+---
+
 # Signet VPN 0.2.11 — проверка 19.11.2026
 
 Только universal external. Пользователь уточнил: Ping сообщает о сбое при выключенном VPN в режиме по умолчанию. [Изменения](RELEASE_0_2_11.md): измерение реальной высоты управления перед планетой, карточка скоростей/счётчиков, изоляция batch ошибок и восстановление геоданных.

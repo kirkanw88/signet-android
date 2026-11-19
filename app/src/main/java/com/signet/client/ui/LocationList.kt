@@ -22,54 +22,98 @@ import com.signet.client.vpn.VpnStatus
 import com.signet.client.vpn.VpnPhase
 import com.signet.core.*
 
-@Composable fun LocationList(state:AppState,vpn:VpnStatus,probing:Boolean,select:(String)->Unit,favorite:(String)->Unit,ping:()->Unit,refresh:()->Unit,modifier:Modifier=Modifier,compact:Boolean=false,activeProbes:Set<String> = emptySet()) {
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalContext
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable fun LocationList(state:AppState,vpn:VpnStatus,probing:Boolean,select:(String)->Unit,favorite:(String)->Unit,ping:()->Unit,refresh:()->Unit,modifier:Modifier=Modifier,compact:Boolean=false,activeProbes:Set<String> = emptySet(),toggleSubscription:(String)->Unit={},pinSubscription:(String)->Unit={},refreshSubscription:(String)->Unit={},pingSubscription:(String)->Unit={},removeSubscription:(String)->Unit={},refreshingSubscriptions:Set<String> = emptySet(),addSubscription:(()->Unit)?=null,management:Boolean=false) {
     var query by rememberSaveable{mutableStateOf("")};var favoriteOnly by rememberSaveable{mutableStateOf(false)}
-    var sort by rememberSaveable{mutableStateOf(false)}
-    var tools by rememberSaveable{mutableStateOf(false)}
-    val subscription=state.subscriptions.firstOrNull{sub->sub.servers.any{it.id==state.selected}}?:state.subscriptions.firstOrNull()
-    val announcements=state.subscriptions.map{it.metadata.announcement}.filter{it.isNotBlank()}.distinct().joinToString("\n\n")
-    val displays=remember(state.servers){ServerDisplayModel.all(state.servers,hostNames=!BuildConfig.SIGNET_ACCOUNT)}
-    val filtered=state.servers.filter { s->(!favoriteOnly||s.favorite)&&("${displays[s.id]?.title} ${s.countryName} ${displays[s.id]?.description} ${displays[s.id]?.transport}").contains(query,true) }
-    LazyColumn(modifier,contentPadding=PaddingValues(bottom=16.dp)) {
-        item(key="server-tools"){Column {
-        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)){
-                Text(subscription?.title?.lineSequence()?.firstOrNull()?.let{SubscriptionMetadata.text(it,100)}?:"Серверы",fontWeight=FontWeight.Medium,fontSize=18.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
-                subscription?.let{Text("${java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(it.updated))} · Обновление ${if(BuildConfig.SIGNET_ACCOUNT)it.metadata.updateHours else 1} ч",color=AppColors.muted,fontSize=10.sp,maxLines=1,overflow=TextOverflow.Ellipsis)}
-            }
-            IconButton(onClick=ping,modifier=Modifier.testTag("server-ping"),enabled=state.servers.isNotEmpty()&&vpn.phase !in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.DISCONNECTING)) {
-                Icon(if(probing)Icons.Outlined.StopCircle else Icons.Outlined.Speed,if(probing)"Остановить измерение"else"Проверить задержку",tint=AppColors.accent)
-            }
-            IconButton(onClick=refresh,modifier=Modifier.testTag("server-refresh"),enabled=!state.busy){if(state.busy)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Refresh,"Обновить подписки",tint=AppColors.accent)}
-            IconButton(onClick={tools=!tools}){Icon(Icons.Outlined.MoreHoriz,"Поиск и сортировка",tint=AppColors.accent)}
-        }
-        subscription?.let{sub->
-            val total=sub.info["total"]?:0
-            val used=((sub.info["upload"]?:0).toDouble()+(sub.info["download"]?:0)).coerceIn(0.0,Long.MAX_VALUE.toDouble())
-            if(sub.info.isNotEmpty())Surface(color=AppColors.surface,shape=RoundedCornerShape(5.dp),border=BorderStroke(.5.dp,AppColors.border),modifier=Modifier.fillMaxWidth().padding(vertical=5.dp)){
-                Box(contentAlignment=Alignment.Center){
-                    if(total>0)Box(Modifier.fillMaxWidth((used/total).toFloat().coerceIn(0f,1f)).height(18.dp).align(Alignment.CenterStart).background(AppColors.tint))
-                    Text("${"%.1f".format(used/(1L shl 30))} ГБ / ${if(total>0)"%.1f ГБ".format(total.toDouble()/(1L shl 30))else"∞"}",fontSize=10.sp)
+    var sort by rememberSaveable{mutableStateOf(false)};var tools by rememberSaveable{mutableStateOf(false)}
+    var removeId by rememberSaveable{mutableStateOf<String?>(null)}
+    val context=LocalContext.current
+    val displays=remember(state.subscriptions){state.subscriptions.flatMap{ServerDisplayModel.all(it.servers,hostNames=!BuildConfig.SIGNET_ACCOUNT).entries}.associate{it.key to it.value}}
+    val filtering=query.isNotBlank()||favoriteOnly
+    val canPing=vpn.phase !in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.DISCONNECTING)
+    var matches=0
+    LazyColumn(modifier,contentPadding=PaddingValues(bottom=16.dp)){
+        item(key="server-tools"){
+            Column {
+                Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+                    Text(if(management)"Подписок: ${state.subscriptions.size}"else"Серверы",Modifier.weight(1f),fontWeight=FontWeight.Medium,fontSize=20.sp)
+                    addSubscription?.let{add->TextButton(onClick=add,enabled=!state.busy&&state.subscriptions.size<8){Icon(Icons.Outlined.Add,null);Text("Добавить")}}
+                }
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End){
+                    IconButton(onClick=ping,modifier=Modifier.testTag("server-ping"),enabled=state.servers.isNotEmpty()&&canPing){Icon(if(probing)Icons.Outlined.StopCircle else Icons.Outlined.Speed,if(probing)"Остановить измерение"else"Ping всех подписок",tint=AppColors.accent)}
+                    IconButton(onClick=refresh,modifier=Modifier.testTag("server-refresh"),enabled=!state.busy){if(state.busy)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Refresh,"Обновить все подписки",tint=AppColors.accent)}
+                    IconButton(onClick={tools=!tools}){Icon(Icons.Outlined.MoreHoriz,"Поиск и сортировка",tint=AppColors.accent)}
+                }
+                if(!compact&&tools){
+                    OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),placeholder={Text("Подписка, хост или страна")},leadingIcon={Icon(Icons.Outlined.Search,null)},singleLine=true,shape=RoundedCornerShape(16.dp))
+                    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){FilterChip(favoriteOnly,{favoriteOnly=!favoriteOnly},label={Text("Избранное")});FilterChip(sort,{sort=!sort},label={Text("По задержке")})}
                 }
             }
         }
-        if(!compact&&tools) {
-            OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),placeholder={Text("Страна, город, сервер")},leadingIcon={Icon(Icons.Outlined.Search,null)},singleLine=true,shape=RoundedCornerShape(16.dp))
-            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){FilterChip(favoriteOnly,{favoriteOnly=!favoriteOnly},label={Text("Избранное")});FilterChip(sort,{sort=!sort},label={Text("По задержке")})}
+        for(sub in SubscriptionGroups.pinnedFirst(state.subscriptions,state.settings.pinnedSubscriptions){it.id}){
+            val index=state.subscriptions.indexOfFirst{it.id==sub.id}
+            val label=SubscriptionMetadata.text(sub.title.lineSequence().firstOrNull(),120).let{if(it.isBlank()||it=="Подписка")"Подписка №${index+1}"else it}
+            val visible=sub.servers.filter{s->(!favoriteOnly||s.favorite)&&("$label ${displays[s.id]?.title} ${s.countryName} ${displays[s.id]?.description} ${displays[s.id]?.transport}").contains(query,true)}
+            if(filtering&&visible.isEmpty())continue
+            matches+=visible.size
+            val expanded=filtering||sub.id !in state.settings.collapsedSubscriptions
+            item(key="${sub.id}:header"){
+                var menu by remember{mutableStateOf(false)}
+                val angle by animateFloatAsState(if(expanded)0f else -90f,label="subscription-expand")
+                val selected=sub.servers.any{it.id==state.selected}
+                val pinned=sub.id in state.settings.pinnedSubscriptions
+                val here=activeProbes.any{id->sub.servers.any{it.id==id}}
+                Surface(onClick={toggleSubscription(sub.id)},color=AppColors.surface,shape=RoundedCornerShape(16.dp),border=BorderStroke(1.dp,if(selected)AppColors.accent else AppColors.border),modifier=Modifier.fillMaxWidth().padding(top=10.dp,bottom=4.dp)){
+                    Column(Modifier.padding(horizontal=10.dp,vertical=8.dp)){
+                        Row(verticalAlignment=Alignment.CenterVertically){
+                            Icon(Icons.Outlined.ExpandMore,if(expanded)"Свернуть подписку"else"Развернуть подписку",Modifier.size(24.dp).rotate(angle),tint=AppColors.accent)
+                            Column(Modifier.weight(1f).padding(start=6.dp)){
+                                Row(verticalAlignment=Alignment.CenterVertically){
+                                    if(pinned)Icon(Icons.Outlined.PushPin,"Закреплена",Modifier.padding(end=4.dp).size(14.dp),tint=AppColors.accent)
+                                    Text(label,fontSize=16.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
+                                }
+                                Text("Серверов: ${sub.servers.size} · Обновление 1 ч",color=AppColors.muted,fontSize=10.sp)
+                            }
+                            IconButton(onClick={refreshSubscription(sub.id)},enabled=sub.url!=null&&!state.busy){if(sub.id in refreshingSubscriptions)CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Refresh,"Обновить $label",tint=AppColors.accent)}
+                            IconButton(onClick={pingSubscription(sub.id)},enabled=canPing&&sub.servers.isNotEmpty()&&(!probing||here)){Icon(if(here)Icons.Outlined.StopCircle else Icons.Outlined.Speed,if(here)"Остановить Ping"else"Ping $label",tint=AppColors.accent)}
+                            Box {
+                                IconButton(onClick={menu=true}){Icon(Icons.Outlined.MoreVert,"Действия с подпиской",tint=AppColors.muted)}
+                                DropdownMenu(expanded=menu,onDismissRequest={menu=false}){
+                                    DropdownMenuItem(text={Text(if(pinned)"Открепить подписку"else"Закрепить подписку")},leadingIcon={Icon(Icons.Outlined.PushPin,null)},onClick={menu=false;pinSubscription(sub.id)})
+                                    DropdownMenuItem(text={Text("Экспорт ссылки")},enabled=sub.url!=null,onClick={menu=false;sub.url?.let{ClipboardTransfers.copy(context,"Subscription",it);android.widget.Toast.makeText(context,"Ссылка скопирована",android.widget.Toast.LENGTH_SHORT).show()}})
+                                    DropdownMenuItem(text={Text("Удалить подписку")},onClick={menu=false;removeId=sub.id})
+                                }
+                            }
+                        }
+                        SubscriptionUsage(sub)
+                        sub.error?.let{Text(it,color=AppColors.warning,fontSize=11.sp,maxLines=2)}
+                    }
+                }
+            }
+            if(expanded){
+                if(sub.metadata.announcement.isNotBlank())item(key="${sub.id}:announcement"){Text(sub.metadata.announcement,Modifier.padding(vertical=6.dp),fontSize=11.sp,color=AppColors.muted,maxLines=5,overflow=TextOverflow.Ellipsis)}
+                items(if(sort)visible.sortedBy{it.latencyMs?:Long.MAX_VALUE}else visible,key={"${sub.id}:${it.id}"}){server->ServerRow(server,displays.getValue(server.id),state,vpn,select,favorite,server.id in activeProbes,Modifier.animateItem())}
+                if(visible.isEmpty())item(key="${sub.id}:empty"){Text("В подписке пока нет серверов",Modifier.padding(12.dp),color=AppColors.muted)}
+            }
         }
-        }}
-            if(announcements.isNotBlank())item(key="subscription-announcement"){Text(announcements,Modifier.fillMaxWidth().padding(vertical=10.dp),color=AppColors.text,fontSize=12.sp,lineHeight=17.sp,maxLines=5,overflow=TextOverflow.Ellipsis)}
-            items(if(sort)filtered.sortedBy{it.latencyMs?:Long.MAX_VALUE}else filtered,key={it.id}) { server->ServerRow(server,displays.getValue(server.id),state,vpn,select,favorite,server.id in activeProbes) }
-            if(filtered.isEmpty())item{Text(if(state.servers.isEmpty())"Добавьте подписку, чтобы увидеть серверы"else"Ничего не найдено",Modifier.padding(vertical=24.dp),color=AppColors.muted)}
-        }
+        if(state.subscriptions.isEmpty()||(filtering&&matches==0))item(key="empty"){Text(if(state.subscriptions.isEmpty())"Добавьте подписку, чтобы увидеть серверы"else"Ничего не найдено",Modifier.padding(vertical=24.dp),color=AppColors.muted)}
+    }
+    removeId?.let{id->
+        val label=state.subscriptions.firstOrNull{it.id==id}?.title.orEmpty()
+        AlertDialog(onDismissRequest={removeId=null},title={Text("Удалить подписку?")},text={Text("$label\nУдалится только эта подписка с устройства. Если она используется, VPN будет отключён.")},confirmButton={TextButton(onClick={removeSubscription(id);removeId=null}){Text("Удалить")}},dismissButton={TextButton(onClick={removeId=null}){Text("Отмена")}})
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-@Composable private fun ServerRow(server:Server,display:ServerDisplayModel,state:AppState,vpn:VpnStatus,select:(String)->Unit,favorite:(String)->Unit,probing:Boolean) {
+@Composable private fun ServerRow(server:Server,display:ServerDisplayModel,state:AppState,vpn:VpnStatus,select:(String)->Unit,favorite:(String)->Unit,probing:Boolean,modifier:Modifier=Modifier) {
     val active=vpn.serverId==server.id&&vpn.phase==VpnPhase.CONNECTED
     val selected=state.selected==server.id
     val color=if(active)AppColors.success else AppColors.accent
-    Row(Modifier.fillMaxWidth().padding(vertical=1.dp).heightIn(min=56.dp).border(if(selected)1.5.dp else 0.dp,if(selected)color else Color.Transparent,RoundedCornerShape(10.dp)).background(if(selected)AppColors.tint else Color.Transparent,RoundedCornerShape(10.dp)).combinedClickable(enabled=server.enabled,onClick={select(server.id)},onLongClick={favorite(server.id)},onLongClickLabel="Избранное").padding(horizontal=8.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically) {
+    Row(modifier.fillMaxWidth().padding(vertical=1.dp).heightIn(min=56.dp).border(if(selected)1.5.dp else 0.dp,if(selected)color else Color.Transparent,RoundedCornerShape(10.dp)).background(if(selected)AppColors.tint else Color.Transparent,RoundedCornerShape(10.dp)).combinedClickable(enabled=server.enabled,onClick={select(server.id)},onLongClick={favorite(server.id)},onLongClickLabel="Избранное").padding(horizontal=8.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically) {
         CountryFlag(display.country,display.isAuto)
         Column(Modifier.weight(1f).padding(horizontal=8.dp)) {
             Text(display.title,color=if(server.enabled)AppColors.text else AppColors.muted,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis,fontSize=14.sp)

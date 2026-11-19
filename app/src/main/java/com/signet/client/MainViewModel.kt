@@ -39,14 +39,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun selectAuto() { state.value.servers.firstOrNull { it.isAuto && it.enabled }?.let { select(it.id) }
         ?: repository.notify("В подписке нет серверного профиля AUTO") }
     fun favorite(id: String) { viewModelScope.launch { repository.favorite(id) } }
-    fun remove(id: String) { viewModelScope.launch { repository.remove(id) } }
+    fun remove(id: String) { viewModelScope.launch { if(!BuildConfig.SIGNET_ACCOUNT&&state.value.subscriptions.firstOrNull{it.id==id}?.servers?.any{it.id==vpn.value.serverId}==true)stop();repository.remove(id) } }
+    private val _refreshingSubscriptions=MutableStateFlow<Set<String>>(emptySet());val refreshingSubscriptions=_refreshingSubscriptions.asStateFlow()
+    fun pinSubscription(id:String){viewModelScope.launch{repository.pinSubscription(id)}}
+    fun toggleSubscription(id:String){viewModelScope.launch{repository.toggleSubscription(id)}}
+    fun refreshSubscription(id:String){
+        if(id in _refreshingSubscriptions.value)return
+        _refreshingSubscriptions.update{it+id}
+        viewModelScope.launch(Dispatchers.IO){try{repository.refreshSubscription(id)}finally{_refreshingSubscriptions.update{it-id}}}
+    }
+    fun measureSubscription(id:String){measure(subscriptionId=id)}
     fun refresh() { if(_refreshing.value)return;_refreshing.value=true;viewModelScope.launch(Dispatchers.IO) {try{repository.refreshAll()}finally{_refreshing.value=false}} }
     fun save(s: Settings) { viewModelScope.launch { runCatching { s.probes.validated();repository.settings(s) }.onFailure { repository.notify("Проверьте настройки: HTTPS URL, таймаут и допустимые ограничения") } } }
     fun start() { viewModelScope.launch {probeJob?.cancelAndJoin();getApplication<Application>().startForegroundService(Intent(getApplication(), SignetVpnService::class.java))} }
     fun stop() { getApplication<Application>().startService(Intent(getApplication(), SignetVpnService::class.java).setAction("STOP")) }
     private var automaticProbe=false
     fun cancelAutoProbes(){if(automaticProbe)probeJob?.cancel()}
-    fun measure(onlySelected: Boolean = false,automatic:Boolean=false) {
+    fun measure(onlySelected: Boolean = false,automatic:Boolean=false,subscriptionId:String?=null) {
         if (_probing.value) { probeJob?.cancel(); return }
         _probing.value=true
         automaticProbe=automatic
@@ -54,7 +63,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             _probing.value = true
             try {
                 val options=state.value.settings.probes.validated()
-                val targets=if(onlySelected)listOfNotNull(state.value.server)else state.value.servers.filter{it.enabled}
+                val targets=if(subscriptionId!=null)state.value.subscriptions.firstOrNull{it.id==subscriptionId}?.servers.orEmpty().filter{it.enabled}else if(onlySelected)listOfNotNull(state.value.server)else state.value.servers.filter{it.enabled}
                 val allowed=targets.filter { !com.signet.core.TransportChecks.requiresOAuthConsent(org.json.JSONObject(it.config))||repository.allowsOAuth(it.id) }
                 targets.filterNot{it in allowed}.forEach{repository.measurement(it.id,null,options.mode.name,"CONSENT_REQUIRED")}
                 for(batch in allowed.chunked(options.parallelism)) {

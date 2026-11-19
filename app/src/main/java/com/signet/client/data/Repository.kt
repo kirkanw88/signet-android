@@ -68,7 +68,7 @@ class Repository(private val context: Context, private val vault: Vault, private
         require(state.value.servers.any { it.id == id && it.enabled }) { "Профиль недоступен" }
         commit(state.value.copy(selected=id))
     }
-    suspend fun settings(s: Settings) = mutex.withLock { val fixed=s.copy(graphics=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)s.graphics else UniversalDefaults.GRAPHICS,automaticUpdates=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)s.automaticUpdates else true,cabinet=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)SignetLinks.CABINET else "",hwid=true);settingsStore.save(fixed);ConnectionLog.configure(fixed.logging); _state.update { it.copy(settings = fixed) } }
+    suspend fun settings(s: Settings) = mutex.withLock { val fixed=s.copy(pinnedSubscriptions=state.value.settings.pinnedSubscriptions,collapsedSubscriptions=state.value.settings.collapsedSubscriptions,graphics=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)s.graphics else UniversalDefaults.GRAPHICS,automaticUpdates=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)s.automaticUpdates else true,cabinet=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)SignetLinks.CABINET else "",hwid=true);settingsStore.save(fixed);ConnectionLog.configure(fixed.logging); _state.update { it.copy(settings = fixed) } }
     suspend fun favorite(id: String) = updateServers { if (it.id == id) it.copy(favorite = !it.favorite) else it }
     suspend fun success(id: String) = updateServers { if (it.id == id) it.copy(successes = it.successes + 1) else it }
     suspend fun edit(id: String, text: String) {
@@ -82,9 +82,24 @@ class Repository(private val context: Context, private val vault: Vault, private
         val next=state.value.copy(subscriptions=state.value.subscriptions.map{sub->sub.copy(servers=sub.servers.map(f))})
         if(persistent)commit(next)else _state.value=next
     }
+    suspend fun toggleSubscription(id:String)=mutex.withLock {
+        val current=state.value
+        val collapsed=SubscriptionGroups.toggle(current.settings.collapsedSubscriptions,id,current.subscriptions.map{it.id}.toSet())
+        val settings=current.settings.copy(collapsedSubscriptions=collapsed)
+        settingsStore.save(settings);_state.update{it.copy(settings=settings)}
+    }
+    suspend fun pinSubscription(id:String)=mutex.withLock {
+        val current=state.value
+        val pinned=SubscriptionGroups.toggle(current.settings.pinnedSubscriptions,id,current.subscriptions.map{it.id}.toSet())
+        val settings=current.settings.copy(pinnedSubscriptions=pinned)
+        settingsStore.save(settings);_state.update{it.copy(settings=settings)}
+    }
+    suspend fun refreshSubscription(id:String){awaitReady();state.value.subscriptions.firstOrNull{it.id==id}?.url?.let{import(it,id)}}
     suspend fun remove(id: String) = mutex.withLock {
         val s=state.value;val subs=s.subscriptions.filterNot{it.id==id}
-        commit(s.copy(subscriptions=subs,selected=s.selected?.takeIf{selected->subs.any{sub->sub.servers.any{it.id==selected}}}))
+        val settings=s.settings.copy(pinnedSubscriptions=s.settings.pinnedSubscriptions.intersect(subs.map{it.id}.toSet()),collapsedSubscriptions=s.settings.collapsedSubscriptions.intersect(subs.map{it.id}.toSet()))
+        settingsStore.save(settings)
+        commit(s.copy(subscriptions=subs,settings=settings,selected=s.selected?.takeIf{selected->subs.any{sub->sub.servers.any{it.id==selected}}}))
     }
     suspend fun import(input: String, existingId: String? = null, ageKey: String = "",allowXDriveOAuth:Boolean=false) = withContext(Dispatchers.IO) { importMutex.withLock {
         awaitReady(); _state.update { it.copy(busy = true) }
@@ -159,7 +174,7 @@ class Repository(private val context: Context, private val vault: Vault, private
                 require(others.size < 8 && others.sumOf { it.servers.size } + servers.size <= 500) { "Достигнут лимит профилей" }
                 require(others.flatMap { it.servers }.sumOf { it.config.length } + servers.sumOf { it.config.length } <= 8 * 1024 * 1024) { "Достигнут лимит хранилища" }
                 val sub = Subscription(subId, if (url == null) servers.first().name else title, url, servers, info,ageKey=secret,metadata=metadata,format=if(isJson)"XRAY_JSON"else"SHARE_LINKS",oauthConsent=oauthConsent)
-                commit(state.value.copy(subscriptions = others + sub, selected = ProfileRefresh.selection(state.value.selected,others.flatMap { s->s.servers }+servers,existingId==null), message = "Добавлено серверов: ${servers.size}"))
+                commit(state.value.copy(subscriptions = SubscriptionGroups.upsert(state.value.subscriptions,sub){it.id}, selected = ProfileRefresh.selection(state.value.selected,others.flatMap { s->s.servers }+servers,existingId==null), message = "Добавлено серверов: ${servers.size}"))
             }
         } catch (e: CancellationException) { throw e }
         catch (e: Exception) { notify(if (e.message?.startsWith("HTTP ") == true) e.message!! else "Не удалось импортировать профиль. Проверьте ссылку и формат конфигурации.") }

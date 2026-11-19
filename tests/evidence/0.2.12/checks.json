@@ -1,0 +1,31 @@
+{
+  "version": "0.2.12",
+  "edition": "external",
+  "gradleVerification": "strict",
+  "tests": {
+    "groupsAndLifecycle": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "external": {
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "debugRelease": "PASS",
+  "duration": "3m 42s",
+  "lint": {
+    "errors": 0,
+    "warnings": 48
+  },
+  "groups": "scoped identity, independent folds, stable replacement and pinned-first order PASS",
+  "globe": "attach/resume/pause/reentry model PASS; physical GPU/theme switching NOT RUN",
+  "physicalAndroid": "NOT RUN",
+  "longCiEmulatorColdCache": "NOT RUN",
+  "production": "UNCHANGED",
+  "signetRelease": "UNCHANGED 0.2.6"
+}
