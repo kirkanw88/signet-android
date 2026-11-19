@@ -176,7 +176,12 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
             Text(display?.title?:"Выбрать сервер",Modifier.weight(1f).padding(horizontal=12.dp),fontSize=16.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
             Icon(Icons.Outlined.ChevronRight,"Список серверов",tint=Primary)
         }
-        state.subscriptions.firstOrNull{sub->sub.servers.any{it.id==server?.id}}?.let{SubscriptionUsage(it)}
+        val selectedSubscription=state.subscriptions.firstOrNull{sub->sub.servers.any{it.id==server?.id}}
+        if(state.subscriptions.size>1&&selectedSubscription!=null){
+            Text("Подписка: "+com.signet.core.SubscriptionMetadata.text(selectedSubscription.title.lineSequence().firstOrNull(),90),
+                color=Muted,fontSize=12.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
+        }
+        selectedSubscription?.let{SubscriptionUsage(it)}
         vpn.error?.let{error->
             Column(Modifier.fillMaxWidth().padding(vertical=6.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
                 Text(error,color=Warning,fontSize=14.sp,lineHeight=20.sp,maxLines=3,overflow=TextOverflow.Ellipsis)
@@ -202,7 +207,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         }
         GlassButton(onClick={if(active)model.stop()else if(server==null)add()else connect()},enabled=phase!=VpnPhase.DISCONNECTING,modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=58.dp)) {
             if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Primary)else Icon(Icons.Outlined.PowerSettingsNew,null)
-            Text(if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))"Отменить подключение"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else"Подключиться",Modifier.padding(start=8.dp),maxLines=2)
+            Text(if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))"Отменить подключение"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else if(phase==VpnPhase.ERROR)"Повторить подключение"else"Подключиться",Modifier.padding(start=8.dp),maxLines=2)
         }
 
     }
