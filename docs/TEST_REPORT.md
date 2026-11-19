@@ -26,6 +26,8 @@ Live source был проверен отдельно от Android. Пример 
 
 [Checks](../tests/evidence/0.2.15/checks.json), [Image service](../tests/evidence/0.2.15/imagery-service.json), [APK verification](../tests/evidence/0.2.15/apk-verification.json).
 
+[Выпуск v0.2.15](https://github.com/kirkanw88/signet-android/releases/tag/v0.2.15) опубликован из `72c3e6b`: три external APK, исходники и SHA256SUMS. Загруженные digests совпали с локальными SHA-256. Анонимная universal-лента выбирает 0.2.15; общий latest остался 0.2.6. [Подтверждение](../tests/evidence/0.2.15/public-release.json). ARM64: 50409731 bytes, SHA-256 `770dae28ad26eccc192ad73eed4c5c7d22a40627b273d0d2f5ef36244cabc9ea`.
+
 ---
 
 # Signet VPN 0.2.14 — проверка 19.11.2026

@@ -1,0 +1,42 @@
+{
+  "publicEndpoint": "https://api.github.com/repos/kirkanw88/signet-android/releases/tags/v0.2.15",
+  "anonymousAccess": "PASS",
+  "release": "https://github.com/kirkanw88/signet-android/releases/tag/v0.2.15",
+  "tag": "v0.2.15",
+  "sourceCommit": "72c3e6b70caf7f0fbb077511a2be78f2820b6648",
+  "assets": [
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 411,
+      "digest": "sha256:42986975c3c2d8b57451480de986e8fa87baeb5c1f97d4984d1789db70a7824e",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.15/SHA256SUMS.txt"
+    },
+    {
+      "name": "signet-android-0.2.15-source.zip",
+      "size": 15030019,
+      "digest": "sha256:2e67510e431068c5ad7dcca08424ade638a577664e3115a05c79e75eb901fc92",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.15/signet-android-0.2.15-source.zip"
+    },
+    {
+      "name": "signet-external-0.2.15-arm64-v8a.apk",
+      "size": 50409731,
+      "digest": "sha256:770dae28ad26eccc192ad73eed4c5c7d22a40627b273d0d2f5ef36244cabc9ea",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.15/signet-external-0.2.15-arm64-v8a.apk"
+    },
+    {
+      "name": "signet-external-0.2.15-armeabi-v7a.apk",
+      "size": 49685737,
+      "digest": "sha256:fc969025c76b07b2d26ce63d9d21a086789d01819c3ebecf667d93cac4cf5f22",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.15/signet-external-0.2.15-armeabi-v7a.apk"
+    },
+    {
+      "name": "signet-external-0.2.15-x86_64.apk",
+      "size": 52786938,
+      "digest": "sha256:4edb8b8d626811e03b1a50d8d39ed535037f59f0cd4e43c17c19a10aca282392",
+      "browser_download_url": "https://github.com/kirkanw88/signet-android/releases/download/v0.2.15/signet-external-0.2.15-x86_64.apk"
+    }
+  ],
+  "anonymousUniversalFeed": "PASS",
+  "selectedUniversalVersion": "v0.2.15",
+  "frozenSignetLatest": "v0.2.6"
+}
