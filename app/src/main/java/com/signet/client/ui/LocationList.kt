@@ -174,7 +174,7 @@ import androidx.compose.ui.semantics.stateDescription
             if(active)Text("Подключён",color=color,fontSize=10.sp)
         }
         if(server.favorite)Icon(Icons.Outlined.Star,"Избранное",Modifier.padding(start=4.dp).size(13.dp),tint=AppColors.warning)
-        Icon(Icons.Outlined.ChevronRight,"Выбрать сервер",Modifier.padding(start=6.dp).size(18.dp),tint=AppColors.muted)
+        Icon(if(selected)Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,if(selected)"Выбран"else"Выбрать сервер",Modifier.padding(start=6.dp).size(20.dp),tint=if(selected)AppColors.accent else AppColors.muted)
     }
     HorizontalDivider(color=AppColors.border.copy(alpha=.4f))
 }
