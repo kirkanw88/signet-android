@@ -22,6 +22,8 @@
 
 [Checks](../tests/evidence/0.2.13/checks.json), [APK verification](../tests/evidence/0.2.13/apk-verification.json).
 
+[Выпуск v0.2.13](https://github.com/kirkanw88/signet-android/releases/tag/v0.2.13) опубликован из `615d371`: три external APK, исходники и SHA256SUMS. Загруженные digests совпали с локальными SHA-256. Анонимная universal-лента выбирает 0.2.13; общий latest остался 0.2.6. [Подтверждение](../tests/evidence/0.2.13/public-release.json). ARM64: 50376963 bytes, SHA-256 `446343d717b4595c4b5223219a9ac7c63734499c48dbf2cfd115f089ddec1a48`.
+
 ---
 
 # Signet VPN 0.2.12 — проверка 19.11.2026
