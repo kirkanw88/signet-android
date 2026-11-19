@@ -25,7 +25,7 @@ jobs:
             "build-tools;36.0.0"
       - run: python3 scripts/fetch-native.py
       - name: Verify dependencies, test, lint and build APKs
-        run: chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon :core:test :app:testSignetDebugUnitTest :app:testExternalDebugUnitTest :app:lintSignetDebug :app:lintExternalDebug :app:assembleDebug :app:assembleRelease
+        run: chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon --stacktrace --max-workers=2 :core:test :app:testSignetDebugUnitTest :app:testExternalDebugUnitTest :app:lintSignetDebug :app:lintExternalDebug :app:assembleDebug :app:assembleRelease
       - name: Verify installable APK signatures, ABIs and 16 KB alignment
         run: python3 scripts/verify-apks.py
       - uses: actions/upload-artifact@v4
@@ -100,7 +100,7 @@ jobs:
           wait "$signet_emulator_pid"
       - run: python3 scripts/fetch-native.py
       - name: Compile instrumented APKs with strict verification
-        run: chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon :app:assembleExternalDebug :app:assembleExternalRelease :app:assembleExternalDebugAndroidTest
+        run: chmod +x gradlew && ./gradlew --dependency-verification strict --no-daemon --stacktrace --max-workers=2 :app:assembleExternalDebug :app:assembleExternalRelease :app:assembleExternalDebugAndroidTest
       - name: Run Android UI and native TUN tests
         shell: bash
         run: |
@@ -136,7 +136,12 @@ jobs:
           grep -Eq '^OK \(4 tests\)' tests/evidence/runtime/ui-instrumentation.txt
           ! grep -Eq 'FAILURES|INSTRUMENTATION_FAILED|Process crashed' tests/evidence/runtime/ui-instrumentation.txt
           adb pull /sdcard/Android/data/com.signet.client.external/files/country-frames tests/evidence/runtime/countries
-          adb pull /sdcard/Android/data/com.signet.client.external/files/ui-state tests/evidence/runtime/ui-state
+          # Optional: UniversalUiSmokeTest currently has no UI screenshot fixture.
+          if adb shell test -d /sdcard/Android/data/com.signet.client.external/files/ui-state; then
+            adb pull /sdcard/Android/data/com.signet.client.external/files/ui-state tests/evidence/runtime/ui-state
+          else
+            echo 'No optional ui-state directory; continuing to native TUN tests'
+          fi
           adb install -r app/build/outputs/apk/external/release/app-external-x86_64-release.apk
           SIGNET_TEST_PACKAGE=com.signet.client.external python3 scripts/capture-matrix.py
           adb shell dumpsys meminfo com.signet.client.external > tests/evidence/runtime/meminfo-release.txt
