@@ -456,6 +456,14 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
         if (elapsed < targetFrame) Thread.sleep(targetFrame-elapsed)
     }
     private fun buildCountry() {
+        if(premiumVisual) {
+            // Universal shows only the capital marker; skip expensive border triangulation.
+            borders=emptyList()
+            fill=null
+            countryZoom=1.25f
+            marker=markerCoords?.let{floats(Geography.point(it.first,it.second,1.015))}
+            return
+        }
         val polys = countryData?.optJSONArray("polygons")
         val lines = mutableListOf<FloatBuffer>(); val triangles = ArrayList<Float>()
         val factory = GeometryFactory()
