@@ -129,6 +129,8 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
 
 class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GLSurfaceView.Renderer {
     var lightTheme=false
+    // Feature scoped to Universal; the existing Signet rendering path remains unchanged.
+    private val premiumVisual=!com.signet.client.BuildConfig.SIGNET_ACCOUNT
     private val markerState=MutableStateFlow(CapitalMarker());val capitalMarker=markerState.asStateFlow()
     private var capitals:JSONObject?=null;private var capital:JSONObject?=null
     private var capitalRevealed=false
@@ -208,7 +210,7 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
             precision mediump float;
             #endif
             uniform sampler2D uTexture; uniform sampler2D uNight; uniform sampler2D uDetailDay; uniform sampler2D uDetailNight;
-            uniform vec4 uDetailRect; uniform float uDetailBlend; uniform mediump int uMode; uniform vec4 uColor; uniform vec3 uSun; uniform float uLightTheme;
+            uniform vec4 uDetailRect; uniform float uDetailBlend; uniform mediump int uMode; uniform vec4 uColor; uniform vec3 uSun; uniform float uLightTheme; uniform float uPremium;
             varying vec2 vUv; varying vec3 vNormal; varying vec2 vScreen;
             void main(){
                 if(uMode==0){
@@ -232,16 +234,45 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
                     float ocean=smoothstep(0.025,0.15,earth.b-max(earth.r,earth.g)*0.9);
                     color+=vec3(0.65,0.78,0.9)*pow(max(dot(reflect(-sun,normal),vec3(0.0,0.0,1.0)),0.0),36.0)*ocean*sunlight*0.16;
                     color+=vec3(0.06,0.22,0.42)*rim*(0.06+sunlight*0.6);
+                    if(uPremium>0.5){
+                        // Scene-matched high-dynamic-range effect in the fragment shader.
+                        // Preserve natural land texture and warm city lights, avoiding a flat cyan overlay.
+                        vec3 richDay=pow(clamp(earth,0.0,1.0),vec3(0.87));
+                        float twilight=1.0-smoothstep(-0.24,0.18,incidence);
+                        float land=smoothstep(0.03,0.12,earth.r-earth.b*0.62);
+                        float blueWater=ocean*(1.0-land*0.55);
+                        richDay=mix(richDay,richDay*vec3(0.72,1.03,1.23),blueWater*0.55);
+                        vec3 premiumDay=richDay*(0.20+1.05*pow(sunlight,0.72));
+                        vec3 warmNight=pow(clamp(night,0.0,1.0),vec3(0.90))*vec3(1.12,0.82,0.53);
+                        warmNight*=twilight*smoothstep(0.07,0.49,city)*2.1;
+                        vec3 premiumColor=premiumDay+warmNight;
+                        float landContrast=smoothstep(0.08,0.62,dot(premiumDay,vec3(0.299,0.587,0.114)));
+                        premiumColor=mix(premiumColor,premiumColor*1.09,landContrast*0.45);
+                        // Thin blue terminator/rim over the real relief, separate from outer atmosphere pass.
+                        float grazing=pow(1.0-clamp(normal.z,0.0,1.0),5.5);
+                        premiumColor+=vec3(0.016,0.37,0.83)*grazing*(0.10+0.26*sunlight);
+                        color=clamp(premiumColor,0.0,1.0);
+                    }
                     gl_FragColor=vec4(color,1.0);
                 } else if(uMode==2){
                     float rim=pow(1.0-abs(normalize(vNormal).z),4.0);
                     float sunlit=smoothstep(-0.25,0.35,dot(normalize(vNormal),normalize(uSun)));
-                    gl_FragColor=vec4(0.16,0.48,0.82,rim*(0.04+sunlit*0.13));
+                    if(uPremium>0.5){
+                        // Intensified cyan limb; remain transparent over the center of the globe.
+                        float blueLimb=pow(1.0-abs(normalize(vNormal).z),7.0);
+                        gl_FragColor=vec4(0.06,0.70,1.0,blueLimb*(0.12+sunlit*0.46));
+                    }else{
+                        gl_FragColor=vec4(0.16,0.48,0.82,rim*(0.04+sunlit*0.13));
+                    }
                 } else if(uMode==3){
                     float d=length(gl_PointCoord-vec2(0.5)); if(d>0.5) discard;
                     gl_FragColor=vec4(uColor.rgb,uColor.a);
                 } else if(uMode==6){
-                    vec3 space=texture2D(uTexture,vUv).rgb*0.72;
+                    vec3 space=texture2D(uTexture,vUv).rgb*(uPremium>0.5?0.43:0.72);
+                    if(uPremium>0.5){
+                        // Deep navy backdrop, subtle authored starlight from the existing licensed image.
+                        space=mix(vec3(0.001,0.008,0.026),space,0.75);
+                    }
                     space=mix(space,vec3(0.95686,0.96863,0.98824),0.95*uLightTheme);
                     gl_FragColor=vec4(space,1.0);
                 }
@@ -308,19 +339,24 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
     }
     override fun onDrawFrame(gl: GL10?) {
         val now = System.nanoTime(); val dt = ((now-lastFrame)/1e9).coerceIn(0.0, .1).toFloat(); lastFrame = now
-        if (targetYaw != null) { yaw = Geography.approach(yaw, targetYaw!!, (dt*3).coerceAtMost(1f)); pitch += (targetPitch-pitch)*dt*3 }
+        if (targetYaw != null) {
+            val factor=if(premiumVisual)com.signet.core.GlobeMotion.easing(dt,reduced) else (dt*3).coerceAtMost(1f)
+            yaw = Geography.approach(yaw, targetYaw!!, factor)
+            pitch += (targetPitch-pitch)*factor
+        }
         else if (!reduced && phase == VpnPhase.DISCONNECTED) yaw += dt * 3
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
         Matrix.setIdentityM(model, 0); Matrix.rotateM(model, 0, pitch, 1f, 0f, 0f); Matrix.rotateM(model, 0, yaw, 0f, 1f, 0f)
         val aspect = width.toFloat()/height
         Matrix.perspectiveM(projection, 0, 36f, aspect, .1f, 20f)
         val targetZoom=if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED))countryZoom else 1f
-        zoom+=(targetZoom-zoom)*(dt*2.4f).coerceAtMost(1f)
+        zoom+=(targetZoom-zoom)*(if(premiumVisual)com.signet.core.GlobeMotion.zoomEasing(dt,reduced) else (dt*2.4f).coerceAtMost(1f))
         val cameraDistance=(if (aspect < 1f) 3.7f/aspect else 3.7f)/zoom
         Matrix.setLookAtM(view, 0, 0f, 0f, cameraDistance, 0f,0f,0f,0f,1f,0f)
         Matrix.multiplyMM(mv,0,view,0,model,0); Matrix.multiplyMM(mvp,0,projection,0,mv,0)
         GLES20.glUseProgram(program)
         GLES20.glUniform1f(GLES20.glGetUniformLocation(program,"uLightTheme"),if(lightTheme)1f else 0f)
+        GLES20.glUniform1f(GLES20.glGetUniformLocation(program,"uPremium"),if(premiumVisual)1f else 0f)
         val borderOffset=GLES20.glGetUniformLocation(program,"uScreenOffset")
         GLES20.glUniform2f(borderOffset,0f,0f)
         GLES20.glDepthMask(false);GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(program,"uMvp"),1,false,identity,0)
@@ -350,14 +386,14 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
         }
         val focused=phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED)
         mode(1); GLES20.glDepthMask(false)
-        fill?.let { setBuffers(it); color(if(focused)borderHighlight else borderColor,if(focused).17f else .07f); GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,it.capacity()/3) }
+        fill?.let { setBuffers(it); color(if(focused)borderHighlight else borderColor,if(premiumVisual)(if(focused).09f else .025f)else (if(focused).17f else .07f)); GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,it.capacity()/3) }
         // ES2 GPUs often clamp line width to 1px. Offset passes form a constant-width cyan edge.
         GLES20.glLineWidth(1f)
         if(focused){
-            color(borderHighlight,.86f)
+            color(borderHighlight,if(premiumVisual).68f else .86f)
             for(pass in 0..3){
-                val x=when(pass){0->-2.5f/width;1->2.5f/width;else->0f}
-                val y=when(pass){2->-2.5f/height;3->2.5f/height;else->0f}
+                val x=(if(premiumVisual)1.2f else 2.5f)/width*when(pass){0->-1f;1->1f;else->0f}
+                val y=(if(premiumVisual)1.2f else 2.5f)/height*when(pass){2->-1f;3->1f;else->0f}
                 GLES20.glUniform2f(borderOffset,x,y)
                 borders.forEach{setBuffers(it);GLES20.glDrawArrays(GLES20.GL_LINE_STRIP,0,it.capacity()/3)}
             }
