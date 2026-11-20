@@ -107,6 +107,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     }
     SignetTheme(if(BuildConfig.SIGNET_ACCOUNT)"dark"else state.settings.theme) {
         SpaceBackdrop(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize()) {
         Scaffold(containerColor=Color.Transparent,contentColor=AppColors.text,snackbarHost={
             if(!BuildConfig.SIGNET_ACCOUNT)SnackbarHost(snackbar,Modifier.fillMaxWidth().padding(bottom=76.dp)) { data ->
                 Snackbar(data,containerColor=Surface,contentColor=AppColors.text,shape=RoundedCornerShape(16.dp),modifier=Modifier.padding(horizontal=16.dp))
@@ -125,7 +126,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                     }
                 }
                 if(BuildConfig.SIGNET_ACCOUNT)SnackbarHost(snackbar,Modifier.fillMaxWidth()){data->Snackbar(data,containerColor=Surface,contentColor=AppColors.text,shape=RoundedCornerShape(16.dp),modifier=Modifier.padding(horizontal=16.dp))}
-                update.available?.let{UpdateBanner(it,model)}
+                if(BuildConfig.SIGNET_ACCOUNT)update.available?.let{UpdateBanner(it,model)}
                 when(page) {
                     0 -> Home(state,vpn,model,connect,{if(BuildConfig.SIGNET_ACCOUNT)page=2;addMenu=true},{showServers=true},{page=3;openDiagnostics=true})
                     2 -> Subscriptions(state,{addMenu=true},model::remove,model::refresh,model::openAccount,if(BuildConfig.SIGNET_ACCOUNT)model.account else null, model, {
@@ -135,6 +136,14 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                     3 -> Preferences(state,model,{page=2},{showServers=true},openDiagnostics,{openDiagnostics=false},{page=0})
                 }
             }
+        }
+        // Universal update notices overlay the globe region instead of remeasuring the Home layout.
+        // Pin to the top, keeping the primary connect button unobstructed.
+        if(!BuildConfig.SIGNET_ACCOUNT&&page==0)update.available?.let{release->
+            Box(Modifier.align(Alignment.TopCenter).padding(top=64.dp)) {
+                UpdateBanner(release,model)
+            }
+        }
         }
         }
         if(showServers){
@@ -182,6 +191,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
 
 @Composable private fun Home(state:AppState,vpn:VpnStatus,model:MainViewModel,connect:()->Unit,add:()->Unit,servers:()->Unit,diagnostics:()->Unit) {
     val phase=vpn.phase
+    var errorExpanded by rememberSaveable(vpn.error){mutableStateOf(false)}
     val active=vpn.tunActive||phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING)
     val server=if(phase==VpnPhase.CONNECTED)state.servers.firstOrNull{it.id==vpn.serverId}else state.server
     val display=remember(state.servers,server?.id){com.signet.core.ServerDisplayModel.all(state.subscriptions.firstOrNull{it.servers.any{node->node.id==server?.id}}?.servers.orEmpty(),hostNames=!BuildConfig.SIGNET_ACCOUNT)[server?.id]}
@@ -200,10 +210,13 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         selectedSubscription?.let{SubscriptionUsage(it)}
         vpn.error?.let{error->
             Column(Modifier.fillMaxWidth().padding(vertical=6.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-                Text(error,color=Warning,fontSize=14.sp,lineHeight=20.sp,maxLines=3,overflow=TextOverflow.Ellipsis)
-                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick=servers){Text("Сменить сервер")}
-                    TextButton(onClick=diagnostics){Text("Диагностика")}
+                Text(error,color=Warning,fontSize=14.sp,lineHeight=20.sp,maxLines=if(errorExpanded)Int.MAX_VALUE else 3,overflow=TextOverflow.Ellipsis)
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick=servers){Text("Сменить сервер",fontSize=12.sp)}
+                    TextButton(onClick=diagnostics){Text("Диагностика",fontSize=12.sp)}
+                    if(!BuildConfig.SIGNET_ACCOUNT&&error.length>110)TextButton(onClick={errorExpanded=!errorExpanded}){
+                        Text(if(errorExpanded)"Скрыть"else"Подробнее",fontSize=12.sp)
+                    }
                 }
             }
         }
