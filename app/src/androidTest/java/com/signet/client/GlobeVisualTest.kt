@@ -137,8 +137,8 @@ class GlobeVisualTest {
         val movesBefore=globe.rotationMoveCount
         compose.onNodeWithTag("home-globe").performTouchInput {
             swipe(
-                start=androidx.compose.ui.geometry.Offset(size.width*.7f,size.height*.7f),
-                end=androidx.compose.ui.geometry.Offset(size.width*.3f,size.height*.3f),
+                start=androidx.compose.ui.geometry.Offset(bottomRight.x*.7f,bottomRight.y*.7f),
+                end=androidx.compose.ui.geometry.Offset(bottomRight.x*.3f,bottomRight.y*.3f),
                 durationMillis=450
             )
         }
