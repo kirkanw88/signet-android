@@ -131,6 +131,20 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
         }
         return true
     }
+    /**
+     * Universal Compose draws a touch layer above SurfaceView because the Home column
+     * scroll gesture can otherwise capture the DOWN before AndroidView dispatch.
+     * The overlay forwards *actual* Compose drag deltas to the same GLES renderer.
+     */
+    fun beginComposeGesture() {
+        inputDownCount++
+    }
+    fun rotateFromCompose(dx:Float,dy:Float) {
+        if(coveredByPhoto)return
+        rotationMoveCount++
+        queueEvent { globe.drag(dx*.25f,dy*.2f) }
+        requestRender()
+    }
     override fun performClick(): Boolean { super.performClick(); return true }
 }
 
