@@ -219,9 +219,9 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 shape=RoundedCornerShape(14.dp)) {
                 Row(Modifier.fillMaxWidth().heightIn(min=52.dp).padding(horizontal=12.dp,vertical=8.dp),
                     verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.size(36.dp).background(Primary.copy(alpha=.12f),RoundedCornerShape(10.dp)),
-                        contentAlignment=Alignment.Center) {
-                        CountryFlag(display?.country,display?.isAuto?:false)
+                    Box(Modifier.size(width=40.dp,height=30.dp),contentAlignment=Alignment.Center) {
+                        CountryFlag(display?.country,display?.isAuto?:false,
+                            modifier=Modifier.size(width=40.dp,height=30.dp))
                     }
                     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
                         Text("ЛОКАЦИЯ",fontSize=10.sp,letterSpacing=1.2.sp,color=Muted,fontWeight=FontWeight.Medium)
@@ -430,16 +430,34 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
 @Composable internal fun SubscriptionUsage(subscription:Subscription){
     val info=subscription.info
     if(info.isEmpty())return
-    val total=info["total"]?.coerceAtLeast(0)
-    val used=((info["upload"]?:0).coerceAtLeast(0).toDouble()+(info["download"]?:0).coerceAtLeast(0)).coerceAtMost(Long.MAX_VALUE.toDouble()).toLong()
-    Column(Modifier.fillMaxWidth().padding(vertical=if(BuildConfig.SIGNET_ACCOUNT)6.dp else 3.dp),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)5.dp else 3.dp)){
+    val total=info["total"]?.coerceAtLeast(0L)
+    val uploaded=info["upload"]?.coerceAtLeast(0L)?:0L
+    val downloaded=info["download"]?.coerceAtLeast(0L)?:0L
+    val used=(uploaded.toDouble()+downloaded.toDouble()).coerceAtMost(Long.MAX_VALUE.toDouble()).toLong()
+    Column(Modifier.fillMaxWidth().padding(vertical=3.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
         if(total!=null){
-            if(total>0)LinearProgressIndicator(progress={(used.toDouble()/total).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth(),color=if(used>=total)Warning else Primary,trackColor=AppColors.text.copy(alpha=.15f))
-            Text(if(total>0)"${bytes(used)} из ${bytes(total)}"else"${bytes(used)} · Безлимитный трафик",color=if(total!=null&&total>0&&used>=total)Warning else Muted,fontSize=12.sp)
+            // For unlimited subscriptions, this is a neutral indicator, not a fictitious usage percentage.
+            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
+                horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                Text(if(total>0L)"Трафик"else"Безлимит",color=Muted,fontSize=11.sp)
+                Spacer(Modifier.weight(1f))
+                Text(if(total>0L)"${bytes(used)} / ${bytes(total)}"else"${bytes(used)} / ∞",
+                    color=if(total>0L&&used>=total)Warning else AppColors.text,fontSize=12.sp,
+                    fontWeight=FontWeight.Medium,maxLines=1)
+            }
+            LinearProgressIndicator(
+                progress={if(total>0L)(used.toDouble()/total).toFloat().coerceIn(0f,1f) else 0f},
+                modifier=Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(50)),
+                color=if(total>0L&&used>=total)Warning else Primary.copy(alpha=.72f),
+                trackColor=AppColors.text.copy(alpha=.11f)
+            )
         }
         info["expire"]?.let{expiry->
-            if(expiry>0&&expiry<=Long.MAX_VALUE/1000){val end=expiry*1000;Text("${if(end<=System.currentTimeMillis())"Истекла"else"Действует до"} ${DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(end))}",color=if(end<=System.currentTimeMillis())Warning else Muted,fontSize=12.sp)}
-            else if(expiry==0L)Text("Без ограничения срока",color=Muted,fontSize=12.sp)
+            if(expiry>0&&expiry<=Long.MAX_VALUE/1000){
+                val end=expiry*1000
+                Text("${if(end<=System.currentTimeMillis())"Истекла"else"Действует до"} ${DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(end))}",
+                    color=if(end<=System.currentTimeMillis())Warning else Muted,fontSize=11.sp)
+            } else if(expiry==0L)Text("Без ограничения срока",color=Muted,fontSize=11.sp)
         }
     }
 }
