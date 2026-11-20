@@ -212,7 +212,7 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
             if(program!=0)loadDetail()
         }
         if(focusConnection){manual=false;targetYaw=focusLon?.toFloat()?.unaryMinus();targetPitch=focusLat?.toFloat()?:12f}
-        if(state!=VpnPhase.CONNECTED){capitalRevealed=false;markerState.value=CapitalMarker()}
+        if(state!=VpnPhase.CONNECTED&&(!premiumVisual||server==null)){capitalRevealed=false;markerState.value=CapitalMarker()}
     }
     fun drag(dx: Float, dy: Float) { manual=true;yaw += dx; pitch = (pitch + dy).coerceIn(-85f, 85f); targetYaw = null }
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
