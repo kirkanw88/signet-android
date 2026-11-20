@@ -83,6 +83,21 @@ jobs:
           path: |
             app/build/outputs/apk/**/debug/*.apk
             app/build/outputs/apk/**/release/*.apk
+      - name: Prepare single-device Android arm64 build and SHA-256
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/universal-arm64
+          apk="app/build/outputs/apk/external/release/app-external-arm64-v8a-release.apk"
+          test -s "$apk"
+          cp "$apk" dist/universal-arm64/Signet-Universal-arm64-v8a.apk
+          (cd dist/universal-arm64 && sha256sum Signet-Universal-arm64-v8a.apk > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signet-universal-arm64
+          if-no-files-found: error
+          compression-level: 0
+          path: dist/universal-arm64/
   runtime:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
