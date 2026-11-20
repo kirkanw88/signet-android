@@ -205,11 +205,11 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
             val isEmpty=state.subscriptions.isEmpty()
             Surface(onClick=if(isEmpty)add else servers,
                 modifier=Modifier.fillMaxWidth().testTag(if(isEmpty)"home-add-subscription-card" else "home-server-card"),
-                shape=RoundedCornerShape(22.dp),color=AppColors.surface.copy(alpha=.90f),
+                shape=RoundedCornerShape(14.dp),color=AppColors.surface.copy(alpha=.90f),
                 border=BorderStroke(1.dp,Primary.copy(alpha=.26f))) {
-                Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=16.dp),
-                    verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                    Box(Modifier.size(46.dp).background(Primary.copy(alpha=.12f),RoundedCornerShape(14.dp)),
+                Row(Modifier.fillMaxWidth().heightIn(min=52.dp).padding(horizontal=12.dp,vertical=8.dp),
+                    verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+                    Box(Modifier.size(36.dp).background(Primary.copy(alpha=.12f),RoundedCornerShape(10.dp)),
                         contentAlignment=Alignment.Center) {
                         if(isEmpty)Icon(Icons.Outlined.Add,null,tint=Primary)
                         else CountryFlag(display?.country,display?.isAuto?:false)
@@ -219,8 +219,8 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                             Text("Добавить подписку",fontSize=17.sp,fontWeight=FontWeight.SemiBold)
                             Text("Импортировать ссылку или QR-код",fontSize=12.sp,color=Muted)
                         } else {
-                            Text("ВЫБРАННАЯ ЛОКАЦИЯ",fontSize=10.sp,letterSpacing=1.5.sp,color=Muted,fontWeight=FontWeight.Medium)
-                            Text(display?.title?:"Выбрать сервер",fontSize=17.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
+                            Text("ЛОКАЦИЯ",fontSize=10.sp,letterSpacing=1.2.sp,color=Muted,fontWeight=FontWeight.Medium)
+                            Text(display?.title?:"Выбрать сервер",fontSize=15.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
                         }
                     }
                     Icon(Icons.Outlined.ChevronRight,"Открыть",tint=Primary)
@@ -251,8 +251,8 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 }
             }
         }
-        if(phase==VpnPhase.CONNECTED)Surface(color=Surface,shape=RoundedCornerShape(16.dp),modifier=Modifier.testTag("home-traffic").fillMaxWidth().padding(vertical=6.dp)){
-            Row(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=8.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)){
+        if(phase==VpnPhase.CONNECTED)Surface(color=Surface,shape=RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)16.dp else 12.dp),modifier=Modifier.testTag("home-traffic").fillMaxWidth().padding(vertical=if(BuildConfig.SIGNET_ACCOUNT)6.dp else 3.dp)){
+            Row(Modifier.fillMaxWidth().padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)14.dp else 10.dp,vertical=if(BuildConfig.SIGNET_ACCOUNT)8.dp else 6.dp),horizontalArrangement=Arrangement.spacedBy(12.dp)){
                 Column(Modifier.weight(1f)){
                     Text("↑ Отправка",color=Muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)11.sp else 12.sp)
                     Text("${bytes(vpn.uploadRate)}/с",fontSize=16.sp,fontWeight=FontWeight.SemiBold,maxLines=1)
@@ -269,14 +269,14 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         val action:()->Unit={if(active)model.stop()else if(server==null)add()else connect()}
         if(!BuildConfig.SIGNET_ACCOUNT){
             Button(onClick=action,enabled=phase!=VpnPhase.DISCONNECTING,
-                modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=64.dp).padding(top=8.dp),
-                shape=RoundedCornerShape(20.dp),
+                modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=54.dp).padding(top=4.dp),
+                shape=RoundedCornerShape(14.dp),
                 colors=ButtonDefaults.buttonColors(containerColor=if(active)AppColors.surface else Primary,
                     contentColor=if(active)AppColors.text else MaterialTheme.colorScheme.onPrimary)) {
                 if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=MaterialTheme.colorScheme.onPrimary)
                 else Icon(Icons.Outlined.PowerSettingsNew,null,modifier=Modifier.size(22.dp))
                 Spacer(Modifier.width(10.dp))
-                Text(actionLabel,fontWeight=FontWeight.SemiBold,fontSize=17.sp,maxLines=2)
+                Text(actionLabel,fontWeight=FontWeight.SemiBold,fontSize=16.sp,maxLines=2)
             }
         } else {
             GlassButton(onClick=action,enabled=phase!=VpnPhase.DISCONNECTING,modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=58.dp)) {
@@ -415,8 +415,8 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
 }
 
 @Composable private fun AccountAction(icon:androidx.compose.ui.graphics.vector.ImageVector,title:String,click:()->Unit){
-    Surface(onClick=click,color=AppColors.surface,shape=RoundedCornerShape(18.dp),border=BorderStroke(1.dp,AppColors.text.copy(alpha=.12f)),modifier=Modifier.fillMaxWidth()){
-        Row(Modifier.padding(horizontal=16.dp,vertical=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)){
+    Surface(onClick=click,color=AppColors.surface,shape=RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)18.dp else 12.dp),border=BorderStroke(1.dp,AppColors.text.copy(alpha=.12f)),modifier=Modifier.fillMaxWidth()){
+        Row(Modifier.heightIn(min=48.dp).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)16.dp else 12.dp,vertical=if(BuildConfig.SIGNET_ACCOUNT)16.dp else 8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)14.dp else 10.dp)){
             Icon(icon,null,tint=Primary,modifier=Modifier.size(23.dp));Text(title,Modifier.weight(1f),fontSize=16.sp);Icon(Icons.Outlined.ChevronRight,null,tint=Muted)
         }
     }
