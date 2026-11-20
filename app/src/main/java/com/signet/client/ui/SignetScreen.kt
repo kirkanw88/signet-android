@@ -68,6 +68,8 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     var page by rememberSaveable { mutableIntStateOf(0) }
     var showServers by rememberSaveable { mutableStateOf(false) }
     var openDiagnostics by rememberSaveable { mutableStateOf(false) }
+    // Run the optional full-list ping once per foreground app session, not on every recomposition.
+    var launchPingHandled by rememberSaveable { mutableStateOf(false) }
     androidx.activity.compose.BackHandler(enabled=page!=0){page=if(page==2)3 else 0}
     var add by rememberSaveable { mutableStateOf(false) }
     var addMenu by rememberSaveable{mutableStateOf(false)}
@@ -106,6 +108,16 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         }
     }
     LaunchedEffect(state.ready) { if(state.ready && state.settings.autoConnect && state.server != null && vpn.phase==VpnPhase.DISCONNECTED) connect() }
+    LaunchedEffect(state.ready,state.settings.probes.pingOnLaunch) {
+        if(!BuildConfig.SIGNET_ACCOUNT && state.ready && state.settings.probes.pingOnLaunch && !launchPingHandled) {
+            launchPingHandled=true
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                if(state.servers.any{it.enabled})model.measure()
+                // One pass per Activity instance; repeatOnLifecycle must not rerun this scan.
+                return@repeatOnLifecycle
+            }
+        }
+    }
     val qr=rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         result.data?.getStringExtra("content")?.let { input=it;add=true }
     }
@@ -122,7 +134,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                     if(page==0)Image(painterResource(R.drawable.signet_logo),"Signet VPN",Modifier.width(80.dp).height(48.dp),colorFilter=if(AppColors.dark)null else androidx.compose.ui.graphics.ColorFilter.tint(AppColors.text))
                     else if(page!=3)IconButton(onClick={page=if(page==2)3 else 0}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=AppColors.text)}
                     if(page==2)Text("Подписки",color=AppColors.text,fontSize=20.sp,fontWeight=FontWeight.Medium)
-                    if(page==0&&!BuildConfig.SIGNET_ACCOUNT)Text("v${BuildConfig.VERSION_NAME} · G11",fontSize=13.sp,color=AppColors.muted)
+                    if(page==0&&!BuildConfig.SIGNET_ACCOUNT)Text("v${BuildConfig.VERSION_NAME} · G12",fontSize=13.sp,color=AppColors.muted)
                     Row {
                         if(page==0&&!BuildConfig.SIGNET_ACCOUNT)IconButton(onClick={if(state.subscriptions.size>=8)model.repository.notify("Достигнут лимит 8 подписок. Удалите ненужную подписку, чтобы добавить новую.")else addMenu=true},enabled=!state.busy,modifier=Modifier.testTag("home-add-subscription")){Icon(Icons.Outlined.Add,"Добавить подписку",tint=if(state.busy||state.subscriptions.size>=8)AppColors.muted else Primary)}
                         if(BuildConfig.SIGNET_ACCOUNT)IconButton(onClick={model.openAccount("support")}){Icon(Icons.Outlined.SupportAgent,"Техническая поддержка",tint=AppColors.muted)}
@@ -154,14 +166,14 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
             val sheet=rememberModalBottomSheetState(skipPartiallyExpanded=true)
             ModalBottomSheet(onDismissRequest={showServers=false},sheetState=sheet,containerColor=Surface,contentColor=AppColors.text,modifier=Modifier.testTag("server-sheet")) {
                 LocationList(state,vpn,probing,{id->model.select(id);scope.launch{sheet.hide();showServers=false}},model::favorite,{model.measure()},model::refresh,
-                    Modifier.fillMaxWidth().fillMaxHeight(.88f).padding(horizontal=20.dp),activeProbes=activeProbes,toggleSubscription=model::toggleSubscription,pinSubscription=model::pinSubscription,refreshSubscription=model::refreshSubscription,pingSubscription=model::measureSubscription,removeSubscription=model::remove,refreshingSubscriptions=refreshingGroups,addSubscription={showServers=false;addMenu=true})
+                    Modifier.fillMaxWidth().fillMaxHeight(.88f).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)20.dp else 12.dp),activeProbes=activeProbes,toggleSubscription=model::toggleSubscription,pinSubscription=model::pinSubscription,refreshSubscription=model::refreshSubscription,pingSubscription=model::measureSubscription,removeSubscription=model::remove,refreshingSubscriptions=refreshingGroups,addSubscription={showServers=false;addMenu=true})
             }
         }
         if(BuildConfig.SIGNET_ACCOUNT&&accountPage!=null)MobileAccountScreen(model,accountPage!!){model.accountPage.value=null}
         UpdateWindow(model)
         if(addMenu)ModalBottomSheet(onDismissRequest={addMenu=false},containerColor=Surface,contentColor=AppColors.text){
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal=20.dp).padding(bottom=24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-                Text("Добавить подписку",fontSize=24.sp,fontWeight=FontWeight.SemiBold)
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)20.dp else 14.dp).padding(bottom=16.dp),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp)){
+                Text("Добавить подписку",fontSize=if(BuildConfig.SIGNET_ACCOUNT)24.sp else 20.sp,fontWeight=FontWeight.SemiBold)
                 GlassButton(onClick={addMenu=false;runCatching{ClipboardTransfers.read(context,16*1024).also{require(com.signet.core.SubscriptionMetadata.safeLink(it)!=null)}}.onSuccess{input=it;ageKey="";oauthConsent=false;add=true}.onFailure{model.repository.notify("В буфере нет корректной ссылки подписки")}},modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.ContentPaste,null);Text("Вставить из буфера обмена",Modifier.padding(start=10.dp))}
                 GlassButton(onClick={addMenu=false;qr.launch(Intent(context,QrScannerActivity::class.java))},modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.QrCodeScanner,null);Text("Отсканировать QR-код",Modifier.padding(start=10.dp))}
                 if(!BuildConfig.SIGNET_ACCOUNT)GlassButton(onClick={addMenu=false;input="";ageKey="";oauthConsent=false;add=true},modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.Edit,null);Text("Добавить вручную",Modifier.padding(start=10.dp))}
@@ -194,6 +206,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
 }
 
 @Composable private fun Home(state:AppState,vpn:VpnStatus,model:MainViewModel,connect:()->Unit,add:()->Unit,servers:()->Unit,diagnostics:()->Unit) {
+    val buttonView=LocalView.current
     val phase=vpn.phase
     var errorExpanded by rememberSaveable(vpn.error){mutableStateOf(false)}
     val active=vpn.tunActive||phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING)
@@ -201,10 +214,28 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     val display=remember(state.servers,server?.id){com.signet.core.ServerDisplayModel.all(state.subscriptions.firstOrNull{it.servers.any{node->node.id==server?.id}}?.servers.orEmpty(),hostNames=!BuildConfig.SIGNET_ACCOUNT)[server?.id]}
     val status=when(phase){VpnPhase.CONNECTED->"Подключено";VpnPhase.CONNECTING->"Подключение";VpnPhase.RECONNECTING->"Переподключение";VpnPhase.ERROR->"Ошибка подключения";VpnPhase.DISCONNECTING->"Отключение";else->"Не подключено"}
     @Composable fun controls() {
-        Row(Modifier.fillMaxWidth().clickable(onClick=servers).padding(vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center) {
-            CountryFlag(display?.country,display?.isAuto?:false)
-            Text(display?.title?:"Выбрать сервер",Modifier.weight(1f).padding(horizontal=12.dp),fontSize=16.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
-            Icon(Icons.Outlined.ChevronRight,"Список серверов",tint=Primary)
+        if(!BuildConfig.SIGNET_ACCOUNT && state.subscriptions.isNotEmpty()) {
+            LiquidGlassFrame(onClick=servers,
+                modifier=Modifier.fillMaxWidth().testTag("home-server-card"),
+                shape=RoundedCornerShape(14.dp)) {
+                Row(Modifier.fillMaxWidth().heightIn(min=52.dp).padding(horizontal=12.dp,vertical=8.dp),
+                    verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+                    Box(Modifier.size(width=40.dp,height=30.dp),contentAlignment=Alignment.Center) {
+                        CountryFlag(display?.country,display?.isAuto?:false,
+                            modifier=Modifier.size(width=40.dp,height=30.dp))
+                    }
+                    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp)){
+                        Text(display?.title?:"Выбрать сервер",fontSize=15.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
+                    }
+                    Icon(Icons.Outlined.ChevronRight,"Открыть",tint=Primary)
+                }
+            }
+        } else if(BuildConfig.SIGNET_ACCOUNT) {
+            Row(Modifier.fillMaxWidth().clickable(onClick=servers).padding(vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center) {
+                CountryFlag(display?.country,display?.isAuto?:false)
+                Text(display?.title?:"Выбрать сервер",Modifier.weight(1f).padding(horizontal=12.dp),fontSize=16.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
+                Icon(Icons.Outlined.ChevronRight,"Список серверов",tint=Primary)
+            }
         }
         val selectedSubscription=state.subscriptions.firstOrNull{sub->sub.servers.any{it.id==server?.id}}
         if(state.subscriptions.size>1&&selectedSubscription!=null){
@@ -224,23 +255,46 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 }
             }
         }
-        if(phase==VpnPhase.CONNECTED)Surface(color=Surface,shape=RoundedCornerShape(16.dp),modifier=Modifier.testTag("home-traffic").fillMaxWidth().padding(vertical=6.dp)){
-            Row(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=8.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)){
-                Column(Modifier.weight(1f)){
-                    Text("↑ Отправка",color=Muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)11.sp else 12.sp)
-                    Text("${bytes(vpn.uploadRate)}/с",fontSize=16.sp,fontWeight=FontWeight.SemiBold,maxLines=1)
-                    Text("Всего ${bytes(vpn.uploaded)}",color=Muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)10.sp else 12.sp,maxLines=1)
+        if(phase==VpnPhase.CONNECTED)Surface(color=Surface.copy(alpha=.62f),
+            shape=RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)16.dp else 10.dp),
+            modifier=Modifier.testTag("home-traffic").fillMaxWidth().padding(vertical=2.dp)){
+            Row(Modifier.fillMaxWidth().padding(horizontal=10.dp,vertical=6.dp),
+                horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
+                Column(Modifier.weight(1f),horizontalAlignment=Alignment.Start){
+                    Text("↑ Отправка",color=Muted,fontSize=10.sp)
+                    Text("${bytes(vpn.uploadRate)}/с",fontSize=13.sp,fontWeight=FontWeight.Medium,maxLines=1)
+                    Text("Всего ${bytes(vpn.uploaded)}",color=Muted,fontSize=9.sp,maxLines=1)
                 }
-                Column(Modifier.weight(1f)){
-                    Text("↓ Получение",color=Muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)11.sp else 12.sp)
-                    Text("${bytes(vpn.downloadRate)}/с",fontSize=16.sp,fontWeight=FontWeight.SemiBold,maxLines=1)
-                    Text("Всего ${bytes(vpn.downloaded)}",color=Muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)10.sp else 12.sp,maxLines=1)
+                Column(Modifier.weight(1f),horizontalAlignment=Alignment.End){
+                    Text("↓ Получение",color=Muted,fontSize=10.sp)
+                    Text("${bytes(vpn.downloadRate)}/с",fontSize=13.sp,fontWeight=FontWeight.Medium,maxLines=1)
+                    Text("Всего ${bytes(vpn.downloaded)}",color=Muted,fontSize=9.sp,maxLines=1)
                 }
             }
         }
-        GlassButton(onClick={if(active)model.stop()else if(server==null)add()else connect()},enabled=phase!=VpnPhase.DISCONNECTING,modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=58.dp)) {
-            if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Primary)else Icon(Icons.Outlined.PowerSettingsNew,null)
-            Text(if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))"Отменить подключение"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else if(phase==VpnPhase.ERROR)"Повторить подключение"else"Подключиться",Modifier.padding(start=8.dp),maxLines=2)
+        val actionLabel=if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))"Отменить подключение"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else if(phase==VpnPhase.ERROR)"Повторить подключение"else"Подключиться"
+        val action:()->Unit={
+            // Respect system touch-feedback settings. No VIBRATE permission or timed vibration.
+            buttonView.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+            if(active)model.stop()else if(server==null)add()else connect()
+        }
+        if(!BuildConfig.SIGNET_ACCOUNT){
+            LiquidGlassFrame(onClick=action,enabled=phase!=VpnPhase.DISCONNECTING,prominent=true,
+                modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=54.dp).padding(top=4.dp),
+                shape=RoundedCornerShape(14.dp)) {
+                Row(Modifier.fillMaxWidth().heightIn(min=50.dp).padding(horizontal=18.dp,vertical=10.dp),
+                    horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically) {
+                    if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Color.White)
+                    else Icon(Icons.Outlined.PowerSettingsNew,null,tint=Color.White,modifier=Modifier.size(22.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text(actionLabel,color=Color.White,fontWeight=FontWeight.SemiBold,fontSize=16.sp,maxLines=2)
+                }
+            }
+        } else {
+            GlassButton(onClick=action,enabled=phase!=VpnPhase.DISCONNECTING,modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=58.dp)) {
+                if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Primary)else Icon(Icons.Outlined.PowerSettingsNew,null)
+                Text(actionLabel,Modifier.padding(start=8.dp),maxLines=2)
+            }
         }
 
     }
@@ -254,7 +308,16 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         }else SubcomposeLayout(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal=16.dp).padding(bottom=12.dp)){constraints->
             val natural=constraints.copy(minHeight=0,maxHeight=Constraints.Infinity)
             val footer=subcompose("controls"){Column(Modifier.fillMaxWidth()){controls()}}.single().measure(natural)
-            val heading=subcompose("status"){Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center){Text(status,fontSize=24.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text,maxLines=1)}}.single().measure(natural)
+            val heading=subcompose("status"){
+                if(!BuildConfig.SIGNET_ACCOUNT) {
+                    Column(Modifier.fillMaxWidth().padding(top=10.dp,bottom=6.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(7.dp)){
+                        Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(9.dp)){
+                            Box(Modifier.size(9.dp).background(if(phase==VpnPhase.CONNECTED)Green else if(phase==VpnPhase.ERROR)Warning else Primary,RoundedCornerShape(50)))
+                            Text(status,fontSize=25.sp,fontWeight=FontWeight.SemiBold,color=AppColors.text,maxLines=1)
+                        }
+                    }
+                } else Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center){Text(status,fontSize=24.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text,maxLines=1)}
+            }.single().measure(natural)
             val height=com.signet.core.HomeMeasurements.globeHeight(viewport,heading.height,footer.height)
             val planet=if(height>0)subcompose("globe"){Globe(server,phase,state.settings,Modifier.fillMaxSize())}.single().measure(Constraints.fixed(constraints.maxWidth,height))else null
             layout(constraints.maxWidth,(heading.height+height+footer.height).coerceAtLeast(viewport)){
@@ -278,8 +341,8 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     var area by remember{mutableStateOf(IntSize.Zero)}
     Box(modifier.testTag("home-globe").clip(RoundedCornerShape(if(AppColors.dark)0.dp else 24.dp)).onSizeChanged{area=it}) {
         AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);renderer=it.globe;globeView=it}},modifier=Modifier.fillMaxSize(),onRelease={it.releaseHost();if(globeView===it)globeView=null},update={it.bindHost(lifecycle);it.photoCover(false);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,parentScroll,rotateVertical=false)})
-        if(!BuildConfig.SIGNET_ACCOUNT) {
-            // Rotate only on horizontal swipes. Vertical or diagonal drags remain
+        if(!BuildConfig.SIGNET_ACCOUNT&&phase==VpnPhase.DISCONNECTED) {
+            // Rotate only while disconnected; vertical or diagonal drags remain
             // available to the Home screen's normal scrolling behavior.
             Box(Modifier.fillMaxSize().pointerInput(globeView) {
                 awaitEachGesture {
@@ -327,7 +390,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     if(!BuildConfig.SIGNET_ACCOUNT){
         val vpn by model.vpn.collectAsStateWithLifecycle();val probing by model.probing.collectAsStateWithLifecycle()
         val active by model.probingIds.collectAsStateWithLifecycle();val refreshing by model.refreshingSubscriptions.collectAsStateWithLifecycle()
-        LocationList(state,vpn,probing,model::select,model::favorite,{model.measure()},model::refresh,Modifier.fillMaxSize().padding(horizontal=20.dp),activeProbes=active,toggleSubscription=model::toggleSubscription,pinSubscription=model::pinSubscription,refreshSubscription=model::refreshSubscription,pingSubscription=model::measureSubscription,removeSubscription=model::remove,refreshingSubscriptions=refreshing,addSubscription=add,management=true)
+        LocationList(state,vpn,probing,model::select,model::favorite,{model.measure()},model::refresh,Modifier.fillMaxSize().padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)20.dp else 12.dp),activeProbes=active,toggleSubscription=model::toggleSubscription,pinSubscription=model::pinSubscription,refreshSubscription=model::refreshSubscription,pingSubscription=model::measureSubscription,removeSubscription=model::remove,refreshingSubscriptions=refreshing,addSubscription=add,management=true)
         return
     }
     val context=LocalContext.current
@@ -364,8 +427,8 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
 }
 
 @Composable private fun AccountAction(icon:androidx.compose.ui.graphics.vector.ImageVector,title:String,click:()->Unit){
-    Surface(onClick=click,color=AppColors.surface,shape=RoundedCornerShape(18.dp),border=BorderStroke(1.dp,AppColors.text.copy(alpha=.12f)),modifier=Modifier.fillMaxWidth()){
-        Row(Modifier.padding(horizontal=16.dp,vertical=16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)){
+    Surface(onClick=click,color=AppColors.surface,shape=RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)18.dp else 12.dp),border=BorderStroke(1.dp,AppColors.text.copy(alpha=.12f)),modifier=Modifier.fillMaxWidth()){
+        Row(Modifier.heightIn(min=48.dp).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)16.dp else 12.dp,vertical=if(BuildConfig.SIGNET_ACCOUNT)16.dp else 8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)14.dp else 10.dp)){
             Icon(icon,null,tint=Primary,modifier=Modifier.size(23.dp));Text(title,Modifier.weight(1f),fontSize=16.sp);Icon(Icons.Outlined.ChevronRight,null,tint=Muted)
         }
     }
@@ -374,16 +437,34 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
 @Composable internal fun SubscriptionUsage(subscription:Subscription){
     val info=subscription.info
     if(info.isEmpty())return
-    val total=info["total"]?.coerceAtLeast(0)
-    val used=((info["upload"]?:0).coerceAtLeast(0).toDouble()+(info["download"]?:0).coerceAtLeast(0)).coerceAtMost(Long.MAX_VALUE.toDouble()).toLong()
-    Column(Modifier.fillMaxWidth().padding(vertical=6.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
+    val total=info["total"]?.coerceAtLeast(0L)
+    val uploaded=info["upload"]?.coerceAtLeast(0L)?:0L
+    val downloaded=info["download"]?.coerceAtLeast(0L)?:0L
+    val used=(uploaded.toDouble()+downloaded.toDouble()).coerceAtMost(Long.MAX_VALUE.toDouble()).toLong()
+    Column(Modifier.fillMaxWidth().padding(vertical=1.dp),verticalArrangement=Arrangement.spacedBy(4.dp)){
         if(total!=null){
-            if(total>0)LinearProgressIndicator(progress={(used.toDouble()/total).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth(),color=if(used>=total)Warning else Primary,trackColor=AppColors.text.copy(alpha=.15f))
-            Text(if(total>0)"${bytes(used)} из ${bytes(total)}"else"${bytes(used)} · Безлимитный трафик",color=if(total!=null&&total>0&&used>=total)Warning else Muted,fontSize=12.sp)
+            // Unlimited is not a percentage: keep the bar neutral but show infinity.
+            val proportion=if(total>0)(used.toDouble()/total).toFloat().coerceIn(0f,1f) else 0f
+            Box(Modifier.fillMaxWidth().height(27.dp).clip(RoundedCornerShape(7.dp))
+                .background(AppColors.text.copy(alpha=.08f))
+                .border(1.dp,AppColors.border.copy(alpha=.32f),RoundedCornerShape(7.dp)),
+                contentAlignment=Alignment.Center){
+                if(total>0)Box(Modifier.fillMaxWidth(proportion).fillMaxHeight()
+                    .align(Alignment.CenterStart).background(
+                        (if(used>=total)Warning else Primary).copy(alpha=.25f)))
+                Text(if(total>0)"${bytes(used)} / ${bytes(total)}"else"${bytes(used)} / ∞",
+                    color=AppColors.text,fontSize=12.sp,fontWeight=FontWeight.Medium,
+                    maxLines=1,modifier=Modifier.align(Alignment.Center))
+            }
         }
         info["expire"]?.let{expiry->
-            if(expiry>0&&expiry<=Long.MAX_VALUE/1000){val end=expiry*1000;Text("${if(end<=System.currentTimeMillis())"Истекла"else"Действует до"} ${DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(end))}",color=if(end<=System.currentTimeMillis())Warning else Muted,fontSize=12.sp)}
-            else if(expiry==0L)Text("Без ограничения срока",color=Muted,fontSize=12.sp)
+            if(expiry>0&&expiry<=Long.MAX_VALUE/1000){
+                val end=expiry*1000
+                Text("${if(end<=System.currentTimeMillis())"Истекла"else"Действует до"} ${DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(end))}",
+                    modifier=Modifier.fillMaxWidth(),textAlign=androidx.compose.ui.text.style.TextAlign.Center,
+                    color=if(end<=System.currentTimeMillis())Warning else Muted,fontSize=11.sp,maxLines=2)
+            } else if(expiry==0L)Text("Без ограничения срока",modifier=Modifier.fillMaxWidth(),
+                textAlign=androidx.compose.ui.text.style.TextAlign.Center,color=Muted,fontSize=11.sp)
         }
     }
 }

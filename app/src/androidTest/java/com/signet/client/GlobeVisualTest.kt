@@ -69,9 +69,11 @@ class GlobeVisualTest {
             }
             compose.onNodeWithText("VISUAL-$run-TR").performClick()
             compose.onNodeWithTag("server-sheet").assertExists()
-            compose.onNodeWithContentDescription("Ping всех подписок").assertExists()
-            compose.onNodeWithContentDescription("Обновить все подписки").assertExists()
-            compose.onNodeWithText("Ping").assertExists()
+            // Per-subscription actions replace the removed global toolbar.
+            compose.onNodeWithContentDescription("Ping подписки").assertExists()
+            compose.onNodeWithContentDescription("Обновить подписку").assertExists()
+            compose.onNodeWithContentDescription("Ping всех подписок").assertDoesNotExist()
+            compose.onNodeWithContentDescription("Обновить все подписки").assertDoesNotExist()
             compose.onNodeWithText("VISUAL-$run-DE").performScrollTo().performClick()
             compose.waitUntil(10_000){repository.state.value.selected==sub.servers.single{it.countryCode=="DE"}.id&&compose.onAllNodesWithTag("server-sheet").fetchSemanticsNodes().isEmpty()}
         }finally {

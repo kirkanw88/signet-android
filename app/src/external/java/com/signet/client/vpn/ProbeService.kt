@@ -63,7 +63,7 @@ class ProbeService:Service() {
     private suspend fun execute(request:JSONObject):JSONObject {
         fallbackDns=request.optString("bootstrapDns","1.1.1.1").also{require(TemplateCompatibility.numericAddress(it))}
         val options=ProbeSettings.parse(request.getJSONObject("options").toString())
-        val array=request.getJSONArray("servers");require(array.length() in 1..5)
+        val array=request.getJSONArray("servers");require(array.length() in 1..10)
         val servers=(0 until array.length()).map { i->val s=array.getJSONObject(i);Profiles.parseJson(s.getString("config")).single().copy(id=s.getString("id")) }
         if(!request.optBoolean("validateOnly"))bootstrap(options.mode!=ProbeMode.TCP&&options.mode!=ProbeMode.HTTPS)
         val out=JSONArray()
@@ -115,7 +115,8 @@ class ProbeService:Service() {
         }.getOrElse {JSONObject().put("id",server.id).put("status",ConnectionHealth.category(it))}
     }
     private suspend fun fullProfile(server:Server,options:ProbeSettings,validateOnly:Boolean=false):JSONObject {
-        val started=SystemClock.elapsedRealtime()
+        // Do not include cold process or geo-asset initialization in proxy latency.
+        var requestStarted=SystemClock.elapsedRealtime()
         var client:OkHttpClient?=null;var attemptedRun=false;var stage="ASSET_ERROR"
         return try {
             val assetsDir=GeoAssets.prepare(this)
@@ -132,8 +133,12 @@ class ProbeService:Service() {
             client=OkHttpClient.Builder().proxy(java.net.Proxy(java.net.Proxy.Type.HTTP,InetSocketAddress("127.0.0.1",port)))
                 .proxyAuthenticator { _,response->if(response.request.header("Proxy-Authorization")!=null)null else response.request.newBuilder().header("Proxy-Authorization",Credentials.basic("signet",secret)).build() }
                 .followRedirects(false).followSslRedirects(false).callTimeout(options.timeoutMs.toLong(),TimeUnit.MILLISECONDS).build()
-            client.newCall(Request.Builder().url(options.url).build()).awaitResponse().use {check(it.handshake!=null)}
-            JSONObject().put("id",server.id).put("delay",SystemClock.elapsedRealtime()-started).put("status","OK")
+            // Via Proxy GET measures the request through the selected full Xray profile.
+            requestStarted=SystemClock.elapsedRealtime()
+            client.newCall(Request.Builder().url(options.url).get().build()).awaitResponse().use {
+                check(it.handshake!=null && it.code in 200..399) { "HTTP response ${it.code}" }
+            }
+            JSONObject().put("id",server.id).put("delay",SystemClock.elapsedRealtime()-requestStarted).put("status","OK")
         } catch(e:CancellationException){throw e}
         catch(e:Exception){JSONObject().put("id",server.id).put("status",if(e is CoreFailure)e.code else if(stage=="REQUEST")ConnectionHealth.category(e)else stage)}
         finally {if(attemptedRun)runCatching{NativeCore.call("stopXray")};client?.connectionPool?.evictAll();client?.dispatcher?.executorService?.shutdown()}

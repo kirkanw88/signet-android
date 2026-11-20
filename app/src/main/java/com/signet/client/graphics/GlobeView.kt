@@ -33,6 +33,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
     private val touchSlop=android.view.ViewConfiguration.get(context).scaledTouchSlop
     private val drag=com.signet.core.GlobeDrag(touchSlop.toFloat())
     private var coveredByPhoto=false
+    private var allowManualRotation=true
     // Read-only test counters help diagnose whether a swipe was intercepted before reaching this View.
     @Volatile var inputDownCount=0
         private set
@@ -56,6 +57,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
     fun update(server: Server?, phase: VpnPhase, quality: String, reduced: Boolean, lightTheme:Boolean=false,parentScroll:Boolean=false,rotateVertical:Boolean=false) {
         allowParentScroll=parentScroll
         prioritizeGlobeGestures=rotateVertical
+        allowManualRotation=com.signet.client.BuildConfig.SIGNET_ACCOUNT||phase==VpnPhase.DISCONNECTED
         queueEvent { globe.lightTheme=lightTheme;globe.update(server, phase, quality, reduced) }
         if(rendering)requestRender()
     }
@@ -98,7 +100,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
         queueEvent{globe.backdropRect(location[0],location[1],rootWidth,rootHeight)}
     }
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if(coveredByPhoto)return false
+        if(coveredByPhoto||!allowManualRotation)return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 inputDownCount++
@@ -140,7 +142,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
         inputDownCount++
     }
     fun rotateFromCompose(dx:Float,dy:Float) {
-        if(coveredByPhoto)return
+        if(coveredByPhoto||!allowManualRotation)return
         rotationMoveCount++
         queueEvent { globe.drag(dx*.25f,0f) }
         requestRender()
@@ -212,7 +214,7 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
             if(program!=0)loadDetail()
         }
         if(focusConnection){manual=false;targetYaw=focusLon?.toFloat()?.unaryMinus();targetPitch=focusLat?.toFloat()?:12f}
-        if(state!=VpnPhase.CONNECTED){capitalRevealed=false;markerState.value=CapitalMarker()}
+        if(state!=VpnPhase.CONNECTED&&(!premiumVisual||server==null)){capitalRevealed=false;markerState.value=CapitalMarker()}
     }
     fun drag(dx: Float, dy: Float) { manual=true;yaw += dx; pitch = (pitch + dy).coerceIn(-85f, 85f); targetYaw = null }
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
@@ -293,12 +295,11 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
                     float d=length(gl_PointCoord-vec2(0.5)); if(d>0.5) discard;
                     gl_FragColor=vec4(uColor.rgb,uColor.a);
                 } else if(uMode==6){
-                    vec3 space=texture2D(uTexture,vUv).rgb*(uPremium>0.5?0.43:0.72);
-                    if(uPremium>0.5){
-                        // Deep navy backdrop, subtle authored starlight from the existing licensed image.
-                        space=mix(vec3(0.001,0.008,0.026),space,0.75);
-                    }
-                    space=mix(space,vec3(0.95686,0.96863,0.98824),0.95*uLightTheme);
+                    // Match SpaceBackdrop exactly: same star texture, opacity and theme overlay.
+                    // The globe viewport must not become a darker rectangular panel.
+                    vec3 screenBackground=vec3(5.0/255.0,8.0/255.0,22.0/255.0);
+                    vec3 space=mix(screenBackground,texture2D(uTexture,vUv).rgb,0.72);
+                    space=mix(space,vec3(244.0/255.0,247.0/255.0,252.0/255.0),0.97*uLightTheme);
                     gl_FragColor=vec4(space,1.0);
                 }
                 else { gl_FragColor=uColor; }
@@ -379,7 +380,9 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
         Matrix.setIdentityM(model, 0); Matrix.rotateM(model, 0, pitch, 1f, 0f, 0f); Matrix.rotateM(model, 0, yaw, 0f, 1f, 0f)
         val aspect = width.toFloat()/height
         Matrix.perspectiveM(projection, 0, 36f, aspect, .1f, 20f)
-        val targetZoom=if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED))countryZoom else 1f
+        // Universal keeps the continent and surrounding countries visible on connect.
+        val targetZoom=if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED))
+            (if(premiumVisual)1.25f else countryZoom) else 1f
         zoom+=(targetZoom-zoom)*(if(premiumVisual)com.signet.core.GlobeMotion.zoomEasing(dt,reduced) else (dt*2.4f).coerceAtMost(1f))
         val cameraDistance=(if (aspect < 1f) 3.7f/aspect else 3.7f)/zoom
         Matrix.setLookAtM(view, 0, 0f, 0f, cameraDistance, 0f,0f,0f,0f,1f,0f)
@@ -415,6 +418,7 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
             GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(program,"uMvp"),1,false,mvp,0)
         }
         val focused=phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED)
+        if(!premiumVisual) {
         mode(1); GLES20.glDepthMask(false)
         fill?.let { setBuffers(it); color(if(focused)borderHighlight else borderColor,if(premiumVisual)(if(focused).09f else .025f)else (if(focused).17f else .07f)); GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,it.capacity()/3) }
         // ES2 GPUs often clamp line width to 1px. Offset passes form a constant-width cyan edge.
@@ -431,7 +435,9 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
         GLES20.glUniform2f(borderOffset,0f,0f)
         color(if(focused)borderCore else borderColor,if(focused)1f else .58f)
         borders.forEach { setBuffers(it); GLES20.glDrawArrays(GLES20.GL_LINE_STRIP,0,it.capacity()/3) }
-        if(phase==VpnPhase.CONNECTED&&capital!=null){
+        GLES20.glDepthMask(true)
+        }
+        if((phase==VpnPhase.CONNECTED||premiumVisual)&&capital!=null){
             val settled=!manual&&abs(Geography.wrap((targetYaw?:yaw)-yaw))<.2f&&abs(targetPitch-pitch)<.2f&&abs(targetZoom-zoom)<.015f
             if(settled)capitalRevealed=true
             val coordinates=markerCoords!!;val point=Geography.point(coordinates.first,coordinates.second,1.015)
@@ -449,6 +455,14 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
         if (elapsed < targetFrame) Thread.sleep(targetFrame-elapsed)
     }
     private fun buildCountry() {
+        if(premiumVisual) {
+            // Universal shows only the capital marker; skip expensive border triangulation.
+            borders=emptyList()
+            fill=null
+            countryZoom=1.25f
+            marker=markerCoords?.let{floats(Geography.point(it.first,it.second,1.015))}
+            return
+        }
         val polys = countryData?.optJSONArray("polygons")
         val lines = mutableListOf<FloatBuffer>(); val triangles = ArrayList<Float>()
         val factory = GeometryFactory()
