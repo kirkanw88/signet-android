@@ -238,14 +238,13 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
                         // Scene-matched high-dynamic-range effect in the fragment shader.
                         // Preserve natural land texture and warm city lights, avoiding a flat cyan overlay.
                         vec3 richDay=pow(clamp(earth,0.0,1.0),vec3(0.87));
-                        float twilight=1.0-smoothstep(-0.24,0.18,incidence);
+                        // Full-day treatment: the opposite hemisphere remains bright during rotation.
+                        // No dark terminator or artificial city-light layer in Universal.
                         float land=smoothstep(0.03,0.12,earth.r-earth.b*0.62);
                         float blueWater=ocean*(1.0-land*0.55);
                         richDay=mix(richDay,richDay*vec3(0.72,1.03,1.23),blueWater*0.55);
-                        vec3 premiumDay=richDay*(0.20+1.05*pow(sunlight,0.72));
-                        vec3 warmNight=pow(clamp(night,0.0,1.0),vec3(0.90))*vec3(1.12,0.82,0.53);
-                        warmNight*=twilight*smoothstep(0.07,0.49,city)*2.1;
-                        vec3 premiumColor=premiumDay+warmNight;
+                        vec3 premiumDay=richDay*(0.91+0.09*sunlight);
+                        vec3 premiumColor=premiumDay;
                         float landContrast=smoothstep(0.08,0.62,dot(premiumDay,vec3(0.299,0.587,0.114)));
                         premiumColor=mix(premiumColor,premiumColor*1.09,landContrast*0.45);
                         // Thin blue terminator/rim over the real relief, separate from outer atmosphere pass.
