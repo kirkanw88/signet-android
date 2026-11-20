@@ -202,10 +202,9 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     val status=when(phase){VpnPhase.CONNECTED->"Подключено";VpnPhase.CONNECTING->"Подключение";VpnPhase.RECONNECTING->"Переподключение";VpnPhase.ERROR->"Ошибка подключения";VpnPhase.DISCONNECTING->"Отключение";else->"Не подключено"}
     @Composable fun controls() {
         if(!BuildConfig.SIGNET_ACCOUNT && state.subscriptions.isNotEmpty()) {
-            Surface(onClick=servers,
+            LiquidGlassFrame(onClick=servers,
                 modifier=Modifier.fillMaxWidth().testTag("home-server-card"),
-                shape=RoundedCornerShape(14.dp),color=AppColors.surface.copy(alpha=.90f),
-                border=BorderStroke(1.dp,Primary.copy(alpha=.26f))) {
+                shape=RoundedCornerShape(14.dp)) {
                 Row(Modifier.fillMaxWidth().heightIn(min=52.dp).padding(horizontal=12.dp,vertical=8.dp),
                     verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
                     Box(Modifier.size(36.dp).background(Primary.copy(alpha=.12f),RoundedCornerShape(10.dp)),
@@ -261,15 +260,16 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         val actionLabel=if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))"Отменить подключение"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else if(phase==VpnPhase.ERROR)"Повторить подключение"else"Подключиться"
         val action:()->Unit={if(active)model.stop()else if(server==null)add()else connect()}
         if(!BuildConfig.SIGNET_ACCOUNT){
-            Button(onClick=action,enabled=phase!=VpnPhase.DISCONNECTING,
+            LiquidGlassFrame(onClick=action,enabled=phase!=VpnPhase.DISCONNECTING,prominent=true,
                 modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=54.dp).padding(top=4.dp),
-                shape=RoundedCornerShape(14.dp),
-                colors=ButtonDefaults.buttonColors(containerColor=if(active)AppColors.surface else Primary,
-                    contentColor=if(active)AppColors.text else MaterialTheme.colorScheme.onPrimary)) {
-                if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=MaterialTheme.colorScheme.onPrimary)
-                else Icon(Icons.Outlined.PowerSettingsNew,null,modifier=Modifier.size(22.dp))
-                Spacer(Modifier.width(10.dp))
-                Text(actionLabel,fontWeight=FontWeight.SemiBold,fontSize=16.sp,maxLines=2)
+                shape=RoundedCornerShape(14.dp)) {
+                Row(Modifier.fillMaxWidth().heightIn(min=50.dp).padding(horizontal=18.dp,vertical=10.dp),
+                    horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically) {
+                    if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Color.White)
+                    else Icon(Icons.Outlined.PowerSettingsNew,null,tint=Color.White,modifier=Modifier.size(22.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text(actionLabel,color=Color.White,fontWeight=FontWeight.SemiBold,fontSize=16.sp,maxLines=2)
+                }
             }
         } else {
             GlassButton(onClick=action,enabled=phase!=VpnPhase.DISCONNECTING,modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=58.dp)) {
