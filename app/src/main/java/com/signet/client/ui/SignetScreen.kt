@@ -202,17 +202,28 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     val status=when(phase){VpnPhase.CONNECTED->"Подключено";VpnPhase.CONNECTING->"Подключение";VpnPhase.RECONNECTING->"Переподключение";VpnPhase.ERROR->"Ошибка подключения";VpnPhase.DISCONNECTING->"Отключение";else->"Не подключено"}
     @Composable fun controls() {
         if(!BuildConfig.SIGNET_ACCOUNT) {
-            Surface(onClick=servers,modifier=Modifier.fillMaxWidth().testTag("home-server-card"),shape=RoundedCornerShape(22.dp),
-                color=AppColors.surface.copy(alpha=.90f),border=BorderStroke(1.dp,Primary.copy(alpha=.26f))) {
+            val isEmpty=state.subscriptions.isEmpty()
+            Surface(onClick=if(isEmpty)add else servers,
+                modifier=Modifier.fillMaxWidth().testTag(if(isEmpty)"home-add-subscription-card" else "home-server-card"),
+                shape=RoundedCornerShape(22.dp),color=AppColors.surface.copy(alpha=.90f),
+                border=BorderStroke(1.dp,Primary.copy(alpha=.26f))) {
                 Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=16.dp),
                     verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                     Box(Modifier.size(46.dp).background(Primary.copy(alpha=.12f),RoundedCornerShape(14.dp)),
-                        contentAlignment=Alignment.Center){CountryFlag(display?.country,display?.isAuto?:false)}
-                    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
-                        Text("ВЫБРАННАЯ ЛОКАЦИЯ",fontSize=10.sp,letterSpacing=1.5.sp,color=Muted,fontWeight=FontWeight.Medium)
-                        Text(display?.title?:"Выбрать сервер",fontSize=17.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
+                        contentAlignment=Alignment.Center) {
+                        if(isEmpty)Icon(Icons.Outlined.Add,null,tint=Primary)
+                        else CountryFlag(display?.country,display?.isAuto?:false)
                     }
-                    Icon(Icons.Outlined.ChevronRight,"Список серверов",tint=Primary)
+                    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
+                        if(isEmpty) {
+                            Text("Добавить подписку",fontSize=17.sp,fontWeight=FontWeight.SemiBold)
+                            Text("Импортировать ссылку или QR-код",fontSize=12.sp,color=Muted)
+                        } else {
+                            Text("ВЫБРАННАЯ ЛОКАЦИЯ",fontSize=10.sp,letterSpacing=1.5.sp,color=Muted,fontWeight=FontWeight.Medium)
+                            Text(display?.title?:"Выбрать сервер",fontSize=17.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
+                        }
+                    }
+                    Icon(Icons.Outlined.ChevronRight,"Открыть",tint=Primary)
                 }
             }
         } else {
@@ -288,7 +299,6 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
             val heading=subcompose("status"){
                 if(!BuildConfig.SIGNET_ACCOUNT) {
                     Column(Modifier.fillMaxWidth().padding(top=10.dp,bottom=6.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(7.dp)){
-                        Text("ВАША ПЛАНЕТА",fontSize=10.sp,letterSpacing=3.sp,fontWeight=FontWeight.SemiBold,color=Primary)
                         Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(9.dp)){
                             Box(Modifier.size(9.dp).background(if(phase==VpnPhase.CONNECTED)Green else if(phase==VpnPhase.ERROR)Warning else Primary,RoundedCornerShape(50)))
                             Text(status,fontSize=25.sp,fontWeight=FontWeight.SemiBold,color=AppColors.text,maxLines=1)
@@ -319,8 +329,8 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     var area by remember{mutableStateOf(IntSize.Zero)}
     Box(modifier.testTag("home-globe").clip(RoundedCornerShape(if(AppColors.dark)0.dp else 24.dp)).onSizeChanged{area=it}) {
         AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);renderer=it.globe;globeView=it}},modifier=Modifier.fillMaxSize(),onRelease={it.releaseHost();if(globeView===it)globeView=null},update={it.bindHost(lifecycle);it.photoCover(false);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,parentScroll,rotateVertical=false)})
-        if(!BuildConfig.SIGNET_ACCOUNT) {
-            // Rotate only on horizontal swipes. Vertical or diagonal drags remain
+        if(!BuildConfig.SIGNET_ACCOUNT&&phase==VpnPhase.DISCONNECTED) {
+            // Rotate only while disconnected; vertical or diagonal drags remain
             // available to the Home screen's normal scrolling behavior.
             Box(Modifier.fillMaxSize().pointerInput(globeView) {
                 awaitEachGesture {
@@ -359,15 +369,6 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 Text(marker.name,color=Color.White,fontWeight=FontWeight.SemiBold,fontSize=15.sp,modifier=Modifier.background(Color(0xDC0D1728),RoundedCornerShape(10.dp)).padding(horizontal=10.dp,vertical=5.dp))
                 Icon(Icons.Outlined.LocationOn,null,tint=Primary,modifier=Modifier.size(28.dp))
             }
-        }
-        if(!BuildConfig.SIGNET_ACCOUNT){
-            // A visible stage-12 design treatment, independent of the renderer texture.
-            Column(Modifier.align(Alignment.TopStart).padding(18.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
-                Text("SIGNET / EARTH",fontSize=10.sp,letterSpacing=2.sp,color=Color(0xFF9DDFFF),fontWeight=FontWeight.SemiBold)
-                Box(Modifier.width(46.dp).height(2.dp).background(Color(0xFF47D9FA),RoundedCornerShape(2.dp)))
-            }
-            Text("ПРОВЕДИТЕ ВЛЕВО ИЛИ ВПРАВО",modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=14.dp),
-                color=Color(0xFFD2E9F3).copy(alpha=.82f),fontSize=10.sp,letterSpacing=1.sp,maxLines=1)
         }
         // Universal keeps the interactive globe as its only primary visual. Offline photos are not shown.
     }
