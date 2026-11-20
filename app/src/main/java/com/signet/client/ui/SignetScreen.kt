@@ -427,7 +427,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     if(info.isEmpty())return
     val total=info["total"]?.coerceAtLeast(0)
     val used=((info["upload"]?:0).coerceAtLeast(0).toDouble()+(info["download"]?:0).coerceAtLeast(0)).coerceAtMost(Long.MAX_VALUE.toDouble()).toLong()
-    Column(Modifier.fillMaxWidth().padding(vertical=6.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
+    Column(Modifier.fillMaxWidth().padding(vertical=if(BuildConfig.SIGNET_ACCOUNT)6.dp else 3.dp),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)5.dp else 3.dp)){
         if(total!=null){
             if(total>0)LinearProgressIndicator(progress={(used.toDouble()/total).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth(),color=if(used>=total)Warning else Primary,trackColor=AppColors.text.copy(alpha=.15f))
             Text(if(total>0)"${bytes(used)} из ${bytes(total)}"else"${bytes(used)} · Безлимитный трафик",color=if(total!=null&&total>0&&used>=total)Warning else Muted,fontSize=12.sp)
