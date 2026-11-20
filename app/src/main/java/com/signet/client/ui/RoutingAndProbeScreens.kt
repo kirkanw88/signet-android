@@ -52,17 +52,18 @@ import kotlinx.coroutines.*
     var error by remember{mutableStateOf<String?>(null)}
     FullScreenPanel("Настройки Ping",close) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-            listOf(ProbeMode.TCP to "TCP Connect · доступность порта",ProbeMode.HTTPS to "HTTPS · TLS доступность узла",ProbeMode.XRAY to "Xray · полный профиль и маршрутизация",ProbeMode.OUTBOUND to "Интернет через выбранный outbound").forEach { (mode,label)->
+            listOf(ProbeMode.XRAY to "Via Proxy GET · полная проверка через Xray",ProbeMode.OUTBOUND to "Via Proxy HEAD · быстрая проверка через Xray",ProbeMode.TCP to "TCP Connect · только доступность порта",ProbeMode.HTTPS to "HTTPS · TLS доступность узла").forEach { (mode,label)->
                 Row(Modifier.fillMaxWidth().clickable{value=value.copy(mode=mode)},verticalAlignment=Alignment.CenterVertically){RadioButton(value.mode==mode,{value=value.copy(mode=mode)});Text(label)}
             }
-            Text("TCP и HTTPS не подтверждают работу VPN. AUTO проверяется как полный серверный профиль, без выбора отдельного узла.",style=MaterialTheme.typography.bodySmall)
+            Text("Как в Happ: Via Proxy GET — полный HTTP-запрос через Xray (по умолчанию); Via Proxy HEAD — более лёгкая проверка. TCP/HTTPS проверяют лишь доступность узла. AUTO всегда проверяется целиком.",style=MaterialTheme.typography.bodySmall)
             Text("Адрес HTTPS-проверки должен быть разрешён правилами профиля. Он также используется для подтверждения соединения VPN.",style=MaterialTheme.typography.bodySmall)
             OutlinedTextField(value.url,{value=value.copy(url=it)},label={Text("HTTPS URL проверки Xray")},modifier=Modifier.fillMaxWidth(),singleLine=true)
             ProbeNumber("Таймаут, мс · 500–30000",timeout){timeout=it}
             ProbeNumber("Попыток · 1–3",attempts){attempts=it}
             ProbeNumber("Интервал между попытками, мс · 200–60000",interval){interval=it}
             ProbeNumber("Максимум параллельных проверок · 1–5",parallel){parallel=it}
-            Row(verticalAlignment=Alignment.CenterVertically){Text("Автопроверка выбранного сервера",Modifier.weight(1f));Switch(value.automatic,{value=value.copy(automatic=it)})}
+            Row(verticalAlignment=Alignment.CenterVertically){Text("Пинг всех серверов при запуске",Modifier.weight(1f));Switch(value.pingOnLaunch,{value=value.copy(pingOnLaunch=it)})}
+            Row(verticalAlignment=Alignment.CenterVertically){Text("Периодически проверять выбранный сервер",Modifier.weight(1f));Switch(value.automatic,{value=value.copy(automatic=it)})}
             ProbeNumber("Автопроверка каждые, мин · 15–360",minutes){minutes=it}
             Text("Автопроверка выполняется только пока приложение открыто. Проверки полного профиля идут последовательно в изолированном ядре.",style=MaterialTheme.typography.bodySmall)
             error?.let{Text(it,color=MaterialTheme.colorScheme.error)}
