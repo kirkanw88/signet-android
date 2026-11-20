@@ -51,7 +51,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
             choose(4)?:choose(0)?:error("OpenGL ES 2.0 недоступен")
         } else setEGLConfigChooser(8,8,8,8,16,0)
         setRenderer(globe); preserveEGLContextOnPause = false
-        contentDescription = "Интерактивная трёхмерная Земля. Проведите пальцем для вращения."
+        contentDescription = "Интерактивная трёхмерная Земля. Проведите влево или вправо для вращения."
     }
     fun update(server: Server?, phase: VpnPhase, quality: String, reduced: Boolean, lightTheme:Boolean=false,parentScroll:Boolean=false,rotateVertical:Boolean=false) {
         allowParentScroll=parentScroll
@@ -119,7 +119,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
                 if(step.axis==com.signet.core.GlobeDragAxis.ROTATE){
                     rotationMoveCount++
                     parent?.requestDisallowInterceptTouchEvent(true)
-                    queueEvent { globe.drag(step.dx*.25f,step.dy*.2f) };requestRender()
+                    queueEvent { globe.drag(step.dx*.25f,0f) };requestRender()
                 }
             }
             MotionEvent.ACTION_POINTER_UP -> if(event.getPointerId(event.actionIndex)==activePointer){
@@ -142,7 +142,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
     fun rotateFromCompose(dx:Float,dy:Float) {
         if(coveredByPhoto)return
         rotationMoveCount++
-        queueEvent { globe.drag(dx*.25f,dy*.2f) }
+        queueEvent { globe.drag(dx*.25f,0f) }
         requestRender()
     }
     override fun performClick(): Boolean { super.performClick(); return true }
