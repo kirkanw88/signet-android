@@ -206,6 +206,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
 }
 
 @Composable private fun Home(state:AppState,vpn:VpnStatus,model:MainViewModel,connect:()->Unit,add:()->Unit,servers:()->Unit,diagnostics:()->Unit) {
+    val buttonView=LocalView.current
     val phase=vpn.phase
     var errorExpanded by rememberSaveable(vpn.error){mutableStateOf(false)}
     val active=vpn.tunActive||phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING)
@@ -272,7 +273,11 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
             }
         }
         val actionLabel=if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))"Отменить подключение"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else if(phase==VpnPhase.ERROR)"Повторить подключение"else"Подключиться"
-        val action:()->Unit={if(active)model.stop()else if(server==null)add()else connect()}
+        val action:()->Unit={
+            // Respect system touch-feedback settings. No VIBRATE permission or timed vibration.
+            buttonView.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+            if(active)model.stop()else if(server==null)add()else connect()
+        }
         if(!BuildConfig.SIGNET_ACCOUNT){
             LiquidGlassFrame(onClick=action,enabled=phase!=VpnPhase.DISCONNECTING,prominent=true,
                 modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=54.dp).padding(top=4.dp),
