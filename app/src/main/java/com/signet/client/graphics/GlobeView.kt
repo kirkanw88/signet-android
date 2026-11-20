@@ -414,7 +414,7 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
             Matrix.multiplyMM(mv,0,view,0,model,0); Matrix.multiplyMM(mvp,0,projection,0,mv,0)
             GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(program,"uMvp"),1,false,mvp,0)
         }
-        val focused=phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED)
+        val focused=(premiumVisual&&country!=null)||phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED)
         mode(1); GLES20.glDepthMask(false)
         fill?.let { setBuffers(it); color(if(focused)borderHighlight else borderColor,if(premiumVisual)(if(focused).09f else .025f)else (if(focused).17f else .07f)); GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,it.capacity()/3) }
         // ES2 GPUs often clamp line width to 1px. Offset passes form a constant-width cyan edge.
@@ -431,7 +431,7 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
         GLES20.glUniform2f(borderOffset,0f,0f)
         color(if(focused)borderCore else borderColor,if(focused)1f else .58f)
         borders.forEach { setBuffers(it); GLES20.glDrawArrays(GLES20.GL_LINE_STRIP,0,it.capacity()/3) }
-        if(phase==VpnPhase.CONNECTED&&capital!=null){
+        if((phase==VpnPhase.CONNECTED||premiumVisual)&&capital!=null){
             val settled=!manual&&abs(Geography.wrap((targetYaw?:yaw)-yaw))<.2f&&abs(targetPitch-pitch)<.2f&&abs(targetZoom-zoom)<.015f
             if(settled)capitalRevealed=true
             val coordinates=markerCoords!!;val point=Geography.point(coordinates.first,coordinates.second,1.015)
