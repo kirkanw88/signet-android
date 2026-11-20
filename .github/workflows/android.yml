@@ -155,7 +155,7 @@ jobs:
           adb shell pm grant com.signet.client.external android.permission.POST_NOTIFICATIONS
           for port in 10888 10889 10890 10891 10894 18480 19095; do adb reverse tcp:$port tcp:$port; done
           adb shell am instrument -w -r -e localVpn true -e class com.signet.client.GlobeVisualTest,com.signet.client.QrImageTest,com.signet.client.UniversalUiSmokeTest com.signet.client.external.test/androidx.test.runner.AndroidJUnitRunner | tee tests/evidence/runtime/ui-instrumentation.txt
-          grep -Eq '^OK \(4 tests\)' tests/evidence/runtime/ui-instrumentation.txt
+          grep -Eq '^OK \(5 tests\)' tests/evidence/runtime/ui-instrumentation.txt
           ! grep -Eq 'FAILURES|INSTRUMENTATION_FAILED|Process crashed' tests/evidence/runtime/ui-instrumentation.txt
           adb pull /sdcard/Android/data/com.signet.client.external/files/country-frames tests/evidence/runtime/countries
           # Optional: UniversalUiSmokeTest currently has no UI screenshot fixture.
