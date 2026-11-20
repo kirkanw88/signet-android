@@ -126,4 +126,56 @@ class UniversalUiSmokeTest {
         }
     }
 
+    @Test fun failedProviderRefreshRetainsProfilesSelectionAndOtherSources() = runBlocking {
+        Assume.assumeTrue(InstrumentationRegistry.getInstrumentation().targetContext.packageName.endsWith(".external"))
+        val repository = get<Repository>(Repository::class.java)
+        repository.awaitReady()
+        val originalIds=repository.state.value.subscriptions.map { it.id }.toSet()
+        val originalSelection=repository.state.value.selected
+        val token=UUID.randomUUID().toString().take(8)
+        fun fixture(name:String,port:Int)=JSONObject()
+            .put("remarks",name)
+            .put("outbounds",JSONArray().put(
+                JSONObject().put("tag","proxy").put("protocol","socks")
+                    .put("settings",JSONObject().put("servers",JSONArray().put(
+                        JSONObject().put("address","127.0.0.1").put("port",port)
+                    )))
+            )).toString()
+        try {
+            repository.import(fixture("Refresh-A-$token",10881))
+            repository.import(fixture("Refresh-B-$token",10882))
+            val before=repository.state.value.subscriptions.filter { it.id !in originalIds }
+            assertEquals(2,before.size)
+            val first=before.single { it.title=="Refresh-A-$token" }
+            val second=before.single { it.title=="Refresh-B-$token" }
+            val firstServer=first.servers.single()
+            repository.select(firstServer.id)
+            repository.favorite(firstServer.id)
+            val favoriteSnapshot=repository.state.value.subscriptions.single { it.id==first.id }.servers.single()
+            assertTrue(favoriteSnapshot.favorite)
+            // Invalid JSON simulates a broken provider response without contacting any real endpoint.
+            repository.import("{\"outbounds\":[",existingId=first.id)
+            val failed=repository.state.value
+            val saved=failed.subscriptions.single { it.id==first.id }
+            assertEquals(firstServer.id,failed.selected)
+            assertEquals(favoriteSnapshot.id,saved.servers.single().id)
+            assertEquals(favoriteSnapshot.config,saved.servers.single().config)
+            assertTrue(saved.servers.single().favorite)
+            assertNotNull("Show source-specific refresh failure",saved.error)
+            assertEquals(second,failed.subscriptions.single { it.id==second.id })
+            // A valid response for the same source must clear its error and keep identity.
+            repository.import(fixture("Refresh-A-$token",10881),existingId=first.id)
+            val recovered=repository.state.value
+            val restored=recovered.subscriptions.single { it.id==first.id }
+            assertNull(restored.error)
+            assertEquals(firstServer.id,recovered.selected)
+            assertEquals(firstServer.id,restored.servers.single().id)
+            assertTrue(restored.servers.single().favorite)
+            assertEquals(second,recovered.subscriptions.single { it.id==second.id })
+        } finally {
+            repository.state.value.subscriptions.filter { it.id !in originalIds }.forEach { repository.remove(it.id) }
+            originalSelection?.takeIf { id->repository.state.value.servers.any { it.id==id } }?.let { repository.select(it) }
+        }
+    }
+
 }
