@@ -87,40 +87,36 @@ class GlobeVisualTest {
     @Test fun firstVerticalAndHorizontalSwipesRotateTheRenderedEarth() {
         val instrumentation=InstrumentationRegistry.getInstrumentation()
         Assume.assumeTrue(instrumentation.targetContext.packageName.endsWith(".external"))
-        val device=UiDevice.getInstance(instrumentation)
         var globeView:GlobeView?=null
         compose.activityRule.scenario.onActivity { activity->
             globeView=findGlobe(activity.window.decorView)
         }
         val globe=requireNotNull(globeView) { "Home must contain a live OpenGL globe" }
         compose.waitUntil(20_000){globe.globe.frameReady}
-        val position=IntArray(2)
-        var width=0;var height=0
-        compose.activityRule.scenario.onActivity {
-            globe.getLocationOnScreen(position)
-            width=globe.width;height=globe.height
-        }
-        assertTrue("Globe must have room for touch motion",width>120&&height>180)
-        val x=position[0]+width/2
-        val top=position[1]+height/4
-        val bottom=position[1]+height*3/4
+        val bounds=compose.onNodeWithTag("home-globe").fetchSemanticsNode().boundsInRoot
+        assertTrue("Globe has space for touch",bounds.width>120f && bounds.height>180f)
         val pitchBefore=globe.globe.renderedPitchDegrees
-        val downBefore=globe.inputDownCount
         val moveBefore=globe.rotationMoveCount
-        assertTrue("Vertical gesture must be accepted by Android",device.swipe(x,bottom,x,top,22))
-        Thread.sleep(300)
+        // Compose sends an actual MotionEvent sequence to the tagged interactive globe
+        // rather than tapping screen coordinates that may belong to a system overlay.
+        compose.onNodeWithTag("home-globe").performTouchInput { swipeUp(durationMillis=450) }
+        compose.waitUntil(10_000) {
+            kotlin.math.abs(globe.globe.renderedPitchDegrees-pitchBefore)>3f
+        }
         val pitchAfter=globe.globe.renderedPitchDegrees
-        val touchInfo="down=${globe.inputDownCount-downBefore} rotationMoves=${globe.rotationMoveCount-moveBefore} rect=${position.toList()} ${width}x${height}"
-        assertTrue("First vertical gesture must change real rendered pitch; before=$pitchBefore after=$pitchAfter $touchInfo",
+        assertTrue("Vertical drag must be received by the globe",
+            globe.rotationMoveCount>moveBefore)
+        assertTrue("Rendered pitch must change after first vertical drag; before=$pitchBefore after=$pitchAfter",
             kotlin.math.abs(pitchAfter-pitchBefore)>3f)
 
-        val y=position[1]+height/2
         val yawBefore=globe.globe.renderedYawDegrees
-        assertTrue("Horizontal gesture must be accepted by Android",device.swipe(position[0]+width*3/4,y,position[0]+width/4,y,22))
-        Thread.sleep(220)
+        compose.onNodeWithTag("home-globe").performTouchInput { swipeLeft(durationMillis=450) }
+        compose.waitUntil(10_000){
+            kotlin.math.abs(((globe.globe.renderedYawDegrees-yawBefore+540f)%360f)-180f)>3f
+        }
         val yawAfter=globe.globe.renderedYawDegrees
         val yawDelta=kotlin.math.abs(((yawAfter-yawBefore+540f)%360f)-180f)
-        assertTrue("Horizontal gesture must change real rendered yaw; before=$yawBefore after=$yawAfter",yawDelta>3f)
+        assertTrue("Horizontal drag must change rendered yaw",yawDelta>3f)
     }
 
     private fun findGlobe(view:View):GlobeView? {
