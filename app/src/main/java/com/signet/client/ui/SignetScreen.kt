@@ -201,10 +201,26 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     val display=remember(state.servers,server?.id){com.signet.core.ServerDisplayModel.all(state.subscriptions.firstOrNull{it.servers.any{node->node.id==server?.id}}?.servers.orEmpty(),hostNames=!BuildConfig.SIGNET_ACCOUNT)[server?.id]}
     val status=when(phase){VpnPhase.CONNECTED->"Подключено";VpnPhase.CONNECTING->"Подключение";VpnPhase.RECONNECTING->"Переподключение";VpnPhase.ERROR->"Ошибка подключения";VpnPhase.DISCONNECTING->"Отключение";else->"Не подключено"}
     @Composable fun controls() {
-        Row(Modifier.fillMaxWidth().clickable(onClick=servers).padding(vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center) {
-            CountryFlag(display?.country,display?.isAuto?:false)
-            Text(display?.title?:"Выбрать сервер",Modifier.weight(1f).padding(horizontal=12.dp),fontSize=16.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
-            Icon(Icons.Outlined.ChevronRight,"Список серверов",tint=Primary)
+        if(!BuildConfig.SIGNET_ACCOUNT) {
+            Surface(onClick=servers,modifier=Modifier.fillMaxWidth().testTag("home-server-card"),shape=RoundedCornerShape(22.dp),
+                color=AppColors.surface.copy(alpha=.90f),border=BorderStroke(1.dp,Primary.copy(alpha=.26f))) {
+                Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=16.dp),
+                    verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                    Box(Modifier.size(46.dp).background(Primary.copy(alpha=.12f),RoundedCornerShape(14.dp)),
+                        contentAlignment=Alignment.Center){CountryFlag(display?.country,display?.isAuto?:false)}
+                    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
+                        Text("ВЫБРАННАЯ ЛОКАЦИЯ",fontSize=10.sp,letterSpacing=1.5.sp,color=Muted,fontWeight=FontWeight.Medium)
+                        Text(display?.title?:"Выбрать сервер",fontSize=17.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
+                    }
+                    Icon(Icons.Outlined.ChevronRight,"Список серверов",tint=Primary)
+                }
+            }
+        } else {
+            Row(Modifier.fillMaxWidth().clickable(onClick=servers).padding(vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center) {
+                CountryFlag(display?.country,display?.isAuto?:false)
+                Text(display?.title?:"Выбрать сервер",Modifier.weight(1f).padding(horizontal=12.dp),fontSize=16.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
+                Icon(Icons.Outlined.ChevronRight,"Список серверов",tint=Primary)
+            }
         }
         val selectedSubscription=state.subscriptions.firstOrNull{sub->sub.servers.any{it.id==server?.id}}
         if(state.subscriptions.size>1&&selectedSubscription!=null){
@@ -238,9 +254,24 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 }
             }
         }
-        GlassButton(onClick={if(active)model.stop()else if(server==null)add()else connect()},enabled=phase!=VpnPhase.DISCONNECTING,modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=58.dp)) {
-            if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Primary)else Icon(Icons.Outlined.PowerSettingsNew,null)
-            Text(if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))"Отменить подключение"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else if(phase==VpnPhase.ERROR)"Повторить подключение"else"Подключиться",Modifier.padding(start=8.dp),maxLines=2)
+        val actionLabel=if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))"Отменить подключение"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else if(phase==VpnPhase.ERROR)"Повторить подключение"else"Подключиться"
+        val action:()->Unit={if(active)model.stop()else if(server==null)add()else connect()}
+        if(!BuildConfig.SIGNET_ACCOUNT){
+            Button(onClick=action,enabled=phase!=VpnPhase.DISCONNECTING,
+                modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=64.dp).padding(top=8.dp),
+                shape=RoundedCornerShape(20.dp),
+                colors=ButtonDefaults.buttonColors(containerColor=if(active)AppColors.surface else Primary,
+                    contentColor=if(active)AppColors.text else Color(0xFF061526))) {
+                if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Color(0xFF061526))
+                else Icon(Icons.Outlined.PowerSettingsNew,null,modifier=Modifier.size(22.dp))
+                Spacer(Modifier.width(10.dp))
+                Text(actionLabel,fontWeight=FontWeight.SemiBold,fontSize=17.sp,maxLines=2)
+            }
+        } else {
+            GlassButton(onClick=action,enabled=phase!=VpnPhase.DISCONNECTING,modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=58.dp)) {
+                if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Primary)else Icon(Icons.Outlined.PowerSettingsNew,null)
+                Text(actionLabel,Modifier.padding(start=8.dp),maxLines=2)
+            }
         }
 
     }
@@ -254,7 +285,17 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         }else SubcomposeLayout(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal=16.dp).padding(bottom=12.dp)){constraints->
             val natural=constraints.copy(minHeight=0,maxHeight=Constraints.Infinity)
             val footer=subcompose("controls"){Column(Modifier.fillMaxWidth()){controls()}}.single().measure(natural)
-            val heading=subcompose("status"){Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center){Text(status,fontSize=24.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text,maxLines=1)}}.single().measure(natural)
+            val heading=subcompose("status"){
+                if(!BuildConfig.SIGNET_ACCOUNT) {
+                    Column(Modifier.fillMaxWidth().padding(top=10.dp,bottom=6.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(7.dp)){
+                        Text("ВАША ПЛАНЕТА",fontSize=10.sp,letterSpacing=3.sp,fontWeight=FontWeight.SemiBold,color=Primary)
+                        Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(9.dp)){
+                            Box(Modifier.size(9.dp).background(if(phase==VpnPhase.CONNECTED)Green else if(phase==VpnPhase.ERROR)Warning else Primary,RoundedCornerShape(50)))
+                            Text(status,fontSize=25.sp,fontWeight=FontWeight.SemiBold,color=AppColors.text,maxLines=1)
+                        }
+                    }
+                } else Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center){Text(status,fontSize=24.sp,color=if(phase==VpnPhase.CONNECTED)Green else AppColors.text,maxLines=1)}
+            }.single().measure(natural)
             val height=com.signet.core.HomeMeasurements.globeHeight(viewport,heading.height,footer.height)
             val planet=if(height>0)subcompose("globe"){Globe(server,phase,state.settings,Modifier.fillMaxSize())}.single().measure(Constraints.fixed(constraints.maxWidth,height))else null
             layout(constraints.maxWidth,(heading.height+height+footer.height).coerceAtLeast(viewport)){
@@ -318,6 +359,15 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 Text(marker.name,color=Color.White,fontWeight=FontWeight.SemiBold,fontSize=15.sp,modifier=Modifier.background(Color(0xDC0D1728),RoundedCornerShape(10.dp)).padding(horizontal=10.dp,vertical=5.dp))
                 Icon(Icons.Outlined.LocationOn,null,tint=Primary,modifier=Modifier.size(28.dp))
             }
+        }
+        if(!BuildConfig.SIGNET_ACCOUNT){
+            // A visible stage-12 design treatment, independent of the renderer texture.
+            Column(Modifier.align(Alignment.TopStart).padding(18.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
+                Text("SIGNET / EARTH",fontSize=10.sp,letterSpacing=2.sp,color=Color(0xFF9DDFFF),fontWeight=FontWeight.SemiBold)
+                Box(Modifier.width(46.dp).height(2.dp).background(Color(0xFF47D9FA),RoundedCornerShape(2.dp)))
+            }
+            Text("ПРОВЕДИТЕ ВЛЕВО ИЛИ ВПРАВО",modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=14.dp),
+                color=Color(0xFFD2E9F3).copy(alpha=.82f),fontSize=10.sp,letterSpacing=1.sp,maxLines=1)
         }
         // Universal keeps the interactive globe as its only primary visual. Offline photos are not shown.
     }
