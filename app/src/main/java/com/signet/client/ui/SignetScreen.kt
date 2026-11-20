@@ -277,27 +277,35 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     var labelSize by remember{mutableStateOf(IntSize.Zero)}
     var area by remember{mutableStateOf(IntSize.Zero)}
     Box(modifier.testTag("home-globe").clip(RoundedCornerShape(if(AppColors.dark)0.dp else 24.dp)).onSizeChanged{area=it}) {
-        AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);renderer=it.globe;globeView=it}},modifier=Modifier.fillMaxSize(),onRelease={it.releaseHost();if(globeView===it)globeView=null},update={it.bindHost(lifecycle);it.photoCover(false);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,parentScroll,rotateVertical=!BuildConfig.SIGNET_ACCOUNT)})
+        AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);renderer=it.globe;globeView=it}},modifier=Modifier.fillMaxSize(),onRelease={it.releaseHost();if(globeView===it)globeView=null},update={it.bindHost(lifecycle);it.photoCover(false);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,parentScroll,rotateVertical=false)})
         if(!BuildConfig.SIGNET_ACCOUNT) {
-            // Captures vertical drags above the GLSurfaceView before the Home scroll parent.
-            // This layer covers only the globe, so swipes elsewhere still scroll the screen.
+            // Rotate only on horizontal swipes. Vertical or diagonal drags remain
+            // available to the Home screen's normal scrolling behavior.
             Box(Modifier.fillMaxSize().pointerInput(globeView) {
-                // Initial pass runs before the verticalScroll parent can claim the gesture.
-                // Consume only touches that start within this globe overlay.
                 awaitEachGesture {
                     val down=awaitFirstDown(requireUnconsumed=false,pass=PointerEventPass.Initial)
-                    down.consume()
                     globeView?.beginComposeGesture()
                     var previous=down.position
+                    var total=androidx.compose.ui.geometry.Offset.Zero
+                    var horizontal=false
+                    val slop=viewConfiguration.touchSlop
                     do {
                         val event=awaitPointerEvent(PointerEventPass.Initial)
                         val change=event.changes.firstOrNull{it.id==down.id}
                         if(change==null||!change.pressed)break
                         val delta=change.position-previous
                         previous=change.position
-                        if(delta.x!=0f||delta.y!=0f){
+                        if(!horizontal) {
+                            total+=delta
+                            if(kotlin.math.abs(total.y)>slop && kotlin.math.abs(total.y)>=kotlin.math.abs(total.x))break
+                            if(kotlin.math.abs(total.x)>slop) {
+                                if(kotlin.math.abs(total.x)<kotlin.math.abs(total.y)*1.5f)break
+                                horizontal=true
+                            }
+                        }
+                        if(horizontal) {
                             change.consume()
-                            globeView?.rotateFromCompose(delta.x,delta.y)
+                            if(delta.x!=0f)globeView?.rotateFromCompose(delta.x,0f)
                         }
                     }while(event.changes.any{it.pressed})
                 }
