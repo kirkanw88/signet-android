@@ -55,38 +55,84 @@ private val Accent:Color @Composable get()=AppColors.accent
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")){uri->if(uri!=null)scope.launch(Dispatchers.IO){runCatching{context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use{it.write(report)}}}}
     val exportLog=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")){uri->if(uri!=null)scope.launch(Dispatchers.IO){runCatching{context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use{it.write(ConnectionLog.export())}}}}
     LaunchedEffect(openDiagnostics){if(openDiagnostics){section="diagnostics";model.diagnostics();diagnosticsHandled()}}
-    BackHandler { if(section!="main")section="main" else close() }
+    fun parentSection():String=if(!BuildConfig.SIGNET_ACCOUNT)when(section){"logs"->"diagnostics";"updates"->"about";else->"main"}else"main"
+    BackHandler { if(section!="main")section=parentSection() else close() }
     LaunchedEffect(section){scroll.scrollTo(0)}
-    val title=when(section){"connection"->"Соединение";"routing"->"Маршрутизация";"appearance"->"Оформление";"updates"->"Обновления";"diagnostics"->"Диагностика";"logs"->"Журнал подключения";"account"->"Аккаунт";else->"Настройки"}
+    val title=when(section){"connection"->"Подключение";"routing"->"Сеть и маршрутизация";"appearance"->"Внешний вид";"subscription-options"->"Подписки и Ping";"about"->"О приложении";"updates"->"Обновления";"diagnostics"->"Диагностика";"logs"->"Журнал подключения";"account"->"Аккаунт";else->"Настройки"}
     Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)20.dp else 14.dp),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)16.dp else 10.dp)) {
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
-            IconButton(onClick={if(section=="main")close()else{section="main"}}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=Ink)}
+            IconButton(onClick={if(section=="main")close()else{section=parentSection()}}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=Ink)}
             Text(title,Modifier.weight(1f),fontSize=24.sp,fontWeight=FontWeight.SemiBold,color=Ink)
         }
         when(section){
             "main"->{
-                Text("Ваш доступ и приложение",fontSize=16.sp,color=SecondaryInk,modifier=Modifier.padding(vertical=4.dp))
+                if(!BuildConfig.SIGNET_ACCOUNT){
+                    // Category-level navigation adapted for Universal. No placeholder/inert actions.
+                    SettingsCard {
+                        MenuItem(Icons.Outlined.Palette,"Внешний вид","Тема и анимация глобуса",{section="appearance"})
+                        MenuItem(Icons.Outlined.VpnKey,"Подключение","Автоподключение, восстановление и защита",{section="connection"})
+                        MenuItem(Icons.Outlined.Route,"Сеть и маршрутизация","DNS, приложения и Xray JSON",{section="routing"})
+                        MenuItem(Icons.Outlined.Subscriptions,"Подписки и Ping","Управление подписками и проверка серверов",{section="subscription-options"})
+                        MenuItem(Icons.Outlined.Troubleshoot,"Диагностика","Проверка соединения, журнал и отчёт",{section="diagnostics";model.diagnostics()})
+                        MenuItem(Icons.Outlined.Info,"О приложении","Версия, обновления и исходный код",{section="about"})
+                    }
+                } else {
+                    Text("Ваш доступ и приложение",fontSize=16.sp,color=SecondaryInk,modifier=Modifier.padding(vertical=4.dp))
+                    SettingsCard {
+                        MenuItem(Icons.Outlined.CreditCard,"Подписки","Добавить, отсканировать QR или обновить",subscriptions)
+                        MenuItem(Icons.Outlined.Public,"Серверы","Выбрать локацию и измерить задержку",servers)
+                        MenuItem(Icons.Outlined.PersonOutline,"Аккаунт","Войти, купить или продлить доступ",{section="account"})
+                    }
+                    SettingsCard {
+                        MenuItem(Icons.Outlined.VpnKey,"Соединение","Автоподключение и проверка связи",{section="connection"})
+                        MenuItem(Icons.Outlined.Route,"Маршрутизация","DNS, приложения и шаблон Xray",{section="routing"})
+                        MenuItem(Icons.Outlined.Palette,"Оформление","Тема, качество планеты и анимация",{section="appearance"})
+                        MenuItem(Icons.Outlined.SystemUpdate,"Обновления",update.available?.let{"Доступна версия ${it.version}"}?:"Новая версия приложения",{section="updates"})
+                        MenuItem(Icons.Outlined.Troubleshoot,"Диагностика","Причина ошибки и отчёт без ключей",{section="diagnostics";model.diagnostics()})
+                        MenuItem(Icons.Outlined.Article,"Журнал подключения","Логирование, просмотр и экспорт",{section="logs"})
+                    }
+                    Text("Signet VPN ${BuildConfig.VERSION_NAME}",fontSize=14.sp,color=SecondaryInk,modifier=Modifier.padding(8.dp))
+                }
+            }
+            "subscription-options"->{
                 SettingsCard {
-                    MenuItem(Icons.Outlined.CreditCard,"Подписки","Добавить, отсканировать QR или обновить",subscriptions)
-                    if(BuildConfig.SIGNET_ACCOUNT)MenuItem(Icons.Outlined.Public,"Серверы","Выбрать локацию и измерить задержку",servers)
-                    if(BuildConfig.SIGNET_ACCOUNT)MenuItem(Icons.Outlined.PersonOutline,"Аккаунт","Войти, купить или продлить доступ",{section="account"})
+                    MenuItem(Icons.Outlined.Subscriptions,"Управление подписками",
+                        "Добавление, обновление и серверы",{subscriptions()})
+                    MenuItem(Icons.Outlined.Speed,"Настройки Ping",
+                        "Via Proxy, тайм-аут и параллельные проверки",{probes=true})
                 }
                 SettingsCard {
-                    MenuItem(Icons.Outlined.VpnKey,"Соединение","Автоподключение и проверка связи",{section="connection"})
-                    MenuItem(Icons.Outlined.Route,"Маршрутизация","DNS, приложения и шаблон Xray",{section="routing"})
-                    MenuItem(Icons.Outlined.Palette,"Оформление","Тема, качество планеты и анимация",{section="appearance"})
-                    MenuItem(Icons.Outlined.SystemUpdate,"Обновления",update.available?.let{"Доступна версия ${it.version}"}?:"Новая версия приложения",{section="updates"})
-                    MenuItem(Icons.Outlined.Troubleshoot,"Диагностика","Причина ошибки и отчёт без ключей",{section="diagnostics";model.diagnostics()})
-                    MenuItem(Icons.Outlined.Article,"Журнал подключения","Логирование, просмотр и экспорт",{section="logs"})
+                    SettingsToggle("Ping при запуске","Измерять задержку серверов при открытии",
+                        s.probes.pingOnLaunch){model.save(s.copy(probes=s.probes.copy(pingOnLaunch=it)))}
+                    SettingsToggle("Периодическая проверка","Проверять выбранный сервер с интервалом",
+                        s.probes.automatic){model.save(s.copy(probes=s.probes.copy(automatic=it)))}
                 }
-                Text("Signet VPN ${BuildConfig.VERSION_NAME}",fontSize=14.sp,color=SecondaryInk,modifier=Modifier.padding(8.dp))
+                Text("Обновление подписок выполняется автоматически. Интервал может задаваться провайдером.",
+                    fontSize=12.sp,lineHeight=17.sp,color=SecondaryInk,modifier=Modifier.padding(horizontal=8.dp))
+            }
+            "about"->{
+                SettingsCard {
+                    SettingsHeading("Signet Universal")
+                    Text("Версия ${BuildConfig.VERSION_NAME}",color=Ink,fontSize=16.sp,
+                        modifier=Modifier.padding(horizontal=12.dp,vertical=4.dp))
+                    Text("Android · Xray-core",color=SecondaryInk,fontSize=12.sp,
+                        modifier=Modifier.padding(horizontal=12.dp,vertical=4.dp))
+                    MenuItem(Icons.Outlined.SystemUpdate,"Проверить обновления",
+                        update.available?.let{"Доступна версия ${it.version}"}?:"Проверить доступную версию",
+                        {section="updates"})
+                    MenuItem(Icons.Outlined.Code,"Исходный код и лицензии",
+                        "Репозиторий проекта",{
+                            context.startActivity(Intent(Intent.ACTION_VIEW,
+                                android.net.Uri.parse("https://github.com/kirkanw88/signet-android")))
+                        })
+                }
             }
             "connection"->{
                 SettingsCard {
                     SettingsToggle("Подключаться при открытии","Использовать выбранный сервер",s.autoConnect){model.save(s.copy(autoConnect=it))}
                     SettingsToggle("Восстанавливать соединение","При смене Wi-Fi или мобильной сети",s.reconnect){model.save(s.copy(reconnect=it))}
                     MenuItem(Icons.Outlined.Security,"Системные настройки VPN","Постоянный VPN и блокировка без VPN",{context.startActivity(Intent(AndroidSettings.ACTION_VPN_SETTINGS))})
-                    MenuItem(Icons.Outlined.Speed,"Настройки Ping","Режим, адрес и интервалы проверок",{probes=true})
+                    if(BuildConfig.SIGNET_ACCOUNT)MenuItem(Icons.Outlined.Speed,"Настройки Ping","Режим, адрес и интервалы проверок",{probes=true})
                 }
                 SettingsCard {
                     SettingsHeading("Проверка подключения")
@@ -148,6 +194,10 @@ private val Accent:Color @Composable get()=AppColors.accent
                 SettingsCard {SelectionContainer {Text(if(logLines.isEmpty())"Событий пока нет. Включите запись и выполните подключение."else logLines.joinToString("\n"),fontFamily=FontFamily.Monospace,fontSize=13.sp,lineHeight=20.sp,color=Ink,modifier=Modifier.fillMaxWidth().padding(14.dp))}}
             }
             "diagnostics"->{
+                if(!BuildConfig.SIGNET_ACCOUNT)SettingsCard {
+                    MenuItem(Icons.Outlined.Article,"Журнал Xray и подключения",
+                        "Запись, просмотр и экспорт событий",{section="logs"})
+                }
                 Text("Отчёт показывает результат HTTPS и причину сбоя. Ссылка подписки и ключи в него не входят.",fontSize=15.sp,lineHeight=22.sp,color=SecondaryInk)
                 GlassButton(onClick=model::diagnostics,modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.Troubleshoot,null);Text("Проверить соединение",Modifier.padding(start=8.dp))}
                 if(report.isNotBlank()){
