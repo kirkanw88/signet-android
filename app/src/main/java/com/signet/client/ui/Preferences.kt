@@ -58,7 +58,7 @@ private val Accent:Color @Composable get()=AppColors.accent
     BackHandler { if(section!="main")section="main" else close() }
     LaunchedEffect(section){scroll.scrollTo(0)}
     val title=when(section){"connection"->"Соединение";"routing"->"Маршрутизация";"appearance"->"Оформление";"updates"->"Обновления";"diagnostics"->"Диагностика";"logs"->"Журнал подключения";"account"->"Аккаунт";else->"Настройки"}
-    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal=20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)20.dp else 14.dp),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)16.dp else 10.dp)) {
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
             IconButton(onClick={if(section=="main")close()else{section="main"}}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=Ink)}
             Text(title,Modifier.weight(1f),fontSize=24.sp,fontWeight=FontWeight.SemiBold,color=Ink)
@@ -180,21 +180,21 @@ private val Accent:Color @Composable get()=AppColors.accent
 }
 
 @Composable private fun SettingsCard(content:@Composable ColumnScope.()->Unit){
-    Surface(shape=RoundedCornerShape(22.dp),color=AppColors.surface,border=BorderStroke(1.dp,AppColors.border),modifier=Modifier.fillMaxWidth()){
-        Column(Modifier.padding(6.dp),content=content)
+    Surface(shape=RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)22.dp else 14.dp),color=AppColors.surface,border=BorderStroke(1.dp,AppColors.border),modifier=Modifier.fillMaxWidth()){
+        Column(Modifier.padding(if(BuildConfig.SIGNET_ACCOUNT)6.dp else 3.dp),content=content)
     }
 }
 @Composable private fun SettingsHeading(text:String){Text(text,fontSize=18.sp,fontWeight=FontWeight.SemiBold,color=Ink,modifier=Modifier.padding(12.dp))}
 @Composable private fun MenuItem(icon:ImageVector,title:String,subtitle:String,onClick:()->Unit,enabled:Boolean=true){
-    Row(Modifier.fillMaxWidth().clickable(enabled=enabled,onClick=onClick).padding(horizontal=12.dp,vertical=14.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)){
-        Box(Modifier.size(42.dp).background(AppColors.tint,RoundedCornerShape(14.dp)),contentAlignment=Alignment.Center){Icon(icon,null,tint=Accent,modifier=Modifier.size(23.dp))}
-        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){Text(title,fontSize=17.sp,lineHeight=23.sp,fontWeight=FontWeight.Medium,color=Ink);Text(subtitle,fontSize=14.sp,lineHeight=20.sp,color=SecondaryInk)}
+    Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable(enabled=enabled,onClick=onClick).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp,vertical=if(BuildConfig.SIGNET_ACCOUNT)14.dp else 7.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)14.dp else 9.dp)){
+        Box(Modifier.size(if(BuildConfig.SIGNET_ACCOUNT)42.dp else 34.dp).background(AppColors.tint,RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)14.dp else 10.dp)),contentAlignment=Alignment.Center){Icon(icon,null,tint=Accent,modifier=Modifier.size(if(BuildConfig.SIGNET_ACCOUNT)23.dp else 19.dp))}
+        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)4.dp else 2.dp)){Text(title,fontSize=if(BuildConfig.SIGNET_ACCOUNT)17.sp else 15.sp,lineHeight=if(BuildConfig.SIGNET_ACCOUNT)23.sp else 20.sp,fontWeight=FontWeight.Medium,color=Ink);Text(subtitle,fontSize=if(BuildConfig.SIGNET_ACCOUNT)14.sp else 12.sp,lineHeight=if(BuildConfig.SIGNET_ACCOUNT)20.sp else 17.sp,color=SecondaryInk)}
         if(enabled)Icon(Icons.Outlined.ChevronRight,null,tint=SecondaryInk,modifier=Modifier.size(20.dp))
     }
 }
 @Composable private fun SettingsToggle(title:String,subtitle:String,value:Boolean,onChange:(Boolean)->Unit){
-    Row(Modifier.fillMaxWidth().clickable{onChange(!value)}.padding(12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
-        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){Text(title,fontSize=17.sp,lineHeight=23.sp,fontWeight=FontWeight.Medium,color=Ink);Text(subtitle,fontSize=14.sp,lineHeight=20.sp,color=SecondaryInk)}
+    Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable{onChange(!value)}.padding(if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp)){
+        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)4.dp else 2.dp)){Text(title,fontSize=if(BuildConfig.SIGNET_ACCOUNT)17.sp else 15.sp,lineHeight=if(BuildConfig.SIGNET_ACCOUNT)23.sp else 20.sp,fontWeight=FontWeight.Medium,color=Ink);Text(subtitle,fontSize=if(BuildConfig.SIGNET_ACCOUNT)14.sp else 12.sp,lineHeight=if(BuildConfig.SIGNET_ACCOUNT)20.sp else 17.sp,color=SecondaryInk)}
         Switch(value,onChange)
     }
 }
