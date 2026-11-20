@@ -25,6 +25,7 @@ import com.signet.core.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.stateDescription
@@ -146,6 +147,7 @@ import androidx.compose.ui.semantics.Role
     val active=vpn.serverId==server.id&&vpn.phase==VpnPhase.CONNECTED
     val selected=state.selected==server.id
     val color=if(active)AppColors.success else AppColors.accent
+    val largeText=!BuildConfig.SIGNET_ACCOUNT&&LocalConfiguration.current.fontScale>=1.5f
     Row(modifier.fillMaxWidth().semantics { this.selected=selected; stateDescription=if(active)"Подключён" else if(selected)"Выбран" else "Не выбран" }.padding(vertical=1.dp).heightIn(min=56.dp).border(if(selected)1.5.dp else 0.dp,if(selected)color else Color.Transparent,RoundedCornerShape(10.dp)).background(if(selected)AppColors.tint else Color.Transparent,RoundedCornerShape(10.dp)).combinedClickable(enabled=server.enabled,role=Role.RadioButton,onClick={select(server.id)},onLongClick={favorite(server.id)},onLongClickLabel=if(server.favorite)"Убрать из избранного"else"В избранное").padding(horizontal=8.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically) {
         CountryFlag(display.country,display.isAuto)
         Column(Modifier.weight(1f).padding(horizontal=8.dp)) {
@@ -153,7 +155,7 @@ import androidx.compose.ui.semantics.Role
             Row(Modifier.fillMaxWidth()){
                 Text(display.transport,Modifier.weight(1f),color=AppColors.muted,fontSize=12.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
             }
-            display.description?.let{Text(it,color=AppColors.muted,fontSize=12.sp,maxLines=1,overflow=TextOverflow.Ellipsis)}
+            display.description?.let{Text(it,color=AppColors.muted,fontSize=12.sp,maxLines=if(largeText)2 else 1,overflow=TextOverflow.Ellipsis)}
         }
         Column(horizontalAlignment=Alignment.End) {
             if(probing)CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp)
@@ -176,14 +178,14 @@ import androidx.compose.ui.semantics.Role
             if(active)Text("Подключён",color=color,fontSize=if(BuildConfig.SIGNET_ACCOUNT)10.sp else 12.sp)
         }
         if(!BuildConfig.SIGNET_ACCOUNT) {
-            IconButton(onClick={favorite(server.id)},enabled=server.enabled,modifier=Modifier.size(40.dp)) {
+            IconButton(onClick={favorite(server.id)},enabled=server.enabled,modifier=Modifier.size(if(largeText)48.dp else 40.dp)) {
                 Icon(if(server.favorite)Icons.Outlined.Star else Icons.Outlined.StarBorder,
                     if(server.favorite)"Убрать из избранного"else"В избранное",
                     Modifier.size(20.dp),
                     tint=if(server.favorite)AppColors.warning else AppColors.muted)
             }
         } else if(server.favorite)Icon(Icons.Outlined.Star,"Избранное",Modifier.padding(start=4.dp).size(13.dp),tint=AppColors.warning)
-        Icon(if(selected)Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,if(selected)"Выбран"else"Выбрать сервер",Modifier.padding(start=6.dp).size(20.dp),tint=if(selected)AppColors.accent else AppColors.muted)
+        if(!largeText)Icon(if(selected)Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,if(selected)"Выбран"else"Выбрать сервер",Modifier.padding(start=6.dp).size(20.dp),tint=if(selected)AppColors.accent else AppColors.muted)
     }
     HorizontalDivider(color=AppColors.border.copy(alpha=.4f))
 }
