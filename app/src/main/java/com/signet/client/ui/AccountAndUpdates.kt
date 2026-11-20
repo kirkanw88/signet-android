@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.signet.client.MainViewModel
+import com.signet.client.BuildConfig
 import com.signet.core.AppRelease
 import com.signet.core.SubscriptionMetadata
 
@@ -22,8 +23,8 @@ fun openHttps(context:Context,url:String,onError:()->Unit={}) {
 
 @Composable fun UpdateBanner(release:AppRelease,model:MainViewModel) {
     val context=LocalContext.current
-    Surface(color=MaterialTheme.colorScheme.primaryContainer,shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=4.dp)) {
-        Column(Modifier.padding(12.dp)) {
+    Surface(color=MaterialTheme.colorScheme.primaryContainer,shape=RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)16.dp else 12.dp),modifier=Modifier.fillMaxWidth().padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)16.dp else 12.dp,vertical=4.dp)) {
+        Column(Modifier.padding(if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp)) {
             Text("Доступна новая версия ${release.version}",style=MaterialTheme.typography.titleSmall)
             Row{TextButton(onClick={model.installer.offer(release)}){Text("Обновить")};TextButton(onClick=model::dismissUpdate){Text("Позже")}}
         }
