@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.Role
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable fun LocationList(state:AppState,vpn:VpnStatus,probing:Boolean,select:(String)->Unit,favorite:(String)->Unit,ping:()->Unit,refresh:()->Unit,modifier:Modifier=Modifier,compact:Boolean=false,activeProbes:Set<String> = emptySet(),toggleSubscription:(String)->Unit={},pinSubscription:(String)->Unit={},refreshSubscription:(String)->Unit={},pingSubscription:(String)->Unit={},removeSubscription:(String)->Unit={},refreshingSubscriptions:Set<String> = emptySet(),addSubscription:(()->Unit)?=null,management:Boolean=false) {
@@ -145,7 +146,7 @@ import androidx.compose.ui.semantics.stateDescription
     val active=vpn.serverId==server.id&&vpn.phase==VpnPhase.CONNECTED
     val selected=state.selected==server.id
     val color=if(active)AppColors.success else AppColors.accent
-    Row(modifier.fillMaxWidth().semantics { this.selected=selected; stateDescription=if(active)"Подключён" else if(selected)"Выбран" else "Не выбран" }.padding(vertical=1.dp).heightIn(min=56.dp).border(if(selected)1.5.dp else 0.dp,if(selected)color else Color.Transparent,RoundedCornerShape(10.dp)).background(if(selected)AppColors.tint else Color.Transparent,RoundedCornerShape(10.dp)).combinedClickable(enabled=server.enabled,onClick={select(server.id)},onLongClick={favorite(server.id)},onLongClickLabel="Избранное").padding(horizontal=8.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically) {
+    Row(modifier.fillMaxWidth().semantics { this.selected=selected; stateDescription=if(active)"Подключён" else if(selected)"Выбран" else "Не выбран" }.padding(vertical=1.dp).heightIn(min=56.dp).border(if(selected)1.5.dp else 0.dp,if(selected)color else Color.Transparent,RoundedCornerShape(10.dp)).background(if(selected)AppColors.tint else Color.Transparent,RoundedCornerShape(10.dp)).combinedClickable(enabled=server.enabled,role=Role.RadioButton,onClick={select(server.id)},onLongClick={favorite(server.id)},onLongClickLabel=if(server.favorite)"Убрать из избранного"else"В избранное").padding(horizontal=8.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically) {
         CountryFlag(display.country,display.isAuto)
         Column(Modifier.weight(1f).padding(horizontal=8.dp)) {
             Text(display.title,color=if(server.enabled)AppColors.text else AppColors.muted,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis,fontSize=15.sp)
@@ -171,10 +172,17 @@ import androidx.compose.ui.semantics.stateDescription
                 "FAILED"->"Не измерено"
                 else->null
             }
-            Text(when {server.probeMessage=="CONSENT_REQUIRED"->"Нужно согласие";server.probeMessage=="UNSUPPORTED"->"—";server.latencyMs!=null->"${server.latencyMs} ms";problem!=null->problem;server.available==false->"Нет ответа";else->"—"},color=if(server.available==false||problem!=null)AppColors.warning else AppColors.muted,fontSize=11.sp)
-            if(active)Text("Подключён",color=color,fontSize=10.sp)
+            Text(when {server.probeMessage=="CONSENT_REQUIRED"->"Нужно согласие";server.probeMessage=="UNSUPPORTED"->"—";server.latencyMs!=null->"${server.latencyMs} ms";problem!=null->problem;server.available==false->"Нет ответа";else->"—"},color=if(server.available==false||problem!=null)AppColors.warning else AppColors.muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)11.sp else 12.sp)
+            if(active)Text("Подключён",color=color,fontSize=if(BuildConfig.SIGNET_ACCOUNT)10.sp else 12.sp)
         }
-        if(server.favorite)Icon(Icons.Outlined.Star,"Избранное",Modifier.padding(start=4.dp).size(13.dp),tint=AppColors.warning)
+        if(!BuildConfig.SIGNET_ACCOUNT) {
+            IconButton(onClick={favorite(server.id)},enabled=server.enabled,modifier=Modifier.size(40.dp)) {
+                Icon(if(server.favorite)Icons.Outlined.Star else Icons.Outlined.StarBorder,
+                    if(server.favorite)"Убрать из избранного"else"В избранное",
+                    Modifier.size(20.dp),
+                    tint=if(server.favorite)AppColors.warning else AppColors.muted)
+            }
+        } else if(server.favorite)Icon(Icons.Outlined.Star,"Избранное",Modifier.padding(start=4.dp).size(13.dp),tint=AppColors.warning)
         Icon(if(selected)Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,if(selected)"Выбран"else"Выбрать сервер",Modifier.padding(start=6.dp).size(20.dp),tint=if(selected)AppColors.accent else AppColors.muted)
     }
     HorizontalDivider(color=AppColors.border.copy(alpha=.4f))
