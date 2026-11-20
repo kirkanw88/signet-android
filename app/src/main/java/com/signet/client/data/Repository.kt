@@ -161,7 +161,13 @@ class Repository(private val context: Context, private val vault: Vault, private
             val previous = state.value.subscriptions.firstOrNull { it.id == subId }
             if(url!=null&&previous?.format=="XRAY_JSON"&&!isJson){
                 ConnectionLog.add("SUBSCRIPTION","JSON_DOWNGRADE_REJECTED")
-                notify("Сервис временно не отдал JSON. Сохранена предыдущая конфигурация подписки.")
+                val warning="Сервис временно не отдал полный JSON. Предыдущая конфигурация сохранена."
+                if(!com.signet.client.BuildConfig.SIGNET_ACCOUNT){
+                    _state.update { current->current.copy(subscriptions=current.subscriptions.map { sub->
+                        if(sub.id==previous.id)sub.copy(error=warning)else sub
+                    }) }
+                }
+                notify(warning)
                 return@withLock
             }
             val parsed = if (isJson) Profiles.parseJson(text) else {
