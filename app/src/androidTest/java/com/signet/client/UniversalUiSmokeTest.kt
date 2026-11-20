@@ -23,9 +23,12 @@ class UniversalUiSmokeTest {
 
     @Test fun settingsBackAndManualImport() {
         Assume.assumeTrue(InstrumentationRegistry.getInstrumentation().targetContext.packageName.endsWith(".external"))
-        compose.onNodeWithText("ВАША ПЛАНЕТА").assertExists()
-        compose.onNodeWithTag("home-server-card").assertExists()
-        compose.onNodeWithText("SIGNET / EARTH").assertExists()
+        compose.onNodeWithText("Не подключено").assertExists()
+        compose.onNodeWithText("ВАША ПЛАНЕТА").assertDoesNotExist()
+        compose.onNodeWithText("SIGNET / EARTH").assertDoesNotExist()
+        compose.onNodeWithText("ПРОВЕДИТЕ ВЛЕВО ИЛИ ВПРАВО").assertDoesNotExist()
+        compose.onNodeWithTag("home-add-subscription-card").assertExists()
+        compose.onNodeWithText("Импортировать ссылку или QR-код").assertExists()
         compose.onNodeWithContentDescription("Настройки").performClick()
         compose.onNodeWithText("Оформление").performClick()
         compose.onNodeWithText("Высокое качество").assertExists()
