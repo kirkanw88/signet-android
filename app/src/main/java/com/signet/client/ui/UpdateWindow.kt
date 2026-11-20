@@ -32,11 +32,11 @@ import com.signet.client.data.InstallPhase
     val busy=state.phase in setOf(InstallPhase.DOWNLOADING,InstallPhase.VERIFYING,InstallPhase.INSTALLING)
     fun dismiss(){model.installer.cancel();model.dismissUpdate()}
     Dialog(onDismissRequest={if(!busy)dismiss()}){
-        Surface(shape=RoundedCornerShape(28.dp),color=AppColors.surface,border=BorderStroke(1.dp,Color(0xFF538099))){
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).background(Brush.verticalGradient(listOf(AppColors.tint,AppColors.surface))).padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
+        Surface(shape=RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)28.dp else 16.dp),color=AppColors.surface,border=BorderStroke(1.dp,Color(0xFF538099))){
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).background(Brush.verticalGradient(listOf(AppColors.tint,AppColors.surface))).padding(if(BuildConfig.SIGNET_ACCOUNT)24.dp else 14.dp),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)16.dp else 10.dp)){
                 Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
-                    Icon(Icons.Outlined.SystemUpdate,null,tint=AppColors.accent,modifier=Modifier.size(32.dp))
-                    Text("Обновление Signet",fontSize=22.sp,fontWeight=FontWeight.SemiBold,color=AppColors.text)
+                    Icon(Icons.Outlined.SystemUpdate,null,tint=AppColors.accent,modifier=Modifier.size(if(BuildConfig.SIGNET_ACCOUNT)32.dp else 24.dp))
+                    Text("Обновление Signet",fontSize=if(BuildConfig.SIGNET_ACCOUNT)22.sp else 18.sp,fontWeight=FontWeight.SemiBold,color=AppColors.text)
                 }
                 Text("${BuildConfig.VERSION_NAME}  →  ${state.release?.version}",fontSize=18.sp,color=AppColors.accent)
                 Text(state.message.ifBlank{"Доступна новая версия приложения"},color=AppColors.text,lineHeight=22.sp)
@@ -44,8 +44,8 @@ import com.signet.client.data.InstallPhase
                 if(state.phase==InstallPhase.VERIFYING||state.phase==InstallPhase.INSTALLING){
                     val animation=rememberInfiniteTransition(label="installation")
                     val pulse by animation.animateFloat(.9f,1.08f,infiniteRepeatable(tween(1000),RepeatMode.Reverse),label="installation-pulse")
-                    Box(Modifier.fillMaxWidth().height(96.dp),contentAlignment=Alignment.Center){
-                        CircularProgressIndicator(Modifier.size(80.dp),color=AppColors.accent,strokeWidth=3.dp)
+                    Box(Modifier.fillMaxWidth().height(if(BuildConfig.SIGNET_ACCOUNT)96.dp else 64.dp),contentAlignment=Alignment.Center){
+                        CircularProgressIndicator(Modifier.size(if(BuildConfig.SIGNET_ACCOUNT)80.dp else 52.dp),color=AppColors.accent,strokeWidth=3.dp)
                         Icon(Icons.Outlined.SystemUpdate,null,tint=AppColors.accent,modifier=Modifier.size(34.dp).scale(pulse))
                     }
                     LinearProgressIndicator(modifier=Modifier.fillMaxWidth(),color=AppColors.accent,trackColor=AppColors.border)
