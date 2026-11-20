@@ -68,6 +68,8 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     var page by rememberSaveable { mutableIntStateOf(0) }
     var showServers by rememberSaveable { mutableStateOf(false) }
     var openDiagnostics by rememberSaveable { mutableStateOf(false) }
+    // Run the optional full-list ping once per foreground app session, not on every recomposition.
+    var launchPingHandled by rememberSaveable { mutableStateOf(false) }
     androidx.activity.compose.BackHandler(enabled=page!=0){page=if(page==2)3 else 0}
     var add by rememberSaveable { mutableStateOf(false) }
     var addMenu by rememberSaveable{mutableStateOf(false)}
@@ -106,6 +108,16 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         }
     }
     LaunchedEffect(state.ready) { if(state.ready && state.settings.autoConnect && state.server != null && vpn.phase==VpnPhase.DISCONNECTED) connect() }
+    LaunchedEffect(state.ready,state.settings.probes.pingOnLaunch) {
+        if(!BuildConfig.SIGNET_ACCOUNT && state.ready && state.settings.probes.pingOnLaunch && !launchPingHandled) {
+            launchPingHandled=true
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                if(state.servers.any{it.enabled})model.measure()
+                // One pass per Activity instance; repeatOnLifecycle must not rerun this scan.
+                return@repeatOnLifecycle
+            }
+        }
+    }
     val qr=rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         result.data?.getStringExtra("content")?.let { input=it;add=true }
     }
