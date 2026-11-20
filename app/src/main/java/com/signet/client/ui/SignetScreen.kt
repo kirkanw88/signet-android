@@ -216,11 +216,11 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     @Composable fun controls() {
         val selectedSubscription=state.subscriptions.firstOrNull{sub->sub.servers.any{it.id==server?.id}}
         if(!BuildConfig.SIGNET_ACCOUNT && state.subscriptions.isNotEmpty()) {
-            LiquidGlassFrame(modifier=Modifier.fillMaxWidth().testTag("home-server-card"),
+            LiquidGlassFrame(onClick=servers,modifier=Modifier.fillMaxWidth().testTag("home-server-card"),
                 shape=RoundedCornerShape(14.dp)) {
                 Column(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=8.dp),
                     verticalArrangement=Arrangement.spacedBy(7.dp)) {
-                    Row(Modifier.fillMaxWidth().heightIn(min=44.dp).clickable(onClick=servers),
+                    Row(Modifier.fillMaxWidth().heightIn(min=44.dp),
                         verticalAlignment=Alignment.CenterVertically,
                         horizontalArrangement=Arrangement.spacedBy(10.dp)) {
                         CountryFlag(display?.country,display?.isAuto?:false,
