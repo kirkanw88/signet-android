@@ -122,7 +122,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                     if(page==0)Image(painterResource(R.drawable.signet_logo),"Signet VPN",Modifier.width(80.dp).height(48.dp),colorFilter=if(AppColors.dark)null else androidx.compose.ui.graphics.ColorFilter.tint(AppColors.text))
                     else if(page!=3)IconButton(onClick={page=if(page==2)3 else 0}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=AppColors.text)}
                     if(page==2)Text("Подписки",color=AppColors.text,fontSize=20.sp,fontWeight=FontWeight.Medium)
-                    if(page==0&&!BuildConfig.SIGNET_ACCOUNT)Text("v${BuildConfig.VERSION_NAME} · G11",fontSize=13.sp,color=AppColors.muted)
+                    if(page==0&&!BuildConfig.SIGNET_ACCOUNT)Text("v${BuildConfig.VERSION_NAME} · G12",fontSize=13.sp,color=AppColors.muted)
                     Row {
                         if(page==0&&!BuildConfig.SIGNET_ACCOUNT)IconButton(onClick={if(state.subscriptions.size>=8)model.repository.notify("Достигнут лимит 8 подписок. Удалите ненужную подписку, чтобы добавить новую.")else addMenu=true},enabled=!state.busy,modifier=Modifier.testTag("home-add-subscription")){Icon(Icons.Outlined.Add,"Добавить подписку",tint=if(state.busy||state.subscriptions.size>=8)AppColors.muted else Primary)}
                         if(BuildConfig.SIGNET_ACCOUNT)IconButton(onClick={model.openAccount("support")}){Icon(Icons.Outlined.SupportAgent,"Техническая поддержка",tint=AppColors.muted)}
