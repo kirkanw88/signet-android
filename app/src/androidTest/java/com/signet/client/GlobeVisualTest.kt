@@ -119,6 +119,38 @@ class GlobeVisualTest {
         assertTrue("Horizontal drag must change rendered yaw",yawDelta>3f)
     }
 
+    /**
+     * A diagonal drag must change BOTH camera axes in a single real Compose gesture.
+     * In contrast to isolated gesture math, this checks actual EGL frame telemetry.
+     */
+    @Test fun firstDiagonalSwipeChangesBothRenderedAxes() {
+        val instrumentation=InstrumentationRegistry.getInstrumentation()
+        Assume.assumeTrue(instrumentation.targetContext.packageName.endsWith(".external"))
+        var found:GlobeView?=null
+        compose.activityRule.scenario.onActivity { activity ->
+            found=findGlobe(activity.window.decorView)
+        }
+        val globe=requireNotNull(found) { "Missing Android OpenGL globe" }
+        compose.waitUntil(20_000){globe.globe.frameReady}
+        val pitchBefore=globe.globe.renderedPitchDegrees
+        val yawBefore=globe.globe.renderedYawDegrees
+        val movesBefore=globe.rotationMoveCount
+        compose.onNodeWithTag("home-globe").performTouchInput {
+            swipe(
+                start=androidx.compose.ui.geometry.Offset(size.width*.7f,size.height*.7f),
+                end=androidx.compose.ui.geometry.Offset(size.width*.3f,size.height*.3f),
+                durationMillis=450
+            )
+        }
+        fun yawDifference():Float = kotlin.math.abs(((globe.globe.renderedYawDegrees-yawBefore+540f)%360f)-180f)
+        compose.waitUntil(10_000) {
+            kotlin.math.abs(globe.globe.renderedPitchDegrees-pitchBefore)>3f && yawDifference()>3f
+        }
+        assertTrue("Diagonal gesture must reach GLES",globe.rotationMoveCount>movesBefore)
+        assertTrue("Diagonal swipe must change rendered pitch",kotlin.math.abs(globe.globe.renderedPitchDegrees-pitchBefore)>3f)
+        assertTrue("Diagonal swipe must change rendered yaw",yawDifference()>3f)
+    }
+
     private fun findGlobe(view:View):GlobeView? {
         if(view is GlobeView)return view
         if(view is ViewGroup)for(i in 0 until view.childCount)findGlobe(view.getChildAt(i))?.let{return it}
