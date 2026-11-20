@@ -33,6 +33,11 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
     private val touchSlop=android.view.ViewConfiguration.get(context).scaledTouchSlop
     private val drag=com.signet.core.GlobeDrag(touchSlop.toFloat())
     private var coveredByPhoto=false
+    // Read-only test counters help diagnose whether a swipe was intercepted before reaching this View.
+    @Volatile var inputDownCount=0
+        private set
+    @Volatile var rotationMoveCount=0
+        private set
     init {
         setEGLContextClientVersion(2)
         if(highQuality)setEGLConfigChooser { egl,display ->
@@ -96,6 +101,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
         if(coveredByPhoto)return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                inputDownCount++
                 activePointer=event.getPointerId(0);drag.down(event.x,event.y)
                 // Hold interception until the axis is known, otherwise Compose scrolling can cancel the first MOVE.
                 parent?.requestDisallowInterceptTouchEvent(true)
@@ -111,6 +117,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
                 val step=drag.move(event.getX(index),event.getY(index),allowParentScroll&&!prioritizeGlobeGestures)
                 if(step.axis==com.signet.core.GlobeDragAxis.SCROLL){parent?.requestDisallowInterceptTouchEvent(false);return true}
                 if(step.axis==com.signet.core.GlobeDragAxis.ROTATE){
+                    rotationMoveCount++
                     parent?.requestDisallowInterceptTouchEvent(true)
                     queueEvent { globe.drag(step.dx*.25f,step.dy*.2f) };requestRender()
                 }
