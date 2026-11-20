@@ -272,7 +272,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     var labelSize by remember{mutableStateOf(IntSize.Zero)}
     var area by remember{mutableStateOf(IntSize.Zero)}
     Box(modifier.testTag("home-globe").clip(RoundedCornerShape(if(AppColors.dark)0.dp else 24.dp)).onSizeChanged{area=it}) {
-        AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);renderer=it.globe}},modifier=Modifier.fillMaxSize(),onRelease={it.releaseHost()},update={it.bindHost(lifecycle);it.photoCover(false);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,parentScroll)})
+        AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);renderer=it.globe}},modifier=Modifier.fillMaxSize(),onRelease={it.releaseHost()},update={it.bindHost(lifecycle);it.photoCover(false);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,parentScroll,rotateVertical=!BuildConfig.SIGNET_ACCOUNT)})
         AnimatedVisibility(marker.visible,enter=fadeIn(tween(350)),exit=fadeOut(tween(150)),modifier=Modifier.offset{
             IntOffset((marker.x-labelSize.width/2).coerceIn(0,(area.width-labelSize.width).coerceAtLeast(0)),(marker.y-labelSize.height).coerceAtLeast(0))
         }) {
