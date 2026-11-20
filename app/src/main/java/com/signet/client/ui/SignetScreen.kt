@@ -299,7 +299,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                             total+=delta
                             if(kotlin.math.abs(total.y)>slop && kotlin.math.abs(total.y)>=kotlin.math.abs(total.x))break
                             if(kotlin.math.abs(total.x)>slop) {
-                                if(kotlin.math.abs(total.x)<kotlin.math.abs(total.y)*1.5f)break
+                                if(kotlin.math.abs(total.x)<kotlin.math.abs(total.y)*3f)break
                                 horizontal=true
                             }
                         }
