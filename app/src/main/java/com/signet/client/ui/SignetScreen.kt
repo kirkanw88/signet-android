@@ -12,6 +12,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -265,6 +267,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
 @Composable private fun Globe(server:Server?,phase:VpnPhase,settings:Settings,modifier:Modifier) {
     val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
     var renderer by remember{mutableStateOf<com.signet.client.graphics.GlobeRenderer?>(null)}
+    var globeView by remember{mutableStateOf<GlobeView?>(null)}
     val parentScroll=!BuildConfig.SIGNET_ACCOUNT&&LocalConfiguration.current.orientation!=android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val emptyMarker=remember{kotlinx.coroutines.flow.MutableStateFlow(com.signet.client.graphics.CapitalMarker())}
     val marker by (renderer?.capitalMarker?:emptyMarker).collectAsStateWithLifecycle()
@@ -272,7 +275,20 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     var labelSize by remember{mutableStateOf(IntSize.Zero)}
     var area by remember{mutableStateOf(IntSize.Zero)}
     Box(modifier.testTag("home-globe").clip(RoundedCornerShape(if(AppColors.dark)0.dp else 24.dp)).onSizeChanged{area=it}) {
-        AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);renderer=it.globe}},modifier=Modifier.fillMaxSize(),onRelease={it.releaseHost()},update={it.bindHost(lifecycle);it.photoCover(false);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,parentScroll,rotateVertical=!BuildConfig.SIGNET_ACCOUNT)})
+        AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);renderer=it.globe;globeView=it}},modifier=Modifier.fillMaxSize(),onRelease={it.releaseHost();if(globeView===it)globeView=null},update={it.bindHost(lifecycle);it.photoCover(false);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,parentScroll,rotateVertical=!BuildConfig.SIGNET_ACCOUNT)})
+        if(!BuildConfig.SIGNET_ACCOUNT) {
+            // Captures vertical drags above the GLSurfaceView before the Home scroll parent.
+            // This layer covers only the globe, so swipes elsewhere still scroll the screen.
+            Box(Modifier.fillMaxSize().pointerInput(globeView) {
+                detectDragGestures(
+                    onDragStart={globeView?.beginComposeGesture()},
+                    onDrag={change,delta->
+                        change.consume()
+                        globeView?.rotateFromCompose(delta.x,delta.y)
+                    }
+                )
+            })
+        }
         AnimatedVisibility(marker.visible,enter=fadeIn(tween(350)),exit=fadeOut(tween(150)),modifier=Modifier.offset{
             IntOffset((marker.x-labelSize.width/2).coerceIn(0,(area.width-labelSize.width).coerceAtLeast(0)),(marker.y-labelSize.height).coerceAtLeast(0))
         }) {
