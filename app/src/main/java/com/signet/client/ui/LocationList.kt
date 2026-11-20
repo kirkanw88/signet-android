@@ -43,22 +43,14 @@ import androidx.compose.ui.semantics.Role
     val canPing=vpn.phase !in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.DISCONNECTING)
     var matches=0
     LazyColumn(modifier,contentPadding=PaddingValues(bottom=16.dp)){
-        item(key="server-tools"){
-            Column {
-                Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
-                    Text(if(management)"Подписок: ${state.subscriptions.size}"else"Серверы",Modifier.weight(1f),fontWeight=FontWeight.Medium,fontSize=20.sp)
-                    addSubscription?.let{add->TextButton(onClick=add,enabled=!state.busy&&state.subscriptions.size<8){Icon(Icons.Outlined.Add,null);Text("Добавить")}}
+        // No redundant global toolbar in Universal: each subscription owns its actions.
+        if(BuildConfig.SIGNET_ACCOUNT) item(key="server-tools"){
+            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+                Text("Серверы",Modifier.weight(1f),fontSize=20.sp)
+                IconButton(onClick=ping,enabled=state.servers.isNotEmpty()&&canPing){
+                    Icon(Icons.Outlined.Speed,"Ping",tint=AppColors.accent)
                 }
-                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End){
-                    IconButton(onClick=ping,modifier=Modifier.testTag("server-ping"),enabled=state.servers.isNotEmpty()&&canPing){Icon(if(probing)Icons.Outlined.StopCircle else Icons.Outlined.Speed,if(probing)"Остановить измерение"else"Ping всех подписок",tint=AppColors.accent)}
-                    IconButton(onClick=refresh,modifier=Modifier.testTag("server-refresh"),enabled=!state.busy){if(state.busy)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp)else Icon(Icons.Outlined.Refresh,"Обновить все подписки",tint=AppColors.accent)}
-                    IconButton(onClick={tools=!tools}){Icon(if(tools)Icons.Outlined.Close else Icons.Outlined.Search,if(tools)"Закрыть поиск"else"Поиск и сортировка",tint=AppColors.accent)}
-                }
-                if(addSubscription!=null&&state.subscriptions.size>=8)Text("Достигнут лимит 8 подписок. Для добавления новой удалите ненужную подписку.",color=AppColors.muted,fontSize=12.sp,modifier=Modifier.padding(vertical=4.dp))
-                if(!compact&&tools){
-                    OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),placeholder={Text("Подписка, хост или страна")},leadingIcon={Icon(Icons.Outlined.Search,null)},singleLine=true,shape=RoundedCornerShape(16.dp))
-                    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){FilterChip(favoriteOnly,{favoriteOnly=!favoriteOnly},label={Text("Избранное")});FilterChip(sort,{sort=!sort},label={Text("По задержке")})}
-                }
+                IconButton(onClick=refresh){Icon(Icons.Outlined.Refresh,"Обновить")}
             }
         }
         for(sub in SubscriptionGroups.pinnedFirst(state.subscriptions,state.settings.pinnedSubscriptions){it.id}){
@@ -75,61 +67,53 @@ import androidx.compose.ui.semantics.Role
                 val pinned=sub.id in state.settings.pinnedSubscriptions
                 val here=activeProbes.any{id->sub.servers.any{it.id==id}}
                 if(!BuildConfig.SIGNET_ACCOUNT) {
-                    // Happ-inspired compact hierarchy; all actions remain accessible without expanding.
-                    Column(Modifier.fillMaxWidth().padding(top=6.dp,bottom=4.dp)
-                        .border(1.dp,AppColors.border.copy(alpha=.42f),RoundedCornerShape(14.dp))
-                        .background(AppColors.surface.copy(alpha=.42f),RoundedCornerShape(14.dp))
-                        .padding(horizontal=10.dp,vertical=8.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-                        Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
-                            IconButton(onClick={toggleSubscription(sub.id)},modifier=Modifier.size(32.dp)) {
-                                Icon(Icons.Outlined.ExpandMore,if(expanded)"Свернуть подписку"else"Развернуть подписку",
-                                    Modifier.size(22.dp).rotate(angle),tint=AppColors.muted)
+                    Column(Modifier.fillMaxWidth().padding(top=3.dp,bottom=3.dp)
+                        .border(1.dp,AppColors.border.copy(alpha=.28f),RoundedCornerShape(12.dp))
+                        .background(AppColors.surface.copy(alpha=.30f),RoundedCornerShape(12.dp))
+                        .padding(horizontal=8.dp,vertical=6.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
+                        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.Top,
+                            horizontalArrangement=Arrangement.spacedBy(3.dp)){
+                            IconButton(onClick={toggleSubscription(sub.id)},modifier=Modifier.size(30.dp)){
+                                Icon(Icons.Outlined.ExpandMore,if(expanded)"Свернуть"else"Развернуть",
+                                    Modifier.size(19.dp).rotate(angle),tint=AppColors.muted)
                             }
-                            Column(Modifier.weight(1f),horizontalAlignment=Alignment.CenterHorizontally) {
-                                Text(label,fontSize=15.sp,fontWeight=FontWeight.SemiBold,maxLines=2,
-                                    lineHeight=18.sp,overflow=TextOverflow.Ellipsis,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
+                            Column(Modifier.weight(1f).padding(top=3.dp),verticalArrangement=Arrangement.spacedBy(1.dp)){
+                                Text(label,fontSize=14.sp,lineHeight=17.sp,fontWeight=FontWeight.SemiBold,
+                                    maxLines=2,overflow=TextOverflow.Ellipsis)
                                 Text("Обновлено "+android.text.format.DateUtils.getRelativeTimeSpanString(
                                     sub.updated,System.currentTimeMillis(),android.text.format.DateUtils.MINUTE_IN_MILLIS)+
-                                    " · Автообновление каждые ${sub.metadata.updateHours} ч",
-                                    fontSize=10.sp,color=AppColors.muted,maxLines=2,
-                                    textAlign=androidx.compose.ui.text.style.TextAlign.Center)
+                                    " · каждые ${sub.metadata.updateHours} ч",
+                                    fontSize=10.sp,lineHeight=12.sp,color=AppColors.muted,maxLines=1,
+                                    overflow=TextOverflow.Ellipsis)
                             }
-                            IconButton(onClick={pinSubscription(sub.id)},modifier=Modifier.size(32.dp)){
-                                Icon(if(pinned)Icons.Outlined.PushPin else Icons.Outlined.PushPin,
-                                    if(pinned)"Открепить подписку"else"Закрепить подписку",Modifier.size(18.dp),
-                                    tint=if(pinned)AppColors.accent else AppColors.muted)
+                            IconButton(onClick={pingSubscription(sub.id)},modifier=Modifier.size(32.dp),
+                                enabled=canPing&&sub.servers.isNotEmpty()&&(!probing||here)){
+                                Icon(if(here)Icons.Outlined.StopCircle else Icons.Outlined.Speed,
+                                    if(here)"Остановить Ping"else"Ping подписки",Modifier.size(19.dp),tint=AppColors.muted)
                             }
-                            Box {
-                                IconButton(onClick={menu=true},modifier=Modifier.size(32.dp)){
-                                    Icon(Icons.Outlined.MoreHoriz,"Действия с подпиской",tint=AppColors.muted)
+                            IconButton(onClick={refreshSubscription(sub.id)},modifier=Modifier.size(32.dp),
+                                enabled=sub.url!=null&&!state.busy){
+                                if(sub.id in refreshingSubscriptions)CircularProgressIndicator(Modifier.size(17.dp),strokeWidth=2.dp)
+                                else Icon(Icons.Outlined.Refresh,"Обновить подписку",Modifier.size(19.dp),tint=AppColors.muted)
+                            }
+                            Box{
+                                IconButton(onClick={menu=true},modifier=Modifier.size(28.dp)){
+                                    Icon(Icons.Outlined.MoreVert,"Действия",Modifier.size(18.dp),tint=AppColors.muted)
                                 }
                                 DropdownMenu(expanded=menu,onDismissRequest={menu=false}){
+                                    if(addSubscription!=null)DropdownMenuItem(text={Text("Добавить подписку")},
+                                        enabled=state.subscriptions.size<8,onClick={menu=false;addSubscription()})
                                     DropdownMenuItem(text={Text("Настройка")},onClick={menu=false;settingsId=sub.id})
-                                    DropdownMenuItem(text={Text("Экспорт ссылки")},enabled=sub.url!=null,onClick={menu=false;sub.url?.let{
-                                        ClipboardTransfers.copy(context,"Subscription",it)
-                                    }})
+                                    DropdownMenuItem(text={Text(if(pinned)"Открепить"else"Закрепить")},
+                                        onClick={menu=false;pinSubscription(sub.id)})
+                                    DropdownMenuItem(text={Text("Экспорт ссылки")},enabled=sub.url!=null,
+                                        onClick={menu=false;sub.url?.let{ClipboardTransfers.copy(context,"Subscription",it)}})
                                     DropdownMenuItem(text={Text("Удалить подписку")},onClick={menu=false;removeId=sub.id})
                                 }
                             }
                         }
-                        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
-                            Text("Серверов: ${sub.servers.size}",fontSize=11.sp,color=AppColors.muted)
-                            Row(horizontalArrangement=Arrangement.spacedBy(4.dp),verticalAlignment=Alignment.CenterVertically){
-                                TextButton(onClick={refreshSubscription(sub.id)},enabled=sub.url!=null&&!state.busy,
-                                    contentPadding=PaddingValues(horizontal=6.dp),modifier=Modifier.heightIn(min=32.dp)) {
-                                    if(sub.id in refreshingSubscriptions)CircularProgressIndicator(Modifier.size(15.dp),strokeWidth=2.dp)
-                                    else Icon(Icons.Outlined.Refresh,null,Modifier.size(17.dp))
-                                    Text("Обновить",Modifier.padding(start=4.dp),fontSize=11.sp)
-                                }
-                                TextButton(onClick={pingSubscription(sub.id)},enabled=canPing&&sub.servers.isNotEmpty()&&(!probing||here),
-                                    contentPadding=PaddingValues(horizontal=6.dp),modifier=Modifier.heightIn(min=32.dp)){
-                                    Icon(if(here)Icons.Outlined.StopCircle else Icons.Outlined.Speed,null,Modifier.size(17.dp))
-                                    Text(if(here)"Стоп"else"Ping",Modifier.padding(start=4.dp),fontSize=11.sp)
-                                }
-                            }
-                        }
                         SubscriptionUsage(sub)
-                        sub.error?.let{Text(it,color=AppColors.warning,fontSize=11.sp,maxLines=3)}
+                        sub.error?.let{Text(it,color=AppColors.warning,fontSize=10.sp,maxLines=2)}
                     }
                 } else {
                     Surface(onClick={toggleSubscription(sub.id)},color=AppColors.surface,
@@ -158,12 +142,12 @@ import androidx.compose.ui.semantics.Role
             if(expanded){
                 if(sub.metadata.announcement.isNotBlank())item(key="${sub.id}:announcement"){
                     var announcementExpanded by rememberSaveable(sub.id){mutableStateOf(false)}
-                    Column(Modifier.fillMaxWidth().padding(top=3.dp,bottom=5.dp)
-                        .background(AppColors.surface.copy(alpha=.28f),RoundedCornerShape(10.dp))
-                        .padding(10.dp),verticalArrangement=Arrangement.spacedBy(4.dp)){
-                        Text(sub.metadata.announcement,fontSize=12.sp,lineHeight=17.sp,color=AppColors.muted,
+                    Column(Modifier.fillMaxWidth().padding(top=1.dp,bottom=3.dp)
+                        .background(AppColors.surface.copy(alpha=.20f),RoundedCornerShape(10.dp))
+                        .padding(horizontal=8.dp,vertical=5.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){
+                        Text(sub.metadata.announcement,fontSize=10.sp,lineHeight=14.sp,color=AppColors.muted,
                             textAlign=androidx.compose.ui.text.style.TextAlign.Center,modifier=Modifier.fillMaxWidth(),
-                            maxLines=if(announcementExpanded)Int.MAX_VALUE else 4,overflow=TextOverflow.Ellipsis)
+                            maxLines=if(announcementExpanded)Int.MAX_VALUE else 3,overflow=TextOverflow.Ellipsis)
                         if(sub.metadata.announcement.length>160)TextButton(onClick={announcementExpanded=!announcementExpanded},
                             modifier=Modifier.align(Alignment.CenterHorizontally)){Text(if(announcementExpanded)"Свернуть"else"Подробнее",fontSize=11.sp)}
                     }
@@ -199,15 +183,16 @@ import androidx.compose.ui.semantics.Role
     val selected=state.selected==server.id
     val color=if(active)AppColors.success else AppColors.accent
     val largeText=!BuildConfig.SIGNET_ACCOUNT&&LocalConfiguration.current.fontScale>=1.5f
-    Row(modifier.fillMaxWidth().semantics { this.selected=selected; stateDescription=if(active)"Подключён" else if(selected)"Выбран" else "Не выбран" }.padding(vertical=if(BuildConfig.SIGNET_ACCOUNT)1.dp else 0.dp).heightIn(min=if(BuildConfig.SIGNET_ACCOUNT)56.dp else 52.dp).border(if(selected)1.dp else 0.dp,if(selected)AppColors.border.copy(alpha=.72f) else Color.Transparent,RoundedCornerShape(10.dp)).background(if(selected)AppColors.tint.copy(alpha=.28f) else Color.Transparent,RoundedCornerShape(10.dp)).combinedClickable(enabled=server.enabled,role=Role.RadioButton,onClick={select(server.id)},onLongClick={favorite(server.id)},onLongClickLabel=if(server.favorite)"Убрать из избранного"else"В избранное").padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)8.dp else 6.dp,vertical=if(BuildConfig.SIGNET_ACCOUNT)7.dp else 4.dp),verticalAlignment=Alignment.CenterVertically) {
+    Row(modifier.fillMaxWidth().semantics { this.selected=selected; stateDescription=if(active)"Подключён" else if(selected)"Выбран" else "Не выбран" }.padding(vertical=if(BuildConfig.SIGNET_ACCOUNT)1.dp else 0.dp).heightIn(min=if(BuildConfig.SIGNET_ACCOUNT)56.dp else 43.dp).border(if(selected)1.dp else 0.dp,if(selected)AppColors.border.copy(alpha=.72f) else Color.Transparent,RoundedCornerShape(10.dp)).background(if(selected)AppColors.tint.copy(alpha=.28f) else Color.Transparent,RoundedCornerShape(10.dp)).combinedClickable(enabled=server.enabled,role=Role.RadioButton,onClick={select(server.id)},onLongClick={favorite(server.id)},onLongClickLabel=if(server.favorite)"Убрать из избранного"else"В избранное").padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)8.dp else 6.dp,vertical=if(BuildConfig.SIGNET_ACCOUNT)7.dp else 2.dp),verticalAlignment=if(BuildConfig.SIGNET_ACCOUNT)Alignment.CenterVertically else Alignment.Top) {
         CountryFlag(display.country,display.isAuto)
-        Column(Modifier.weight(1f).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)8.dp else 6.dp)) {
-            Text(display.title,color=if(server.enabled)AppColors.text else AppColors.muted,fontWeight=FontWeight.SemiBold,maxLines=if(largeText)2 else if(BuildConfig.SIGNET_ACCOUNT)2 else 1,overflow=TextOverflow.Ellipsis,fontSize=if(BuildConfig.SIGNET_ACCOUNT)15.sp else 14.sp)
+        Column(Modifier.weight(1f).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)8.dp else 6.dp),
+            verticalArrangement=Arrangement.spacedBy(0.dp)) {
+            Text(display.title,color=if(server.enabled)AppColors.text else AppColors.muted,fontWeight=FontWeight.SemiBold,lineHeight=16.sp,maxLines=if(largeText)2 else if(BuildConfig.SIGNET_ACCOUNT)2 else 1,overflow=TextOverflow.Ellipsis,fontSize=if(BuildConfig.SIGNET_ACCOUNT)15.sp else 14.sp)
             if(!BuildConfig.SIGNET_ACCOUNT) {
-                if(display.transport.isNotBlank())Text(display.transport,color=AppColors.muted,fontSize=10.sp,
+                if(display.transport.isNotBlank())Text(display.transport,color=AppColors.muted,fontSize=10.sp,lineHeight=12.sp,
                     maxLines=1,overflow=TextOverflow.Ellipsis)
                 display.description?.takeIf{it.isNotBlank()}?.let{Text(it,color=AppColors.muted.copy(alpha=.82f),
-                    fontSize=10.sp,lineHeight=13.sp,maxLines=if(largeText)3 else 2,overflow=TextOverflow.Ellipsis)}
+                    fontSize=10.sp,lineHeight=12.sp,maxLines=if(largeText)3 else 2,overflow=TextOverflow.Ellipsis)}
             } else {
                 Row(Modifier.fillMaxWidth()){
                     Text(display.transport,Modifier.weight(1f),color=AppColors.muted,fontSize=12.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
