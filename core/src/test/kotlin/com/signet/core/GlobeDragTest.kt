@@ -17,6 +17,20 @@ class GlobeDragTest {
         drag.rebase(100f,100f)
         assertEquals(3f,drag.move(103f,102f,true).dx)
     }
+    @Test fun universalFirstVerticalSwipeRotatesAndKeepsYAxis(){
+        val drag=GlobeDrag(8f);drag.down(100f,100f)
+        val first=drag.move(101f,121f,false)
+        assertEquals(GlobeDragAxis.ROTATE,first.axis)
+        assertEquals(21f,first.dy)
+        val next=drag.move(101f,140f,false)
+        assertEquals(GlobeDragAxis.ROTATE,next.axis)
+        assertEquals(19f,next.dy)
+    }
+    @Test fun universalDiagonalSwipeAlsoRotatesFromFirstGesture(){
+        val drag=GlobeDrag(8f);drag.down(20f,20f)
+        assertEquals(GlobeDragAxis.ROTATE,drag.move(30f,36f,false).axis)
+        assertEquals(GlobeDragAxis.ROTATE,drag.move(31f,43f,false).axis)
+    }
     @Test fun nonScrollableGlobeAllowsVerticalRotation(){
         val drag=GlobeDrag(8f);drag.down(0f,0f)
         assertEquals(GlobeDragAxis.ROTATE,drag.move(1f,20f,false).axis)
