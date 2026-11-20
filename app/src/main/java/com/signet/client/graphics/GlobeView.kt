@@ -29,6 +29,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
     val globe = GlobeRenderer(context.applicationContext,highQuality)
     private var activePointer=MotionEvent.INVALID_POINTER_ID
     private var allowParentScroll=false
+    private var prioritizeGlobeGestures=false
     private val touchSlop=android.view.ViewConfiguration.get(context).scaledTouchSlop
     private val drag=com.signet.core.GlobeDrag(touchSlop.toFloat())
     private var coveredByPhoto=false
@@ -47,8 +48,9 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
         setRenderer(globe); preserveEGLContextOnPause = false
         contentDescription = "Интерактивная трёхмерная Земля. Проведите пальцем для вращения."
     }
-    fun update(server: Server?, phase: VpnPhase, quality: String, reduced: Boolean, lightTheme:Boolean=false,parentScroll:Boolean=false) {
+    fun update(server: Server?, phase: VpnPhase, quality: String, reduced: Boolean, lightTheme:Boolean=false,parentScroll:Boolean=false,rotateVertical:Boolean=false) {
         allowParentScroll=parentScroll
+        prioritizeGlobeGestures=rotateVertical
         queueEvent { globe.lightTheme=lightTheme;globe.update(server, phase, quality, reduced) }
         if(rendering)requestRender()
     }
@@ -104,7 +106,9 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
                     if(event.pointerCount==0)return true
                     index=0;activePointer=event.getPointerId(index);drag.rebase(event.getX(index),event.getY(index))
                 }
-                val step=drag.move(event.getX(index),event.getY(index),allowParentScroll)
+                // Universal: touches beginning on the globe must rotate in both axes from the first gesture.
+                // Compose may scroll when the touch begins outside this AndroidView.
+                val step=drag.move(event.getX(index),event.getY(index),allowParentScroll&&!prioritizeGlobeGestures)
                 if(step.axis==com.signet.core.GlobeDragAxis.SCROLL){parent?.requestDisallowInterceptTouchEvent(false);return true}
                 if(step.axis==com.signet.core.GlobeDragAxis.ROTATE){
                     parent?.requestDisallowInterceptTouchEvent(true)
