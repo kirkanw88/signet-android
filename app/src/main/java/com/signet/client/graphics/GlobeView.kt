@@ -33,6 +33,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
     private val touchSlop=android.view.ViewConfiguration.get(context).scaledTouchSlop
     private val drag=com.signet.core.GlobeDrag(touchSlop.toFloat())
     private var coveredByPhoto=false
+    private var allowManualRotation=true
     // Read-only test counters help diagnose whether a swipe was intercepted before reaching this View.
     @Volatile var inputDownCount=0
         private set
@@ -56,6 +57,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
     fun update(server: Server?, phase: VpnPhase, quality: String, reduced: Boolean, lightTheme:Boolean=false,parentScroll:Boolean=false,rotateVertical:Boolean=false) {
         allowParentScroll=parentScroll
         prioritizeGlobeGestures=rotateVertical
+        allowManualRotation=com.signet.client.BuildConfig.SIGNET_ACCOUNT||phase==VpnPhase.DISCONNECTED
         queueEvent { globe.lightTheme=lightTheme;globe.update(server, phase, quality, reduced) }
         if(rendering)requestRender()
     }
@@ -98,7 +100,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
         queueEvent{globe.backdropRect(location[0],location[1],rootWidth,rootHeight)}
     }
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if(coveredByPhoto)return false
+        if(coveredByPhoto||!allowManualRotation)return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 inputDownCount++
@@ -140,7 +142,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
         inputDownCount++
     }
     fun rotateFromCompose(dx:Float,dy:Float) {
-        if(coveredByPhoto)return
+        if(coveredByPhoto||!allowManualRotation)return
         rotationMoveCount++
         queueEvent { globe.drag(dx*.25f,0f) }
         requestRender()
@@ -379,7 +381,9 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
         Matrix.setIdentityM(model, 0); Matrix.rotateM(model, 0, pitch, 1f, 0f, 0f); Matrix.rotateM(model, 0, yaw, 0f, 1f, 0f)
         val aspect = width.toFloat()/height
         Matrix.perspectiveM(projection, 0, 36f, aspect, .1f, 20f)
-        val targetZoom=if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED))countryZoom else 1f
+        // Universal keeps the continent and surrounding countries visible on connect.
+        val targetZoom=if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED))
+            (if(premiumVisual)1.25f else countryZoom) else 1f
         zoom+=(targetZoom-zoom)*(if(premiumVisual)com.signet.core.GlobeMotion.zoomEasing(dt,reduced) else (dt*2.4f).coerceAtMost(1f))
         val cameraDistance=(if (aspect < 1f) 3.7f/aspect else 3.7f)/zoom
         Matrix.setLookAtM(view, 0, 0f, 0f, cameraDistance, 0f,0f,0f,0f,1f,0f)
@@ -414,7 +418,8 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
             Matrix.multiplyMM(mv,0,view,0,model,0); Matrix.multiplyMM(mvp,0,projection,0,mv,0)
             GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(program,"uMvp"),1,false,mvp,0)
         }
-        val focused=(premiumVisual&&country!=null)||phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED)
+        val focused=phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED)
+        if(!premiumVisual) {
         mode(1); GLES20.glDepthMask(false)
         fill?.let { setBuffers(it); color(if(focused)borderHighlight else borderColor,if(premiumVisual)(if(focused).09f else .025f)else (if(focused).17f else .07f)); GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,it.capacity()/3) }
         // ES2 GPUs often clamp line width to 1px. Offset passes form a constant-width cyan edge.
@@ -431,6 +436,8 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
         GLES20.glUniform2f(borderOffset,0f,0f)
         color(if(focused)borderCore else borderColor,if(focused)1f else .58f)
         borders.forEach { setBuffers(it); GLES20.glDrawArrays(GLES20.GL_LINE_STRIP,0,it.capacity()/3) }
+        GLES20.glDepthMask(true)
+        }
         if((phase==VpnPhase.CONNECTED||premiumVisual)&&capital!=null){
             val settled=!manual&&abs(Geography.wrap((targetYaw?:yaw)-yaw))<.2f&&abs(targetPitch-pitch)<.2f&&abs(targetZoom-zoom)<.015f
             if(settled)capitalRevealed=true
