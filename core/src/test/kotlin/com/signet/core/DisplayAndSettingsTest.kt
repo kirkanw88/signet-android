@@ -52,7 +52,7 @@ class DisplayAndSettingsTest {
     @Test fun probesRejectUnsafeSchemesAndResourceAbuse(){assertFails{ProbeSettings(url="http://example.com").validated()};assertFails{ProbeSettings(url="https://u:p@example.com").validated()};assertFails{ProbeSettings(parallelism=100).validated()};assertEquals(ProbeSettings(),ProbeSettings.parse(ProbeSettings().json().toString()))}
     @Test fun happStylePingDefaultsAndLegacySettingsRemainCompatible(){
         val defaults=ProbeSettings()
-        assertEquals(ProbeMode.XRAY,defaults.mode)
+        assertEquals(ProbeMode.OUTBOUND,defaults.mode)
         assertFalse(defaults.pingOnLaunch)
         val enabled=defaults.copy(pingOnLaunch=true)
         assertEquals(enabled,ProbeSettings.parse(enabled.json().toString()))
