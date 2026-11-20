@@ -261,8 +261,8 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 modifier=Modifier.testTag("home-connect").fillMaxWidth().heightIn(min=64.dp).padding(top=8.dp),
                 shape=RoundedCornerShape(20.dp),
                 colors=ButtonDefaults.buttonColors(containerColor=if(active)AppColors.surface else Primary,
-                    contentColor=if(active)AppColors.text else Color(0xFF061526))) {
-                if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=Color(0xFF061526))
+                    contentColor=if(active)AppColors.text else MaterialTheme.colorScheme.onPrimary)) {
+                if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp,color=MaterialTheme.colorScheme.onPrimary)
                 else Icon(Icons.Outlined.PowerSettingsNew,null,modifier=Modifier.size(22.dp))
                 Spacer(Modifier.width(10.dp))
                 Text(actionLabel,fontWeight=FontWeight.SemiBold,fontSize=17.sp,maxLines=2)
