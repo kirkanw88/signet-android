@@ -33,6 +33,11 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
     private val touchSlop=android.view.ViewConfiguration.get(context).scaledTouchSlop
     private val drag=com.signet.core.GlobeDrag(touchSlop.toFloat())
     private var coveredByPhoto=false
+    // Read-only test counters help diagnose whether a swipe was intercepted before reaching this View.
+    @Volatile var inputDownCount=0
+        private set
+    @Volatile var rotationMoveCount=0
+        private set
     init {
         setEGLContextClientVersion(2)
         if(highQuality)setEGLConfigChooser { egl,display ->
@@ -96,6 +101,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
         if(coveredByPhoto)return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                inputDownCount++
                 activePointer=event.getPointerId(0);drag.down(event.x,event.y)
                 // Hold interception until the axis is known, otherwise Compose scrolling can cancel the first MOVE.
                 parent?.requestDisallowInterceptTouchEvent(true)
@@ -111,6 +117,7 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
                 val step=drag.move(event.getX(index),event.getY(index),allowParentScroll&&!prioritizeGlobeGestures)
                 if(step.axis==com.signet.core.GlobeDragAxis.SCROLL){parent?.requestDisallowInterceptTouchEvent(false);return true}
                 if(step.axis==com.signet.core.GlobeDragAxis.ROTATE){
+                    rotationMoveCount++
                     parent?.requestDisallowInterceptTouchEvent(true)
                     queueEvent { globe.drag(step.dx*.25f,step.dy*.2f) };requestRender()
                 }
@@ -123,6 +130,20 @@ class GlobeView(context: Context, highQuality:Boolean=false) : GLSurfaceView(con
             MotionEvent.ACTION_CANCEL -> {drag.reset();activePointer=MotionEvent.INVALID_POINTER_ID;parent?.requestDisallowInterceptTouchEvent(false)}
         }
         return true
+    }
+    /**
+     * Universal Compose draws a touch layer above SurfaceView because the Home column
+     * scroll gesture can otherwise capture the DOWN before AndroidView dispatch.
+     * The overlay forwards *actual* Compose drag deltas to the same GLES renderer.
+     */
+    fun beginComposeGesture() {
+        inputDownCount++
+    }
+    fun rotateFromCompose(dx:Float,dy:Float) {
+        if(coveredByPhoto)return
+        rotationMoveCount++
+        queueEvent { globe.drag(dx*.25f,dy*.2f) }
+        requestRender()
     }
     override fun performClick(): Boolean { super.performClick(); return true }
 }
@@ -139,6 +160,11 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
     @Volatile var frameReady=false
         private set
     @Volatile var renderedCountry:String?=null
+        private set
+    // Read-only EGL frame telemetry for hardware gesture regression checks.
+    @Volatile var renderedYawDegrees:Float=0f
+        private set
+    @Volatile var renderedPitchDegrees:Float=0f
         private set
     private var program = 0; private var texture = 0;private var nightTexture=0;private var spaceTexture=0
     private var detailDay=0;private var detailNight=0;private var detailReady=false
@@ -303,8 +329,13 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MAG_FILTER,GLES20.GL_LINEAR)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_S,GLES20.GL_REPEAT)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_T,GLES20.GL_CLAMP_TO_EDGE)
-        val night=context.assets.open("night.jpg").use{BitmapFactory.decodeStream(it,null,BitmapFactory.Options().apply{inSampleSize=1;inPreferredConfig=android.graphics.Bitmap.Config.ARGB_8888})}!!
-        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,night,0);night.recycle()
+        if(premiumVisual){
+            // Universal has a fully lit globe: keep sampler valid without decoding a large night bitmap.
+            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D,0,GLES20.GL_RGB,1,1,0,GLES20.GL_RGB,GLES20.GL_UNSIGNED_SHORT_5_6_5,ByteBuffer.allocateDirect(2))
+        }else{
+            val night=context.assets.open("night.jpg").use{BitmapFactory.decodeStream(it,null,BitmapFactory.Options().apply{inSampleSize=1;inPreferredConfig=android.graphics.Bitmap.Config.ARGB_8888})}!!
+            GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,night,0);night.recycle()
+        }
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glGenTextures(1,ids,0);spaceTexture=ids[0];GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,spaceTexture)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER,GLES20.GL_LINEAR)
@@ -411,6 +442,7 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
             markerState.value=CapitalMarker(capital!!.getString("name"),x,y,visible)
         }else if(markerState.value.visible)markerState.value=CapitalMarker()
         GLES20.glDepthMask(true)
+        renderedYawDegrees=yaw;renderedPitchDegrees=pitch
         renderedCountry=country;frameReady=true
         val targetFrame = when { reduced || quality == "Battery Saver" -> 100L; quality == "High" -> 16L; else -> 33L }
         val elapsed = (System.nanoTime()-now)/1_000_000
@@ -461,7 +493,8 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
         val limit=IntArray(1);GLES20.glGetIntegerv(GLES20.GL_MAX_TEXTURE_SIZE,limit,0)
         var sample=1;while(2048/sample>limit[0].coerceAtLeast(64))sample*=2
         detailReady=runCatching{
-            for((asset,id) in listOf("earth-day-8k.jpg" to detailDay,"earth-night-8k.jpg" to detailNight)){
+            val detailAssets=if(premiumVisual)listOf("earth-day-8k.jpg" to detailDay)else listOf("earth-day-8k.jpg" to detailDay,"earth-night-8k.jpg" to detailNight)
+            for((asset,id) in detailAssets){
                 context.assets.open(asset).use{stream->
                     val decoder=BitmapRegionDecoder.newInstance(stream,false)!!
                     try{
