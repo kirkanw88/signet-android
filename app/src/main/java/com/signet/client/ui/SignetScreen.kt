@@ -70,6 +70,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     var input by remember { mutableStateOf("") }
     var ageKey by remember { mutableStateOf("") }
     var oauthConsent by remember{mutableStateOf(false)}
+    var advancedImport by rememberSaveable{mutableStateOf(false)}
     var offeredUpdate by rememberSaveable{mutableStateOf("")}
     val context=LocalContext.current
     val scope=rememberCoroutineScope()
@@ -106,7 +107,11 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     }
     SignetTheme(if(BuildConfig.SIGNET_ACCOUNT)"dark"else state.settings.theme) {
         SpaceBackdrop(Modifier.fillMaxSize()) {
-        Scaffold(containerColor=Color.Transparent,contentColor=AppColors.text,snackbarHost={}) { insets ->
+        Scaffold(containerColor=Color.Transparent,contentColor=AppColors.text,snackbarHost={
+            if(!BuildConfig.SIGNET_ACCOUNT)SnackbarHost(snackbar,Modifier.fillMaxWidth().padding(bottom=76.dp)) { data ->
+                Snackbar(data,containerColor=Surface,contentColor=AppColors.text,shape=RoundedCornerShape(16.dp),modifier=Modifier.padding(horizontal=16.dp))
+            }
+        }) { insets ->
             Column(Modifier.fillMaxSize().padding(insets)) {
                 Row(Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
                     if(page==0)Image(painterResource(R.drawable.signet_logo),"Signet VPN",Modifier.width(80.dp).height(48.dp),colorFilter=if(AppColors.dark)null else androidx.compose.ui.graphics.ColorFilter.tint(AppColors.text))
@@ -119,7 +124,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                         if(page!=3)IconButton(onClick={page=3}) { Icon(Icons.Outlined.Settings,"Настройки",tint=AppColors.muted) }
                     }
                 }
-                SnackbarHost(snackbar,Modifier.fillMaxWidth()){data->Snackbar(data,containerColor=Surface,contentColor=AppColors.text,shape=RoundedCornerShape(16.dp),modifier=Modifier.padding(horizontal=16.dp))}
+                if(BuildConfig.SIGNET_ACCOUNT)SnackbarHost(snackbar,Modifier.fillMaxWidth()){data->Snackbar(data,containerColor=Surface,contentColor=AppColors.text,shape=RoundedCornerShape(16.dp),modifier=Modifier.padding(horizontal=16.dp))}
                 update.available?.let{UpdateBanner(it,model)}
                 when(page) {
                     0 -> Home(state,vpn,model,connect,{if(BuildConfig.SIGNET_ACCOUNT)page=2;addMenu=true},{showServers=true},{page=3;openDiagnostics=true})
@@ -157,8 +162,19 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                     Text(input.take(1500),fontSize=11.sp,maxLines=8,overflow=TextOverflow.Ellipsis)
                     TextButton(onClick={input="";ageKey="";oauthConsent=false}){Text("Очистить документ")}
                 } else OutlinedTextField(value=input,onValueChange={if(it.length<=4*1024*1024)input=it},label={Text("Ссылка или конфигурация")},minLines=3,maxLines=7,modifier=Modifier.fillMaxWidth())
-                Row(verticalAlignment=Alignment.CenterVertically){Checkbox(oauthConsent,{oauthConsent=it});Text("Разрешить OAuth-доступ XDrive из этой подписки",fontSize=12.sp)}
-                OutlinedTextField(value=ageKey,onValueChange={ageKey=it},label={Text("Ключ AGE · если требуется")},visualTransformation=androidx.compose.ui.text.input.PasswordVisualTransformation(),singleLine=true,modifier=Modifier.fillMaxWidth())
+                if(!BuildConfig.SIGNET_ACCOUNT) {
+                    TextButton(onClick={advancedImport=!advancedImport},modifier=Modifier.fillMaxWidth()) {
+                        Icon(if(advancedImport)Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,null)
+                        Text(if(advancedImport)"Скрыть дополнительные параметры" else "Дополнительные параметры",Modifier.padding(start=8.dp))
+                    }
+                }
+                if(BuildConfig.SIGNET_ACCOUNT||advancedImport) {
+                    Row(verticalAlignment=Alignment.CenterVertically) {
+                        Checkbox(oauthConsent,{oauthConsent=it})
+                        Text("Разрешить OAuth-доступ XDrive из этой подписки",fontSize=12.sp)
+                    }
+                    OutlinedTextField(value=ageKey,onValueChange={ageKey=it},label={Text("Ключ AGE · если требуется")},visualTransformation=androidx.compose.ui.text.input.PasswordVisualTransformation(),singleLine=true,modifier=Modifier.fillMaxWidth())
+                }
             }
         },confirmButton={TextButton(onClick={model.import(input,ageKey,oauthConsent);input="";ageKey="";oauthConsent=false;add=false},enabled=input.isNotBlank()&&!state.busy){Text("Импортировать")}},dismissButton={TextButton(onClick={input="";ageKey="";oauthConsent=false;add=false}){Text("Отмена")}})
     }
@@ -194,14 +210,14 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         if(phase==VpnPhase.CONNECTED)Surface(color=Surface,shape=RoundedCornerShape(16.dp),modifier=Modifier.testTag("home-traffic").fillMaxWidth().padding(vertical=6.dp)){
             Row(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=8.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)){
                 Column(Modifier.weight(1f)){
-                    Text("↑ Отправка",color=Muted,fontSize=11.sp)
+                    Text("↑ Отправка",color=Muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)11.sp else 12.sp)
                     Text("${bytes(vpn.uploadRate)}/с",fontSize=16.sp,fontWeight=FontWeight.SemiBold,maxLines=1)
-                    Text("Всего ${bytes(vpn.uploaded)}",color=Muted,fontSize=10.sp,maxLines=1)
+                    Text("Всего ${bytes(vpn.uploaded)}",color=Muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)10.sp else 12.sp,maxLines=1)
                 }
                 Column(Modifier.weight(1f)){
-                    Text("↓ Получение",color=Muted,fontSize=11.sp)
+                    Text("↓ Получение",color=Muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)11.sp else 12.sp)
                     Text("${bytes(vpn.downloadRate)}/с",fontSize=16.sp,fontWeight=FontWeight.SemiBold,maxLines=1)
-                    Text("Всего ${bytes(vpn.downloaded)}",color=Muted,fontSize=10.sp,maxLines=1)
+                    Text("Всего ${bytes(vpn.downloaded)}",color=Muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)10.sp else 12.sp,maxLines=1)
                 }
             }
         }
