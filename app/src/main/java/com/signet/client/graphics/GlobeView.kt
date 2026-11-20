@@ -140,6 +140,11 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
         private set
     @Volatile var renderedCountry:String?=null
         private set
+    // Read-only EGL frame telemetry for hardware gesture regression checks.
+    @Volatile var renderedYawDegrees:Float=0f
+        private set
+    @Volatile var renderedPitchDegrees:Float=0f
+        private set
     private var program = 0; private var texture = 0;private var nightTexture=0;private var spaceTexture=0
     private var detailDay=0;private var detailNight=0;private var detailReady=false
     private var detailKey:String?=null
@@ -411,6 +416,7 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
             markerState.value=CapitalMarker(capital!!.getString("name"),x,y,visible)
         }else if(markerState.value.visible)markerState.value=CapitalMarker()
         GLES20.glDepthMask(true)
+        renderedYawDegrees=yaw;renderedPitchDegrees=pitch
         renderedCountry=country;frameReady=true
         val targetFrame = when { reduced || quality == "Battery Saver" -> 100L; quality == "High" -> 16L; else -> 33L }
         val elapsed = (System.nanoTime()-now)/1_000_000
