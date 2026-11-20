@@ -12,7 +12,9 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -280,13 +282,25 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
             // Captures vertical drags above the GLSurfaceView before the Home scroll parent.
             // This layer covers only the globe, so swipes elsewhere still scroll the screen.
             Box(Modifier.fillMaxSize().pointerInput(globeView) {
-                detectDragGestures(
-                    onDragStart={globeView?.beginComposeGesture()},
-                    onDrag={change,delta->
-                        change.consume()
-                        globeView?.rotateFromCompose(delta.x,delta.y)
-                    }
-                )
+                // Initial pass runs before the verticalScroll parent can claim the gesture.
+                // Consume only touches that start within this globe overlay.
+                awaitEachGesture {
+                    val down=awaitFirstDown(requireUnconsumed=false,pass=PointerEventPass.Initial)
+                    down.consume()
+                    globeView?.beginComposeGesture()
+                    var previous=down.position
+                    do {
+                        val event=awaitPointerEvent(PointerEventPass.Initial)
+                        val change=event.changes.firstOrNull{it.id==down.id}
+                        if(change==null||!change.pressed)break
+                        val delta=change.position-previous
+                        previous=change.position
+                        if(delta.x!=0f||delta.y!=0f){
+                            change.consume()
+                            globeView?.rotateFromCompose(delta.x,delta.y)
+                        }
+                    }while(event.changes.any{it.pressed})
+                }
             })
         }
         AnimatedVisibility(marker.visible,enter=fadeIn(tween(350)),exit=fadeOut(tween(150)),modifier=Modifier.offset{
