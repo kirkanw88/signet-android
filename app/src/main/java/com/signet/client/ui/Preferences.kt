@@ -74,7 +74,7 @@ private val Accent:Color @Composable get()=AppColors.accent
                 SettingsCard {
                     MenuItem(Icons.Outlined.VpnKey,"Соединение","Автоподключение и проверка связи",{section="connection"})
                     MenuItem(Icons.Outlined.Route,"Маршрутизация","DNS, приложения и шаблон Xray",{section="routing"})
-                    MenuItem(Icons.Outlined.Palette,"Оформление",if(BuildConfig.SIGNET_ACCOUNT)"Тема, планета и анимация"else"Светлая, тёмная и системная темы",{section="appearance"})
+                    MenuItem(Icons.Outlined.Palette,"Оформление","Тема, качество планеты и анимация",{section="appearance"})
                     MenuItem(Icons.Outlined.SystemUpdate,"Обновления",update.available?.let{"Доступна версия ${it.version}"}?:"Новая версия приложения",{section="updates"})
                     MenuItem(Icons.Outlined.Troubleshoot,"Диагностика","Причина ошибки и отчёт без ключей",{section="diagnostics";model.diagnostics()})
                     MenuItem(Icons.Outlined.Article,"Журнал подключения","Логирование, просмотр и экспорт",{section="logs"})
@@ -123,7 +123,7 @@ private val Accent:Color @Composable get()=AppColors.accent
                         }
                     }
                 }
-                if(BuildConfig.SIGNET_ACCOUNT)SettingsCard {
+                SettingsCard {
                     listOf(Triple("High","Высокое качество","До 60 кадров/с"),Triple("Balanced","Баланс","До 30 кадров/с"),Triple("Battery Saver","Экономия энергии","До 10 кадров/с")).forEach{(mode,label,detail)->
                         Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(graphics=mode))}.padding(12.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(s.graphics==mode,{model.save(s.copy(graphics=mode))});Column(Modifier.padding(start=8.dp)){Text(label,fontSize=17.sp,color=Ink);Text(detail,fontSize=14.sp,color=SecondaryInk)}}
                     }
