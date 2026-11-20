@@ -295,12 +295,11 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
                     float d=length(gl_PointCoord-vec2(0.5)); if(d>0.5) discard;
                     gl_FragColor=vec4(uColor.rgb,uColor.a);
                 } else if(uMode==6){
-                    vec3 space=texture2D(uTexture,vUv).rgb*(uPremium>0.5?0.43:0.72);
-                    if(uPremium>0.5){
-                        // Deep navy backdrop, subtle authored starlight from the existing licensed image.
-                        space=mix(vec3(0.001,0.008,0.026),space,0.75);
-                    }
-                    space=mix(space,vec3(0.95686,0.96863,0.98824),0.95*uLightTheme);
+                    // Match SpaceBackdrop exactly: same star texture, opacity and theme overlay.
+                    // The globe viewport must not become a darker rectangular panel.
+                    vec3 screenBackground=vec3(5.0/255.0,8.0/255.0,22.0/255.0);
+                    vec3 space=mix(screenBackground,texture2D(uTexture,vUv).rgb,0.72);
+                    space=mix(space,vec3(244.0/255.0,247.0/255.0,252.0/255.0),0.97*uLightTheme);
                     gl_FragColor=vec4(space,1.0);
                 }
                 else { gl_FragColor=uColor; }
