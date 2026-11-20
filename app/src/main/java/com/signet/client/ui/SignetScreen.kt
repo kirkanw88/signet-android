@@ -201,32 +201,25 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     val display=remember(state.servers,server?.id){com.signet.core.ServerDisplayModel.all(state.subscriptions.firstOrNull{it.servers.any{node->node.id==server?.id}}?.servers.orEmpty(),hostNames=!BuildConfig.SIGNET_ACCOUNT)[server?.id]}
     val status=when(phase){VpnPhase.CONNECTED->"Подключено";VpnPhase.CONNECTING->"Подключение";VpnPhase.RECONNECTING->"Переподключение";VpnPhase.ERROR->"Ошибка подключения";VpnPhase.DISCONNECTING->"Отключение";else->"Не подключено"}
     @Composable fun controls() {
-        if(!BuildConfig.SIGNET_ACCOUNT) {
-            val isEmpty=state.subscriptions.isEmpty()
-            Surface(onClick=if(isEmpty)add else servers,
-                modifier=Modifier.fillMaxWidth().testTag(if(isEmpty)"home-add-subscription-card" else "home-server-card"),
+        if(!BuildConfig.SIGNET_ACCOUNT && state.subscriptions.isNotEmpty()) {
+            Surface(onClick=servers,
+                modifier=Modifier.fillMaxWidth().testTag("home-server-card"),
                 shape=RoundedCornerShape(14.dp),color=AppColors.surface.copy(alpha=.90f),
                 border=BorderStroke(1.dp,Primary.copy(alpha=.26f))) {
                 Row(Modifier.fillMaxWidth().heightIn(min=52.dp).padding(horizontal=12.dp,vertical=8.dp),
                     verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
                     Box(Modifier.size(36.dp).background(Primary.copy(alpha=.12f),RoundedCornerShape(10.dp)),
                         contentAlignment=Alignment.Center) {
-                        if(isEmpty)Icon(Icons.Outlined.Add,null,tint=Primary)
-                        else CountryFlag(display?.country,display?.isAuto?:false)
+                        CountryFlag(display?.country,display?.isAuto?:false)
                     }
                     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
-                        if(isEmpty) {
-                            Text("Добавить подписку",fontSize=17.sp,fontWeight=FontWeight.SemiBold)
-                            Text("Импортировать ссылку или QR-код",fontSize=12.sp,color=Muted)
-                        } else {
-                            Text("ЛОКАЦИЯ",fontSize=10.sp,letterSpacing=1.2.sp,color=Muted,fontWeight=FontWeight.Medium)
-                            Text(display?.title?:"Выбрать сервер",fontSize=15.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
-                        }
+                        Text("ЛОКАЦИЯ",fontSize=10.sp,letterSpacing=1.2.sp,color=Muted,fontWeight=FontWeight.Medium)
+                        Text(display?.title?:"Выбрать сервер",fontSize=15.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
                     }
                     Icon(Icons.Outlined.ChevronRight,"Открыть",tint=Primary)
                 }
             }
-        } else {
+        } else if(BuildConfig.SIGNET_ACCOUNT) {
             Row(Modifier.fillMaxWidth().clickable(onClick=servers).padding(vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center) {
                 CountryFlag(display?.country,display?.isAuto?:false)
                 Text(display?.title?:"Выбрать сервер",Modifier.weight(1f).padding(horizontal=12.dp),fontSize=16.sp,maxLines=2,overflow=TextOverflow.Ellipsis)
