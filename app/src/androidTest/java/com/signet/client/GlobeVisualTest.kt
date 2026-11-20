@@ -80,43 +80,56 @@ class GlobeVisualTest {
             repository.settings(before.settings)
         }
     }
-    /**
-     * Injects real Android motion events into the EGL view. Unlike GlobeDrag unit tests,
-     * this detects accidental gesture interception by the Compose scroll parent.
-     */
-    @Test fun firstVerticalAndHorizontalSwipesRotateTheRenderedEarth() {
+    /** Horizontal gestures rotate yaw; vertical gestures never change pitch. */
+    @Test fun horizontalSwipeRotatesYawButVerticalSwipeDoesNotPitch() {
         val instrumentation=InstrumentationRegistry.getInstrumentation()
         Assume.assumeTrue(instrumentation.targetContext.packageName.endsWith(".external"))
-        var globeView:GlobeView?=null
-        compose.activityRule.scenario.onActivity { activity->
-            globeView=findGlobe(activity.window.decorView)
+        var found:GlobeView?=null
+        compose.activityRule.scenario.onActivity { activity ->
+            found=findGlobe(activity.window.decorView)
         }
-        val globe=requireNotNull(globeView) { "Home must contain a live OpenGL globe" }
+        val globe=requireNotNull(found) { "Missing Android OpenGL globe" }
         compose.waitUntil(20_000){globe.globe.frameReady}
-        val bounds=compose.onNodeWithTag("home-globe").fetchSemanticsNode().boundsInRoot
-        assertTrue("Globe has space for touch",bounds.width>120f && bounds.height>180f)
         val pitchBefore=globe.globe.renderedPitchDegrees
-        val moveBefore=globe.rotationMoveCount
-        // Compose sends an actual MotionEvent sequence to the tagged interactive globe
-        // rather than tapping screen coordinates that may belong to a system overlay.
         compose.onNodeWithTag("home-globe").performTouchInput { swipeUp(durationMillis=450) }
-        compose.waitUntil(10_000) {
-            kotlin.math.abs(globe.globe.renderedPitchDegrees-pitchBefore)>3f
-        }
-        val pitchAfter=globe.globe.renderedPitchDegrees
-        assertTrue("Vertical drag must be received by the globe",
-            globe.rotationMoveCount>moveBefore)
-        assertTrue("Rendered pitch must change after first vertical drag; before=$pitchBefore after=$pitchAfter",
-            kotlin.math.abs(pitchAfter-pitchBefore)>3f)
+        compose.waitForIdle()
+        assertTrue("Vertical swipe must not tilt the Earth",
+            kotlin.math.abs(globe.globe.renderedPitchDegrees-pitchBefore)<1f)
 
         val yawBefore=globe.globe.renderedYawDegrees
+        val movesBefore=globe.rotationMoveCount
         compose.onNodeWithTag("home-globe").performTouchInput { swipeLeft(durationMillis=450) }
-        compose.waitUntil(10_000){
+        compose.waitUntil(10_000) {
             kotlin.math.abs(((globe.globe.renderedYawDegrees-yawBefore+540f)%360f)-180f)>3f
         }
-        val yawAfter=globe.globe.renderedYawDegrees
-        val yawDelta=kotlin.math.abs(((yawAfter-yawBefore+540f)%360f)-180f)
-        assertTrue("Horizontal drag must change rendered yaw",yawDelta>3f)
+        assertTrue("Horizontal swipe must reach OpenGL",globe.rotationMoveCount>movesBefore)
+        assertTrue("Horizontal swipe must not tilt the Earth",
+            kotlin.math.abs(globe.globe.renderedPitchDegrees-pitchBefore)<1f)
+    }
+
+    /** Diagonal swipes with dominant vertical movement should never rotate the globe. */
+    @Test fun verticalDominantDiagonalSwipeDoesNotRotateEarth() {
+        val instrumentation=InstrumentationRegistry.getInstrumentation()
+        Assume.assumeTrue(instrumentation.targetContext.packageName.endsWith(".external"))
+        var found:GlobeView?=null
+        compose.activityRule.scenario.onActivity { activity ->
+            found=findGlobe(activity.window.decorView)
+        }
+        val globe=requireNotNull(found) { "Missing Android OpenGL globe" }
+        compose.waitUntil(20_000){globe.globe.frameReady}
+        val pitchBefore=globe.globe.renderedPitchDegrees
+        val movesBefore=globe.rotationMoveCount
+        compose.onNodeWithTag("home-globe").performTouchInput {
+            swipe(
+                start=androidx.compose.ui.geometry.Offset(bottomRight.x*.55f,bottomRight.y*.85f),
+                end=androidx.compose.ui.geometry.Offset(bottomRight.x*.35f,bottomRight.y*.15f),
+                durationMillis=450
+            )
+        }
+        compose.waitForIdle()
+        assertTrue("Vertical-dominant diagonal must not trigger rotation",globe.rotationMoveCount==movesBefore)
+        assertTrue("Diagonal swipe must not tilt the Earth",
+            kotlin.math.abs(globe.globe.renderedPitchDegrees-pitchBefore)<1f)
     }
 
     private fun findGlobe(view:View):GlobeView? {
