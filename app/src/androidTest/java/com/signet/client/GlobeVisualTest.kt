@@ -80,6 +80,46 @@ class GlobeVisualTest {
             repository.settings(before.settings)
         }
     }
+    /**
+     * Injects real Android motion events into the EGL view. Unlike GlobeDrag unit tests,
+     * this detects accidental gesture interception by the Compose scroll parent.
+     */
+    @Test fun firstVerticalAndHorizontalSwipesRotateTheRenderedEarth() {
+        val instrumentation=InstrumentationRegistry.getInstrumentation()
+        Assume.assumeTrue(instrumentation.targetContext.packageName.endsWith(".external"))
+        val device=UiDevice.getInstance(instrumentation)
+        var globeView:GlobeView?=null
+        compose.activityRule.scenario.onActivity { activity->
+            globeView=findGlobe(activity.window.decorView)
+        }
+        val globe=requireNotNull(globeView) { "Home must contain a live OpenGL globe" }
+        compose.waitUntil(20_000){globe.globe.frameReady}
+        val position=IntArray(2)
+        var width=0;var height=0
+        compose.activityRule.scenario.onActivity {
+            globe.getLocationOnScreen(position)
+            width=globe.width;height=globe.height
+        }
+        assertTrue("Globe must have room for touch motion",width>120&&height>180)
+        val x=position[0]+width/2
+        val top=position[1]+height/4
+        val bottom=position[1]+height*3/4
+        val pitchBefore=globe.globe.renderedPitchDegrees
+        assertTrue("Vertical gesture must be accepted by Android",device.swipe(x,bottom,x,top,22))
+        Thread.sleep(220)
+        val pitchAfter=globe.globe.renderedPitchDegrees
+        assertTrue("First vertical gesture must change real rendered pitch; before=$pitchBefore after=$pitchAfter",
+            kotlin.math.abs(pitchAfter-pitchBefore)>3f)
+
+        val y=position[1]+height/2
+        val yawBefore=globe.globe.renderedYawDegrees
+        assertTrue("Horizontal gesture must be accepted by Android",device.swipe(position[0]+width*3/4,y,position[0]+width/4,y,22))
+        Thread.sleep(220)
+        val yawAfter=globe.globe.renderedYawDegrees
+        val yawDelta=kotlin.math.abs(((yawAfter-yawBefore+540f)%360f)-180f)
+        assertTrue("Horizontal gesture must change real rendered yaw; before=$yawBefore after=$yawAfter",yawDelta>3f)
+    }
+
     private fun findGlobe(view:View):GlobeView? {
         if(view is GlobeView)return view
         if(view is ViewGroup)for(i in 0 until view.childCount)findGlobe(view.getChildAt(i))?.let{return it}
