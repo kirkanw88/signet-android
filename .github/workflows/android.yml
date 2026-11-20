@@ -32,6 +32,23 @@ jobs:
           "$SDKMANAGER" --install \
             "platforms;android-36" \
             "build-tools;36.0.0"
+      - name: Audit Kotlin plugin marker provenance (read-only)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, urllib.request, urllib.error
+          path="org/jetbrains/kotlin/android/org.jetbrains.kotlin.android.gradle.plugin/2.1.21/org.jetbrains.kotlin.android.gradle.plugin-2.1.21.pom"
+          expected="57d7767806f6c0230a9a60f66818a2d4c307ed15f79def268c2367a5001f1e91"
+          print("Verification metadata SHA256:",expected)
+          for base in ("https://repo.maven.apache.org/maven2/","https://plugins.gradle.org/m2/"):
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(base+path,headers={"User-Agent":"signet-ci-marker-audit/1.0"}),timeout=20) as response:
+                      body=response.read()
+                  digest=hashlib.sha256(body).hexdigest()
+                  print(base,"bytes=",len(body),"SHA256=",digest,"matches pinned=",digest==expected)
+              except Exception as error:
+                  print(base,"fetch error:",type(error).__name__,str(error)[:180])
+          PY
       - run: python3 scripts/fetch-native.py
       - name: Verify dependencies, test, lint and build APKs
         shell: bash
