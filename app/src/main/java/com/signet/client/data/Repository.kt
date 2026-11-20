@@ -164,7 +164,7 @@ class Repository(private val context: Context, private val vault: Vault, private
                 val warning="Сервис временно не отдал полный JSON. Предыдущая конфигурация сохранена."
                 if(!com.signet.client.BuildConfig.SIGNET_ACCOUNT){
                     _state.update { current->current.copy(subscriptions=current.subscriptions.map { sub->
-                        if(sub.id==previous.id)sub.copy(error=warning)else sub
+                        if(sub.id==subId)sub.copy(error=warning)else sub
                     }) }
                 }
                 notify(warning)
