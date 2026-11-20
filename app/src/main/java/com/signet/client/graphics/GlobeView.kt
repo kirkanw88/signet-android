@@ -308,8 +308,13 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MAG_FILTER,GLES20.GL_LINEAR)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_S,GLES20.GL_REPEAT)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_T,GLES20.GL_CLAMP_TO_EDGE)
-        val night=context.assets.open("night.jpg").use{BitmapFactory.decodeStream(it,null,BitmapFactory.Options().apply{inSampleSize=1;inPreferredConfig=android.graphics.Bitmap.Config.ARGB_8888})}!!
-        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,night,0);night.recycle()
+        if(premiumVisual){
+            // Universal has a fully lit globe: keep sampler valid without decoding a large night bitmap.
+            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D,0,GLES20.GL_RGB,1,1,0,GLES20.GL_RGB,GLES20.GL_UNSIGNED_SHORT_5_6_5,ByteBuffer.allocateDirect(2))
+        }else{
+            val night=context.assets.open("night.jpg").use{BitmapFactory.decodeStream(it,null,BitmapFactory.Options().apply{inSampleSize=1;inPreferredConfig=android.graphics.Bitmap.Config.ARGB_8888})}!!
+            GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,night,0);night.recycle()
+        }
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glGenTextures(1,ids,0);spaceTexture=ids[0];GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,spaceTexture)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER,GLES20.GL_LINEAR)
@@ -467,7 +472,8 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
         val limit=IntArray(1);GLES20.glGetIntegerv(GLES20.GL_MAX_TEXTURE_SIZE,limit,0)
         var sample=1;while(2048/sample>limit[0].coerceAtLeast(64))sample*=2
         detailReady=runCatching{
-            for((asset,id) in listOf("earth-day-8k.jpg" to detailDay,"earth-night-8k.jpg" to detailNight)){
+            val detailAssets=if(premiumVisual)listOf("earth-day-8k.jpg" to detailDay)else listOf("earth-day-8k.jpg" to detailDay,"earth-night-8k.jpg" to detailNight)
+            for((asset,id) in detailAssets){
                 context.assets.open(asset).use{stream->
                     val decoder=BitmapRegionDecoder.newInstance(stream,false)!!
                     try{
