@@ -82,4 +82,48 @@ class UniversalUiSmokeTest {
             originalSelection?.takeIf { id -> repository.state.value.servers.any { it.id == id } }?.let { repository.select(it) }
         }
     }
+    @Test fun deletingOneProviderDoesNotDestroyAnotherProviderOrItsSelection() = runBlocking {
+        Assume.assumeTrue(InstrumentationRegistry.getInstrumentation().targetContext.packageName.endsWith(".external"))
+        val repository = get<Repository>(Repository::class.java)
+        repository.awaitReady()
+        val existing = repository.state.value.subscriptions.map { it.id }.toSet()
+        val originalSelection = repository.state.value.selected
+        val token = UUID.randomUUID().toString().take(8)
+        fun fixture(name:String, port:Int)=JSONObject()
+            .put("remarks",name)
+            .put("outbounds",JSONArray().put(
+                JSONObject().put("tag","proxy").put("protocol","socks")
+                    .put("settings",JSONObject().put("servers",JSONArray().put(
+                        JSONObject().put("address","127.0.0.1").put("port",port)
+                    )))
+            )).toString()
+        try {
+            repository.import(fixture("Leave-$token",10887))
+            repository.import(fixture("Remove-$token",10888))
+            val added = repository.state.value.subscriptions.filter { it.id !in existing }
+            assertEquals(2, added.size)
+            val keep=added.single { it.title=="Leave-$token" }
+            val drop=added.single { it.title=="Remove-$token" }
+            repository.pinSubscription(keep.id)
+            repository.pinSubscription(drop.id)
+            repository.toggleSubscription(drop.id)
+            repository.favorite(keep.servers.single().id)
+            repository.select(keep.servers.single().id)
+            repository.remove(drop.id)
+            val after=repository.state.value
+            assertTrue(after.subscriptions.any { it.id==keep.id })
+            assertFalse(after.subscriptions.any { it.id==drop.id })
+            assertEquals(keep.servers.single().id,after.selected)
+            assertTrue(after.servers.single { it.id==keep.servers.single().id }.favorite)
+            assertEquals(setOf(keep.id),after.settings.pinnedSubscriptions.intersect(setOf(keep.id,drop.id)))
+            assertFalse(drop.id in after.settings.collapsedSubscriptions)
+            assertFalse(drop.id in after.settings.pinnedSubscriptions)
+            repository.remove(keep.id)
+            assertNull(repository.state.value.selected?.takeIf { it==keep.servers.single().id })
+        } finally {
+            repository.state.value.subscriptions.filter { it.id !in existing }.forEach { repository.remove(it.id) }
+            originalSelection?.takeIf { id -> repository.state.value.servers.any { it.id == id } }?.let { repository.select(it) }
+        }
+    }
+
 }
