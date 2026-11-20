@@ -41,7 +41,7 @@ fun LiquidGlassFrame(
     Surface(
         onClick=onClick,enabled=enabled,modifier=modifier,shape=shape,color=Color.Transparent,
         contentColor=if(prominent)Color.White.copy(alpha=opacity) else AppColors.text.copy(alpha=opacity),
-        border=BorderStroke(1.dp,Brush.verticalGradient(listOf(edge.copy(alpha=(if(prominent).58f else .36f)*opacity),edge.copy(alpha=.13f*opacity),edge.copy(alpha=.20f*opacity))))
+        border=BorderStroke(1.dp,Brush.verticalGradient(listOf(edge.copy(alpha=(if(prominent).32f else .21f)*opacity),edge.copy(alpha=.13f*opacity),edge.copy(alpha=.20f*opacity))))
     ) {
         Box(Modifier.background(Brush.verticalGradient(fill),shape)){
             // Narrow, non-animated specular strip: high clarity without OLED glare.
@@ -60,7 +60,7 @@ fun LiquidGlassFrame(
 ) {
     LiquidGlassFrame(onClick=onClick,modifier=modifier,enabled=enabled,shape=shape){
         ProvideTextStyle(MaterialTheme.typography.labelLarge){
-            Row(Modifier.defaultMinSize(
+            Row(Modifier.then(if(BuildConfig.SIGNET_ACCOUNT)Modifier else Modifier.fillMaxWidth()).defaultMinSize(
                 minWidth=if(BuildConfig.SIGNET_ACCOUNT)58.dp else 48.dp,
                 minHeight=48.dp
             ).padding(
