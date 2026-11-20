@@ -154,14 +154,14 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
             val sheet=rememberModalBottomSheetState(skipPartiallyExpanded=true)
             ModalBottomSheet(onDismissRequest={showServers=false},sheetState=sheet,containerColor=Surface,contentColor=AppColors.text,modifier=Modifier.testTag("server-sheet")) {
                 LocationList(state,vpn,probing,{id->model.select(id);scope.launch{sheet.hide();showServers=false}},model::favorite,{model.measure()},model::refresh,
-                    Modifier.fillMaxWidth().fillMaxHeight(.88f).padding(horizontal=20.dp),activeProbes=activeProbes,toggleSubscription=model::toggleSubscription,pinSubscription=model::pinSubscription,refreshSubscription=model::refreshSubscription,pingSubscription=model::measureSubscription,removeSubscription=model::remove,refreshingSubscriptions=refreshingGroups,addSubscription={showServers=false;addMenu=true})
+                    Modifier.fillMaxWidth().fillMaxHeight(.88f).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)20.dp else 12.dp),activeProbes=activeProbes,toggleSubscription=model::toggleSubscription,pinSubscription=model::pinSubscription,refreshSubscription=model::refreshSubscription,pingSubscription=model::measureSubscription,removeSubscription=model::remove,refreshingSubscriptions=refreshingGroups,addSubscription={showServers=false;addMenu=true})
             }
         }
         if(BuildConfig.SIGNET_ACCOUNT&&accountPage!=null)MobileAccountScreen(model,accountPage!!){model.accountPage.value=null}
         UpdateWindow(model)
         if(addMenu)ModalBottomSheet(onDismissRequest={addMenu=false},containerColor=Surface,contentColor=AppColors.text){
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal=20.dp).padding(bottom=24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-                Text("Добавить подписку",fontSize=24.sp,fontWeight=FontWeight.SemiBold)
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)20.dp else 14.dp).padding(bottom=16.dp),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp)){
+                Text("Добавить подписку",fontSize=if(BuildConfig.SIGNET_ACCOUNT)24.sp else 20.sp,fontWeight=FontWeight.SemiBold)
                 GlassButton(onClick={addMenu=false;runCatching{ClipboardTransfers.read(context,16*1024).also{require(com.signet.core.SubscriptionMetadata.safeLink(it)!=null)}}.onSuccess{input=it;ageKey="";oauthConsent=false;add=true}.onFailure{model.repository.notify("В буфере нет корректной ссылки подписки")}},modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.ContentPaste,null);Text("Вставить из буфера обмена",Modifier.padding(start=10.dp))}
                 GlassButton(onClick={addMenu=false;qr.launch(Intent(context,QrScannerActivity::class.java))},modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.QrCodeScanner,null);Text("Отсканировать QR-код",Modifier.padding(start=10.dp))}
                 if(!BuildConfig.SIGNET_ACCOUNT)GlassButton(onClick={addMenu=false;input="";ageKey="";oauthConsent=false;add=true},modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.Edit,null);Text("Добавить вручную",Modifier.padding(start=10.dp))}
@@ -378,7 +378,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     if(!BuildConfig.SIGNET_ACCOUNT){
         val vpn by model.vpn.collectAsStateWithLifecycle();val probing by model.probing.collectAsStateWithLifecycle()
         val active by model.probingIds.collectAsStateWithLifecycle();val refreshing by model.refreshingSubscriptions.collectAsStateWithLifecycle()
-        LocationList(state,vpn,probing,model::select,model::favorite,{model.measure()},model::refresh,Modifier.fillMaxSize().padding(horizontal=20.dp),activeProbes=active,toggleSubscription=model::toggleSubscription,pinSubscription=model::pinSubscription,refreshSubscription=model::refreshSubscription,pingSubscription=model::measureSubscription,removeSubscription=model::remove,refreshingSubscriptions=refreshing,addSubscription=add,management=true)
+        LocationList(state,vpn,probing,model::select,model::favorite,{model.measure()},model::refresh,Modifier.fillMaxSize().padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)20.dp else 12.dp),activeProbes=active,toggleSubscription=model::toggleSubscription,pinSubscription=model::pinSubscription,refreshSubscription=model::refreshSubscription,pingSubscription=model::measureSubscription,removeSubscription=model::remove,refreshingSubscriptions=refreshing,addSubscription=add,management=true)
         return
     }
     val context=LocalContext.current
