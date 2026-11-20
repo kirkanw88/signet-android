@@ -223,8 +223,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                         CountryFlag(display?.country,display?.isAuto?:false,
                             modifier=Modifier.size(width=40.dp,height=30.dp))
                     }
-                    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
-                        Text("ЛОКАЦИЯ",fontSize=10.sp,letterSpacing=1.2.sp,color=Muted,fontWeight=FontWeight.Medium)
+                    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp)){
                         Text(display?.title?:"Выбрать сервер",fontSize=15.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
                     }
                     Icon(Icons.Outlined.ChevronRight,"Открыть",tint=Primary)
@@ -255,17 +254,20 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 }
             }
         }
-        if(phase==VpnPhase.CONNECTED)Surface(color=Surface,shape=RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)16.dp else 12.dp),modifier=Modifier.testTag("home-traffic").fillMaxWidth().padding(vertical=if(BuildConfig.SIGNET_ACCOUNT)6.dp else 3.dp)){
-            Row(Modifier.fillMaxWidth().padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)14.dp else 10.dp,vertical=if(BuildConfig.SIGNET_ACCOUNT)8.dp else 6.dp),horizontalArrangement=Arrangement.spacedBy(12.dp)){
-                Column(Modifier.weight(1f)){
-                    Text("↑ Отправка",color=Muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)11.sp else 12.sp)
-                    Text("${bytes(vpn.uploadRate)}/с",fontSize=16.sp,fontWeight=FontWeight.SemiBold,maxLines=1)
-                    Text("Всего ${bytes(vpn.uploaded)}",color=Muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)10.sp else 12.sp,maxLines=1)
+        if(phase==VpnPhase.CONNECTED)Surface(color=Surface.copy(alpha=.62f),
+            shape=RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)16.dp else 10.dp),
+            modifier=Modifier.testTag("home-traffic").fillMaxWidth().padding(vertical=2.dp)){
+            Row(Modifier.fillMaxWidth().padding(horizontal=10.dp,vertical=6.dp),
+                horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
+                Column(Modifier.weight(1f),horizontalAlignment=Alignment.Start){
+                    Text("↑ Отправка",color=Muted,fontSize=10.sp)
+                    Text("${bytes(vpn.uploadRate)}/с",fontSize=13.sp,fontWeight=FontWeight.Medium,maxLines=1)
+                    Text("Всего ${bytes(vpn.uploaded)}",color=Muted,fontSize=9.sp,maxLines=1)
                 }
-                Column(Modifier.weight(1f)){
-                    Text("↓ Получение",color=Muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)11.sp else 12.sp)
-                    Text("${bytes(vpn.downloadRate)}/с",fontSize=16.sp,fontWeight=FontWeight.SemiBold,maxLines=1)
-                    Text("Всего ${bytes(vpn.downloaded)}",color=Muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)10.sp else 12.sp,maxLines=1)
+                Column(Modifier.weight(1f),horizontalAlignment=Alignment.End){
+                    Text("↓ Получение",color=Muted,fontSize=10.sp)
+                    Text("${bytes(vpn.downloadRate)}/с",fontSize=13.sp,fontWeight=FontWeight.Medium,maxLines=1)
+                    Text("Всего ${bytes(vpn.downloaded)}",color=Muted,fontSize=9.sp,maxLines=1)
                 }
             }
         }
@@ -434,30 +436,30 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     val uploaded=info["upload"]?.coerceAtLeast(0L)?:0L
     val downloaded=info["download"]?.coerceAtLeast(0L)?:0L
     val used=(uploaded.toDouble()+downloaded.toDouble()).coerceAtMost(Long.MAX_VALUE.toDouble()).toLong()
-    Column(Modifier.fillMaxWidth().padding(vertical=3.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
+    Column(Modifier.fillMaxWidth().padding(vertical=1.dp),verticalArrangement=Arrangement.spacedBy(4.dp)){
         if(total!=null){
-            // For unlimited subscriptions, this is a neutral indicator, not a fictitious usage percentage.
-            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
-                horizontalArrangement=Arrangement.spacedBy(8.dp)){
-                Text(if(total>0L)"Трафик"else"Безлимит",color=Muted,fontSize=11.sp)
-                Spacer(Modifier.weight(1f))
-                Text(if(total>0L)"${bytes(used)} / ${bytes(total)}"else"${bytes(used)} / ∞",
-                    color=if(total>0L&&used>=total)Warning else AppColors.text,fontSize=12.sp,
-                    fontWeight=FontWeight.Medium,maxLines=1)
+            // Unlimited is not a percentage: keep the bar neutral but show infinity.
+            val proportion=if(total>0)(used.toDouble()/total).toFloat().coerceIn(0f,1f) else 0f
+            Box(Modifier.fillMaxWidth().height(27.dp).clip(RoundedCornerShape(7.dp))
+                .background(AppColors.text.copy(alpha=.08f))
+                .border(1.dp,AppColors.border.copy(alpha=.32f),RoundedCornerShape(7.dp)),
+                contentAlignment=Alignment.Center){
+                if(total>0)Box(Modifier.fillMaxWidth(proportion).fillMaxHeight()
+                    .align(Alignment.CenterStart).background(
+                        (if(used>=total)Warning else Primary).copy(alpha=.25f)))
+                Text(if(total>0)"${bytes(used)} / ${bytes(total)}"else"${bytes(used)} / ∞",
+                    color=AppColors.text,fontSize=12.sp,fontWeight=FontWeight.Medium,
+                    maxLines=1,modifier=Modifier.align(Alignment.Center))
             }
-            LinearProgressIndicator(
-                progress={if(total>0L)(used.toDouble()/total).toFloat().coerceIn(0f,1f) else 0f},
-                modifier=Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(50)),
-                color=if(total>0L&&used>=total)Warning else Primary.copy(alpha=.72f),
-                trackColor=AppColors.text.copy(alpha=.11f)
-            )
         }
         info["expire"]?.let{expiry->
             if(expiry>0&&expiry<=Long.MAX_VALUE/1000){
                 val end=expiry*1000
                 Text("${if(end<=System.currentTimeMillis())"Истекла"else"Действует до"} ${DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(end))}",
-                    color=if(end<=System.currentTimeMillis())Warning else Muted,fontSize=11.sp)
-            } else if(expiry==0L)Text("Без ограничения срока",color=Muted,fontSize=11.sp)
+                    modifier=Modifier.fillMaxWidth(),textAlign=androidx.compose.ui.text.style.TextAlign.Center,
+                    color=if(end<=System.currentTimeMillis())Warning else Muted,fontSize=11.sp,maxLines=2)
+            } else if(expiry==0L)Text("Без ограничения срока",modifier=Modifier.fillMaxWidth(),
+                textAlign=androidx.compose.ui.text.style.TextAlign.Center,color=Muted,fontSize=11.sp)
         }
     }
 }
