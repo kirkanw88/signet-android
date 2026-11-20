@@ -63,7 +63,7 @@ class ProbeService:Service() {
     private suspend fun execute(request:JSONObject):JSONObject {
         fallbackDns=request.optString("bootstrapDns","1.1.1.1").also{require(TemplateCompatibility.numericAddress(it))}
         val options=ProbeSettings.parse(request.getJSONObject("options").toString())
-        val array=request.getJSONArray("servers");require(array.length() in 1..5)
+        val array=request.getJSONArray("servers");require(array.length() in 1..10)
         val servers=(0 until array.length()).map { i->val s=array.getJSONObject(i);Profiles.parseJson(s.getString("config")).single().copy(id=s.getString("id")) }
         if(!request.optBoolean("validateOnly"))bootstrap(options.mode!=ProbeMode.TCP&&options.mode!=ProbeMode.HTTPS)
         val out=JSONArray()
