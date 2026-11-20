@@ -105,10 +105,13 @@ class GlobeVisualTest {
         val top=position[1]+height/4
         val bottom=position[1]+height*3/4
         val pitchBefore=globe.globe.renderedPitchDegrees
+        val downBefore=globe.inputDownCount
+        val moveBefore=globe.rotationMoveCount
         assertTrue("Vertical gesture must be accepted by Android",device.swipe(x,bottom,x,top,22))
-        Thread.sleep(220)
+        Thread.sleep(300)
         val pitchAfter=globe.globe.renderedPitchDegrees
-        assertTrue("First vertical gesture must change real rendered pitch; before=$pitchBefore after=$pitchAfter",
+        val touchInfo="down=${globe.inputDownCount-downBefore} rotationMoves=${globe.rotationMoveCount-moveBefore} rect=${position.toList()} ${width}x${height}"
+        assertTrue("First vertical gesture must change real rendered pitch; before=$pitchBefore after=$pitchAfter $touchInfo",
             kotlin.math.abs(pitchAfter-pitchBefore)>3f)
 
         val y=position[1]+height/2
