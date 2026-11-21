@@ -78,7 +78,7 @@ import androidx.compose.ui.semantics.Role
                                     Modifier.size(19.dp).rotate(angle),tint=AppColors.muted)
                             }
                             Column(Modifier.weight(1f).padding(top=3.dp),verticalArrangement=Arrangement.spacedBy(1.dp)){
-                                Text(label,fontSize=14.sp,lineHeight=17.sp,fontWeight=FontWeight.SemiBold,
+                                Text(label,fontSize=13.sp,lineHeight=16.sp,fontWeight=FontWeight.SemiBold,
                                     maxLines=2,overflow=TextOverflow.Ellipsis)
                                 Text("Обновлено "+android.text.format.DateUtils.getRelativeTimeSpanString(
                                     sub.updated,System.currentTimeMillis(),android.text.format.DateUtils.MINUTE_IN_MILLIS)+
@@ -141,15 +141,12 @@ import androidx.compose.ui.semantics.Role
             }
             if(expanded){
                 if(sub.metadata.announcement.isNotBlank())item(key="${sub.id}:announcement"){
-                    var announcementExpanded by rememberSaveable(sub.id){mutableStateOf(false)}
                     Column(Modifier.fillMaxWidth().padding(top=1.dp,bottom=3.dp)
                         .background(AppColors.surface.copy(alpha=.20f),RoundedCornerShape(10.dp))
                         .padding(horizontal=8.dp,vertical=5.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){
                         Text(sub.metadata.announcement,fontSize=10.sp,lineHeight=14.sp,color=AppColors.muted,
                             textAlign=androidx.compose.ui.text.style.TextAlign.Center,modifier=Modifier.fillMaxWidth(),
-                            maxLines=if(announcementExpanded)Int.MAX_VALUE else 3,overflow=TextOverflow.Ellipsis)
-                        if(sub.metadata.announcement.length>160)TextButton(onClick={announcementExpanded=!announcementExpanded},
-                            modifier=Modifier.align(Alignment.CenterHorizontally)){Text(if(announcementExpanded)"Свернуть"else"Подробнее",fontSize=11.sp)}
+                            softWrap=true)
                     }
                 }
                 items(if(sort)visible.sortedBy{it.latencyMs?:Long.MAX_VALUE}else visible,key={"${sub.id}:${it.id}"}){server->ServerRow(server,displays.getValue(server.id),state,vpn,select,favorite,server.id in activeProbes,Modifier.animateItem())}
@@ -183,16 +180,16 @@ import androidx.compose.ui.semantics.Role
     val selected=state.selected==server.id
     val color=if(active)AppColors.success else AppColors.accent
     val largeText=!BuildConfig.SIGNET_ACCOUNT&&LocalConfiguration.current.fontScale>=1.5f
-    Row(modifier.fillMaxWidth().semantics { this.selected=selected; stateDescription=if(active)"Подключён" else if(selected)"Выбран" else "Не выбран" }.padding(vertical=if(BuildConfig.SIGNET_ACCOUNT)1.dp else 0.dp).heightIn(min=if(BuildConfig.SIGNET_ACCOUNT)56.dp else 43.dp).border(if(selected)1.dp else 0.dp,if(selected)AppColors.border.copy(alpha=.72f) else Color.Transparent,RoundedCornerShape(10.dp)).background(if(selected)AppColors.tint.copy(alpha=.28f) else Color.Transparent,RoundedCornerShape(10.dp)).combinedClickable(enabled=server.enabled,role=Role.RadioButton,onClick={select(server.id)},onLongClick={favorite(server.id)},onLongClickLabel=if(server.favorite)"Убрать из избранного"else"В избранное").padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)8.dp else 6.dp,vertical=if(BuildConfig.SIGNET_ACCOUNT)7.dp else 2.dp),verticalAlignment=if(BuildConfig.SIGNET_ACCOUNT)Alignment.CenterVertically else Alignment.Top) {
+    Row(modifier.fillMaxWidth().semantics { this.selected=selected; stateDescription=if(active)"Подключён" else if(selected)"Выбран" else "Не выбран" }.padding(vertical=if(BuildConfig.SIGNET_ACCOUNT)1.dp else 3.dp).heightIn(min=if(BuildConfig.SIGNET_ACCOUNT)56.dp else 43.dp).border(if(selected)1.dp else 0.dp,if(selected)AppColors.border.copy(alpha=.72f) else Color.Transparent,RoundedCornerShape(10.dp)).background(if(selected)AppColors.tint.copy(alpha=.28f) else Color.Transparent,RoundedCornerShape(10.dp)).combinedClickable(enabled=server.enabled,role=Role.RadioButton,onClick={select(server.id)},onLongClick={favorite(server.id)},onLongClickLabel=if(server.favorite)"Убрать из избранного"else"В избранное").padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)8.dp else 6.dp,vertical=if(BuildConfig.SIGNET_ACCOUNT)7.dp else 5.dp),verticalAlignment=if(BuildConfig.SIGNET_ACCOUNT)Alignment.CenterVertically else Alignment.Top) {
         CountryFlag(display.country,display.isAuto)
         Column(Modifier.weight(1f).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)8.dp else 6.dp),
             verticalArrangement=Arrangement.spacedBy(0.dp)) {
             Text(display.title,color=if(server.enabled)AppColors.text else AppColors.muted,fontWeight=FontWeight.SemiBold,lineHeight=16.sp,maxLines=if(largeText)2 else if(BuildConfig.SIGNET_ACCOUNT)2 else 1,overflow=TextOverflow.Ellipsis,fontSize=if(BuildConfig.SIGNET_ACCOUNT)15.sp else 14.sp)
             if(!BuildConfig.SIGNET_ACCOUNT) {
-                if(display.transport.isNotBlank())Text(display.transport,color=AppColors.muted,fontSize=10.sp,lineHeight=12.sp,
+                if(display.transport.isNotBlank())Text(display.transport,color=AppColors.muted,fontSize=9.sp,lineHeight=11.sp,
                     maxLines=1,overflow=TextOverflow.Ellipsis)
                 display.description?.takeIf{it.isNotBlank()}?.let{Text(it,color=AppColors.muted.copy(alpha=.82f),
-                    fontSize=10.sp,lineHeight=12.sp,maxLines=if(largeText)3 else 2,overflow=TextOverflow.Ellipsis)}
+                    fontSize=9.sp,lineHeight=11.sp,maxLines=if(largeText)3 else 2,overflow=TextOverflow.Ellipsis)}
             } else {
                 Row(Modifier.fillMaxWidth()){
                     Text(display.transport,Modifier.weight(1f),color=AppColors.muted,fontSize=12.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
@@ -226,5 +223,5 @@ import androidx.compose.ui.semantics.Role
                 if(selected)"Выбран"else"Выбрать сервер",Modifier.size(20.dp),tint=if(selected)AppColors.accent else AppColors.muted)
         }
     }
-    HorizontalDivider(color=AppColors.border.copy(alpha=.4f))
+    if(BuildConfig.SIGNET_ACCOUNT)HorizontalDivider(color=AppColors.border.copy(alpha=.4f))
 }

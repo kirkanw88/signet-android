@@ -41,7 +41,7 @@ private val Accent:Color @Composable get()=AppColors.accent
     var section by rememberSaveable { mutableStateOf("main") }
     var apps by rememberSaveable{mutableStateOf(false)}
     var probes by rememberSaveable{mutableStateOf(false)}
-    var template by rememberSaveable{mutableStateOf(false)}
+
     var account by rememberSaveable{mutableStateOf(false)}
     var editor by remember{mutableStateOf(false)}
     var routeText by remember{mutableStateOf("")}
@@ -58,7 +58,7 @@ private val Accent:Color @Composable get()=AppColors.accent
     fun parentSection():String=if(!BuildConfig.SIGNET_ACCOUNT)when(section){"logs"->"diagnostics";"updates"->"about";else->"main"}else"main"
     BackHandler { if(section!="main")section=parentSection() else close() }
     LaunchedEffect(section){scroll.scrollTo(0)}
-    val title=when(section){"connection"->"Подключение";"routing"->"Сеть и маршрутизация";"appearance"->"Внешний вид";"subscription-options"->"Подписки и Ping";"about"->"О приложении";"updates"->"Обновления";"diagnostics"->"Диагностика";"logs"->"Журнал подключения";"account"->"Аккаунт";else->"Настройки"}
+    val title=when(section){"connection"->"Подключение";"routing"->"Сеть и маршрутизация";"appearance"->"Внешний вид";"subscription-options"->"Ping";"about"->"О приложении";"updates"->"Обновления";"diagnostics"->"Диагностика";"logs"->"Журнал подключения";"account"->"Аккаунт";else->"Настройки"}
     Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)20.dp else 14.dp),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)16.dp else 10.dp)) {
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
             IconButton(onClick={if(section=="main")close()else{section=parentSection()}}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=Ink)}
@@ -72,7 +72,7 @@ private val Accent:Color @Composable get()=AppColors.accent
                         MenuItem(Icons.Outlined.Palette,"Внешний вид","Тема и анимация глобуса",{section="appearance"})
                         MenuItem(Icons.Outlined.VpnKey,"Подключение","Автоподключение, восстановление и защита",{section="connection"})
                         MenuItem(Icons.Outlined.Route,"Сеть и маршрутизация","DNS, приложения и Xray JSON",{section="routing"})
-                        MenuItem(Icons.Outlined.Subscriptions,"Подписки и Ping","Управление подписками и проверка серверов",{section="subscription-options"})
+                        MenuItem(Icons.Outlined.Speed,"Ping","Настройка проверки задержки серверов",{section="subscription-options"})
                         MenuItem(Icons.Outlined.Troubleshoot,"Диагностика","Проверка соединения, журнал и отчёт",{section="diagnostics";model.diagnostics()})
                         MenuItem(Icons.Outlined.Info,"О приложении","Версия, обновления и исходный код",{section="about"})
                     }
@@ -96,8 +96,6 @@ private val Accent:Color @Composable get()=AppColors.accent
             }
             "subscription-options"->{
                 SettingsCard {
-                    MenuItem(Icons.Outlined.Subscriptions,"Управление подписками",
-                        "Добавление, обновление и серверы",{subscriptions()})
                     MenuItem(Icons.Outlined.Speed,"Настройки Ping",
                         "Via Proxy, тайм-аут и параллельные проверки",{probes=true})
                 }
@@ -120,7 +118,7 @@ private val Accent:Color @Composable get()=AppColors.accent
                     MenuItem(Icons.Outlined.SystemUpdate,"Проверить обновления",
                         update.available?.let{"Доступна версия ${it.version}"}?:"Проверить доступную версию",
                         {section="updates"})
-                    MenuItem(Icons.Outlined.Code,"Исходный код и лицензии",
+                    MenuItem(Icons.Outlined.Code,"Исходный код",
                         "Репозиторий проекта",{
                             context.startActivity(Intent(Intent.ACTION_VIEW,
                                 android.net.Uri.parse("https://github.com/kirkanw88/signet-android")))
@@ -154,7 +152,7 @@ private val Accent:Color @Composable get()=AppColors.accent
                     MenuItem(Icons.Outlined.Apps,"Выбрать приложения","Выбрано: ${s.packages.size}",{apps=true})
                 }
                 SettingsCard {
-                    MenuItem(Icons.Outlined.FactCheck,"Проверить шаблон","Совместимость Remnawave и Xray JSON",{template=true},state.server!=null)
+
                     MenuItem(Icons.Outlined.Code,"Редактор маршрутов и DNS","Полная конфигурация Xray",{routeText=prettyJson(state.server?.config.orEmpty());editor=true},state.server!=null)
                     MenuItem(Icons.Outlined.Restore,"Восстановить профиль","Отменить локальные изменения",{scope.launch{state.server?.id?.let{model.repository.restore(it)};model.repository.notify("Исходный профиль восстановлен")}},state.server!=null)
                 }
@@ -174,6 +172,7 @@ private val Accent:Color @Composable get()=AppColors.accent
                         Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(graphics=mode))}.padding(12.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(s.graphics==mode,{model.save(s.copy(graphics=mode))});Column(Modifier.padding(start=8.dp)){Text(label,fontSize=17.sp,color=Ink);Text(detail,fontSize=14.sp,color=SecondaryInk)}}
                     }
                     SettingsToggle("Уменьшить движение","Спокойная анимация планеты",s.reduceMotion){model.save(s.copy(reduceMotion=it))}
+                    if(!BuildConfig.SIGNET_ACCOUNT)SettingsToggle("Показывать отправку и получение","Скорость и объём трафика на главной странице",s.showTrafficRates){model.save(s.copy(showTrafficRates=it))}
                 }
             }
             "updates"->{
@@ -220,7 +219,7 @@ private val Accent:Color @Composable get()=AppColors.accent
     }
     if(apps)ApplicationsScreen(model){apps=false}
     if(probes)ProbePreferences(model){probes=false}
-    if(template)state.server?.let{TemplateScreen(it){template=false}}
+
     if(BuildConfig.SIGNET_ACCOUNT&&account)AccountScreen(model){account=false}
     if(editor)JsonEditor(routeText,{routeText=it},{scope.launch(Dispatchers.IO){
         if(VpnState.status.value.phase!=VpnPhase.DISCONNECTED)model.repository.notify("Для проверки остановите VPN")
