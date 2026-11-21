@@ -32,17 +32,18 @@ class UniversalUiSmokeTest {
         compose.onNodeWithText("Добавить подписку").assertExists()
         compose.onNodeWithContentDescription("Настройки").performClick()
         // All six Universal categories are reachable from the main settings page.
-        listOf("Внешний вид","Подключение","Сеть и маршрутизация","Подписки и Ping","Диагностика","О приложении").forEach {
+        listOf("Внешний вид","Подключение","Сеть и маршрутизация","Ping","Диагностика","О приложении").forEach {
             compose.onNodeWithText(it).assertExists()
         }
         compose.onNodeWithText("Внешний вид").performClick()
         compose.onNodeWithText("Высокое качество").assertExists()
         compose.onNodeWithText("Уменьшить движение").assertExists()
+        compose.onNodeWithText("Показывать отправку и получение").assertExists()
         compose.onNodeWithContentDescription("Назад").performClick()
         compose.onNodeWithText("Подключение").performClick()
         compose.onNodeWithText("Подключаться при открытии").assertExists()
         compose.onNodeWithContentDescription("Назад").performClick()
-        compose.onNodeWithText("Подписки и Ping").performClick()
+        compose.onNodeWithText("Ping").performClick()
         compose.onNodeWithText("Настройки Ping").assertExists()
         compose.onNodeWithText("Ping при запуске").assertExists()
         compose.onNodeWithContentDescription("Назад").performClick()
