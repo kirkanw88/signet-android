@@ -90,11 +90,11 @@ jobs:
           mkdir -p dist/universal-arm64
           apk="app/build/outputs/apk/external/release/app-external-arm64-v8a-release.apk"
           test -s "$apk"
-          cp "$apk" dist/universal-arm64/Signet-Universal-arm64-v8a.apk
-          (cd dist/universal-arm64 && sha256sum Signet-Universal-arm64-v8a.apk > SHA256SUMS.txt)
+          cp "$apk" dist/universal-arm64/Signet-Universal-0.2.21-arm64-v8a.apk
+          (cd dist/universal-arm64 && sha256sum Signet-Universal-0.2.21-arm64-v8a.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
-          name: signet-universal-arm64
+          name: signet-universal-0.2.21-arm64
           if-no-files-found: error
           compression-level: 0
           path: dist/universal-arm64/
