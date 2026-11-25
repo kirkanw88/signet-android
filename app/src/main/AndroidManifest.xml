@@ -31,10 +31,10 @@
         </receiver>
         <!-- Android explicitly exempts user-approved VPN apps. Lint 8.10 only models alarm permissions.
              https://developer.android.com/develop/background-work/services/fgs/service-types#system-exempted -->
-        <service android:name=".vpn.SignetVpnService" android:exported="true" android:permission="android.permission.BIND_VPN_SERVICE" android:foregroundServiceType="systemExempted" tools:ignore="ForegroundServicePermission">
+        <service android:name="com.signet.client.vpn.SignetVpnService" android:exported="true" android:permission="android.permission.BIND_VPN_SERVICE" android:foregroundServiceType="systemExempted" tools:ignore="ForegroundServicePermission">
             <intent-filter><action android:name="android.net.VpnService" /></intent-filter>
             <meta-data android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON" android:value="true" />
         </service>
-        <service android:name=".vpn.ProbeService" android:exported="false" android:process=":probe" />
+        <service android:name="com.signet.client.vpn.ProbeService" android:exported="false" android:process=":probe" />
     </application>
 </manifest>
