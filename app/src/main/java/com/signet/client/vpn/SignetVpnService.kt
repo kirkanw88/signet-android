@@ -38,6 +38,7 @@ class SignetVpnService : VpnService() {
     private var requested = false
     private var retryCount = 0
     private var metricsPort = 0
+    private val engine: CoreEngine = LibXrayEngine()
     private val connectivity by lazy { getSystemService(ConnectivityManager::class.java) }
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) { changedNetwork() }
@@ -100,7 +101,7 @@ class SignetVpnService : VpnService() {
             }
                 assetDir
             }
-            NativeCore.attach(this,if(dns.contains(':'))"[$dns]:53"else"$dns:53",physical)
+            engine.attach(this,if(dns.contains(':'))"[$dns]:53"else"$dns:53",physical)
             val builder = Builder().setSession("Signet VPN").setMtu(1500).addAddress("172.19.0.1", 30).addRoute("0.0.0.0", 0)
                 .addAddress("fdfe:dcba:9876::1", 126).addRoute("::", 0).addDnsServer(AndroidDns.ADDRESS)
                 .setConfigureIntent(PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE))
@@ -117,8 +118,7 @@ class SignetVpnService : VpnService() {
                 }
                 "exclude" -> settings.packages.filter { it != packageName && runCatching { packageManager.getApplicationInfo(it,0) }.isSuccess }.forEach(builder::addDisallowedApplication)
             }
-            val ports = NativeCore.call("getFreePorts", JSONObject().put("count", 1)).getJSONArray("ports")
-            metricsPort = ports.getInt(0)
+            metricsPort = engine.freeMetricsPort()
             val previousTun=tun
             tun = builder.establish() ?: error("Разрешение VPN отозвано")
             ConnectionLog.add("VPN","TUN_ESTABLISHED")
@@ -126,7 +126,7 @@ class SignetVpnService : VpnService() {
             val config = Profiles.androidRuntime(selected, tun!!.fd, metricsPort, assetDir.absolutePath, settings.dns)
             ConnectionLog.add("DNS","XRAY_BRIDGE_READY")
             startupStage="запуск ядра"
-            NativeCore.call("runXray", JSONObject().put("xrayJson", config.toString()))
+            engine.start(config)
             ConnectionLog.add("CORE","STARTED")
             // A running Go instance alone is insufficient: require real HTTPS over the selected outbound.
             startupStage="проверка HTTPS"
@@ -155,7 +155,7 @@ class SignetVpnService : VpnService() {
         try {
             while (currentCoroutineContext().isActive && requested) {
                 delay(3000)
-                if (!NativeCore.call("getXrayState").optBoolean("running")) {
+                if (!engine.running()) {
                     stopCore(closeTun=false)
                     fail("Ядро VPN остановилось")
                     break
@@ -208,7 +208,7 @@ class SignetVpnService : VpnService() {
     }
     private fun stopCore(closeTun:Boolean=true) {
         monitor?.cancel(); monitor = null
-        runCatching { NativeCore.call("stopXray") }; runCatching { NativeCore.detach(this) }
+        runCatching { engine.stop(this) }
         if(closeTun){runCatching { tun?.close() }; tun = null}
     }
     override fun onRevoke() { requested = false; connectJob?.cancel(); scope.launch { mutex.withLock { stopCore(); VpnState.status.value = VpnStatus() }; stopSelf() } }
