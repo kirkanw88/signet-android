@@ -11,7 +11,7 @@ object ConnectionLog {
     val entries=lines.asStateFlow()
     @Volatile var enabled=false
         private set
-    private val clock=DateTimeFormatter.ofPattern("HH:mm:ss")
+    private val clock=DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
     @Synchronized fun configure(value:Boolean){enabled=value;if(!value)lines.value=emptyList()else if(lines.value.isEmpty())add("APP","LOGGING_ENABLED")}
     @Synchronized fun clear(){lines.value=emptyList()}
     @Synchronized fun add(area:String,event:String,code:String="") {
@@ -19,7 +19,11 @@ object ConnectionLog {
         // Restrict to bounded machine codes; URLs, UUIDs, keys and arbitrary error messages cannot be appended.
         val safe=listOf(area,event,code).joinToString(" ").takeIf{it.length<=160&&it.matches(Regex("[A-Za-z0-9_ .:/=-]*"))}?:return
         if(safe.contains(Regex("(?i)https?://|[a-f0-9]{8}-[a-f0-9]{4}-")))return
-        lines.value=(lines.value+"${LocalTime.now().format(clock)}  $safe").takeLast(200)
+        lines.value=(lines.value+"${LocalTime.now().format(clock)}  $safe").takeLast(2000)
+    }
+    // Monotonic durations, fixed labels only. No profile identifiers or native messages.
+    fun elapsed(area:String,event:String,started:Long) {
+        add(area,event,"ms="+(android.os.SystemClock.elapsedRealtime()-started).coerceAtLeast(0))
     }
     fun export():String="Signet connection log\n"+lines.value.joinToString("\n")
 }
