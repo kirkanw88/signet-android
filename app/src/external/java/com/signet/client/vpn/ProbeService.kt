@@ -73,8 +73,8 @@ class ProbeService:Service() {
             val result=coroutineScope {servers.map{s->async { direct(s,options) }}.awaitAll()}
             result.forEach(out::put)
         } else {
-            // TCP is an end-to-end connectivity test in Universal, not a raw port probe.
-            // Both TCP and XRAY send HTTPS GET; OUTBOUND sends HTTPS HEAD.
+            // TCP displays carrier handshake latency only after the full HTTPS profile check.
+            // XRAY and OUTBOUND retain end-to-end timing.
             for(server in servers)out.put(fullProfile(server,options))
         }
         return JSONObject().put("results",out)
@@ -143,9 +143,27 @@ class ProbeService:Service() {
                 if(!expected)return JSONObject().put("id",server.id).put("status","HTTP_ERROR")
                 if(options.mode!=ProbeMode.OUTBOUND)it.body?.byteStream()?.read()
             }
-            JSONObject().put("id",server.id).put("delay",SystemClock.elapsedRealtime()-requestStarted).put("status","OK")
+            val proxyDelay=SystemClock.elapsedRealtime()-requestStarted
+            // A composite profile or UDP carrier has no unambiguous TCP endpoint.
+            // Keep measured HTTPS latency for those profiles instead of probing an unrelated port.
+            val endpoint=if(options.mode==ProbeMode.TCP&&!server.isAuto) Endpoints.from(server) else null
+            val source=JSONObject(server.config).optJSONArray("outbounds")
+            val carriers=if(source==null) emptyList() else (0 until source.length()).map{source.getJSONObject(it)}.filter{it.optString("protocol") !in setOf("freedom","blackhole","dns","loopback")}
+            val carrier=carriers.singleOrNull()
+            val protocol=carrier?.optString("protocol").orEmpty()
+            val stream=carrier?.optJSONObject("streamSettings")
+            val transport=stream?.optString("network","tcp")?:"tcp"
+            val alpn=stream?.optJSONObject("tlsSettings")?.optJSONArray("alpn")
+            val quic=alpn!=null&&alpn.length()==1&&alpn.optString(0)=="h3"
+            val tcpCarrier=protocol in setOf("vless","vmess","trojan","shadowsocks","socks","http")&&transport in setOf("tcp","raw","ws","grpc","httpupgrade","xhttp","splithttp")&&!quic
+            val delay=if(endpoint!=null&&tcpCarrier){
+                stage="TCP_HANDSHAKE"
+                val physical=network?:throw CoreFailure("NO_NETWORK")
+                ProbeTcp.connect(physical.getAllByName(endpoint.host).toList(),endpoint.port,options.timeoutMs){physical.socketFactory.createSocket()}
+            }else proxyDelay
+            JSONObject().put("id",server.id).put("delay",delay).put("status","OK")
         } catch(e:CancellationException){throw e}
-        catch(e:Exception){JSONObject().put("id",server.id).put("status",if(e is CoreFailure)e.code else if(stage=="REQUEST")ConnectionHealth.category(e)else stage)}
+        catch(e:Exception){JSONObject().put("id",server.id).put("status",if(e is CoreFailure)e.code else if(stage=="REQUEST"||stage=="TCP_HANDSHAKE")ConnectionHealth.category(e)else stage)}
         finally {if(attemptedRun)runCatching{NativeCore.call("stopXray")};client?.connectionPool?.evictAll();client?.dispatcher?.executorService?.shutdown()}
     }
     override fun onDestroy(){scope.cancel();super.onDestroy();android.os.Process.killProcess(android.os.Process.myPid())}
