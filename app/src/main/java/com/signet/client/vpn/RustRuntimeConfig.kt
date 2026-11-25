@@ -12,6 +12,16 @@ internal object RustRuntimeConfig {
         val config = JSONObject(raw)
         if (!TemplateCompatibility.inspect(config).accepted) throw CoreFailure("RUST_INVALID_PROFILE")
         if (config.has("remnawave")) throw CoreFailure("RUST_UNRENDERED_TEMPLATE")
+        // Host metadata and Go-only instrumentation are not Rust runtime fields.
+        // Do not remove routing, DNS, security or unsupported balancing features.
+        for (key in listOf("signet", "stats", "metrics", "env")) config.remove(key)
+        val supported = setOf("inbounds", "outbounds", "routing", "observatory", "dns", "policy", "log", "reverse", "remarks", "meta")
+        val unsupported = config.keys().asSequence().filter { it !in supported }.toList()
+        if (unsupported.isNotEmpty()) {
+            val code = if ("burstObservatory" in unsupported) "RUST_BURST_OBSERVATORY_UNSUPPORTED"
+                else if ("api" in unsupported) "RUST_API_UNSUPPORTED" else "RUST_TOP_LEVEL_UNSUPPORTED"
+            throw CoreFailure(code)
+        }
         val dns = config.optJSONObject("dns") ?: JSONObject().also { config.put("dns", it) }
         if (!dns.has("servers")) {
             if (!TemplateCompatibility.numericAddress(fallbackDns)) throw CoreFailure("RUST_DNS_REQUIRED")
