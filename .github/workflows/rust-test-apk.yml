@@ -1,7 +1,7 @@
 name: Rust test APK
 on:
   push:
-    branches: [feature/rust-core]
+    branches: [feature/rust-core-0.2.25]
   workflow_dispatch:
 permissions:
   contents: read
@@ -11,7 +11,7 @@ concurrency:
 jobs:
   apk:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 120
     env:
       GRADLE_USER_HOME: ${{ github.workspace }}/.gradle/rust-ci-user-home
     steps:
@@ -21,23 +21,23 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Install SDK
-        run: '"${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-36" "build-tools;36.0.0"'
+        run: '"${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-36" "platforms;android-35" "build-tools;36.0.0" "ndk;26.3.11579264" "cmake;3.22.1"'
       - name: Fetch pinned native engines
         shell: bash
         run: |
           set -euo pipefail
           python3 scripts/fetch-native.py
-          mkdir -p "${RUNNER_TEMP}/rust-sdk"
-          curl --fail --location --retry 3 --output "${RUNNER_TEMP}/rust-sdk/xray-rust-mobile.aar" https://github.com/aimalygin/xray-rust-mobile/releases/download/v0.10.1/xray-rust-mobile-0.10.1.aar
-          echo "007aee812ef3beb4abfe4df6ce46d57b43bb21f630b59e1ac831b8e463a4ad83  ${RUNNER_TEMP}/rust-sdk/xray-rust-mobile.aar" | sha256sum -c -
+          bash scripts/build-rust-candidate.sh
       - name: Build debug APKs with both engines
         shell: bash
         run: |
           set -euo pipefail
           chmod +x gradlew
+          (cd "$RUNNER_TEMP/rust-sdk" && sha256sum -c SHA256SUMS)
+          rust_sha=$(cut -d" " -f1 "$RUNNER_TEMP/rust-sdk/SHA256SUMS")
           ./gradlew --dependency-verification strict --no-daemon --stacktrace --max-workers=2 \
             -PsignetRustAar="${RUNNER_TEMP}/rust-sdk/xray-rust-mobile.aar" \
-            -PsignetRustAarSha256=007aee812ef3beb4abfe4df6ce46d57b43bb21f630b59e1ac831b8e463a4ad83 \
+            -PsignetRustAarSha256="$rust_sha" -PsignetRustBurst=true \
             :app:testExternalDebugUnitTest :app:assembleExternalDebug
       - name: Verify packages and prepare test artifacts
         shell: bash
@@ -57,16 +57,18 @@ jobs:
               assert all("lib/arm64-v8a/" + n in native for n in ("libxray_ffi.so", "libxray_mobile_jni.so")), "Rust SDK native libraries missing"
           PY
             "${ANDROID_HOME}/build-tools/36.0.0/aapt" dump badging "$apk" > /tmp/signet-package.txt
-            grep -F "package: name='com.signet.client.external'" /tmp/signet-package.txt | grep -F "versionName='0.2.24'"
-            cp "$apk" "dist/rust-test/Signet-Universal-0.2.24-Rust-arm64-v8a.apk"
+            grep -F "package: name='com.signet.client.external'" /tmp/signet-package.txt | grep -F "versionName='0.2.25'"
+            cp "$apk" "dist/rust-test/Signet-Universal-0.2.25-Rust-arm64-v8a.apk"
           done
-          curl --fail --location --retry 3 -o dist/rust-test/RUST-LICENSE.txt https://raw.githubusercontent.com/aimalygin/xray-rust-mobile/v0.10.1/LICENSE
-          curl --fail --location --retry 3 -o dist/rust-test/RUST-THIRD-PARTY-NOTICES.md https://raw.githubusercontent.com/aimalygin/xray-rust-mobile/v0.10.1/THIRD_PARTY_NOTICES.md
-          printf "%s\n" "SDK source: https://github.com/aimalygin/xray-rust-mobile/tree/v0.10.1" "Core source: https://github.com/aimalygin/xray-rust/tree/3cef7c42c2fd296afd27ab0b6435c632842e1a26" > dist/rust-test/RUST-SOURCE.txt
+          cp "$RUNNER_TEMP/rust-sdk/LICENSE" dist/rust-test/RUST-LICENSE.txt
+          cp "$RUNNER_TEMP/rust-sdk/THIRD_PARTY_NOTICES.md" dist/rust-test/RUST-THIRD-PARTY-NOTICES.md
+          cp "$RUNNER_TEMP/rust-sdk/core.env" dist/rust-test/RUST-SOURCE.txt
+          cp "$RUNNER_TEMP/rust-sdk/SHA256SUMS" dist/rust-test/RUST-AAR-SHA256.txt
+          echo "SDK source: 7885435a49f6d3728154dad99b6f5038182eb18d" >> dist/rust-test/RUST-SOURCE.txt
           (cd dist/rust-test && sha256sum *.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
-          name: signet-universal-rust-test-arm64
+          name: signet-universal-0.2.25-rust-test-arm64
           path: dist/rust-test/
           if-no-files-found: error
           compression-level: 0
