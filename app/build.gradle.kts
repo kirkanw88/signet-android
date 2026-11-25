@@ -1,9 +1,32 @@
+import java.security.MessageDigest
+
 plugins {
     id("com.android.application")
     kotlin("android")
     kotlin("kapt")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+ // The standalone SDK is deliberately opt-in. Never weaken strict dependency verification.
+ // Supply an independently verified digest of the official v0.10.1 AAR.
+val rustAar = providers.gradleProperty("signetRustAar").orNull?.let { rootProject.file(it) }
+if (rustAar != null) {
+    val expected = providers.gradleProperty("signetRustAarSha256").orNull
+        ?: error("Supply signetRustAarSha256 from the official xray-rust-mobile v0.10.1 release")
+    require(expected.matches(Regex("[0-9a-fA-F]{64}"))) { "Invalid Rust SDK SHA-256" }
+    require(rustAar.isFile) { "Rust SDK AAR missing" }
+    val digest = MessageDigest.getInstance("SHA-256")
+    rustAar.inputStream().use { input ->
+        val buffer = ByteArray(65536)
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            digest.update(buffer, 0, count)
+        }
+    }
+    val actual = digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
+    require(actual.equals(expected, ignoreCase = true)) { "Rust SDK SHA-256 mismatch" }
+}
+
 android {
     namespace = "com.signet.client"
     compileSdk = 36
@@ -34,6 +57,7 @@ android {
         }
     }
     buildFeatures { compose = true; buildConfig = true }
+    sourceSets.getByName("main").java.srcDir(if (rustAar != null) "src/rustEngine/java" else "src/goEngine/java")
     sourceSets.getByName("androidTest").assets.srcDir(rootProject.file(".gradle/transport-lab/android-assets"))
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
@@ -49,6 +73,7 @@ android {
 dependencies {
     implementation(project(":core"))
     implementation(files("libs/libXray.aar"))
+    if (rustAar != null) implementation(files(rustAar))
     implementation(platform("androidx.compose:compose-bom:2025.05.01"))
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.compose.material3:material3")
