@@ -126,6 +126,14 @@ private val Accent:Color @Composable get()=AppColors.accent
                 }
             }
             "connection"->{
+                if (EngineFactory.rustAvailable) SettingsCard {
+                    SettingsHeading("Сетевое ядро")
+                    SettingsToggle("Rust (экспериментально)",
+                        "Применяется при следующем подключении. Несовместимые профили отклоняются.",
+                        s.preferRustCore) { model.save(s.copy(preferRustCore=it)) }
+                    Text("Для проверки задержки пока используется libXray.",
+                        color=SecondaryInk, modifier=Modifier.padding(12.dp))
+                }
                 SettingsCard {
                     SettingsToggle("Подключаться при открытии","Использовать выбранный сервер",s.autoConnect){model.save(s.copy(autoConnect=it))}
                     SettingsToggle("Восстанавливать соединение","При смене Wi-Fi или мобильной сети",s.reconnect){model.save(s.copy(reconnect=it))}
