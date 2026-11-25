@@ -214,7 +214,7 @@ import androidx.compose.ui.semantics.Role
                 "FAILED"->"Не измерено"
                 else->null
             }
-            Text(when {server.probeMessage=="CONSENT_REQUIRED"->"Нужно согласие";server.probeMessage=="UNSUPPORTED"->"—";server.latencyMs!=null->"${server.latencyMs} ms";problem!=null->problem;server.available==false->"Нет ответа";else->"—"},color=if(server.available==false||problem!=null)AppColors.warning else AppColors.muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)11.sp else 10.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
+            Text(when {server.probeMessage=="CONSENT_REQUIRED"->"Нужно согласие";server.probeMessage=="UNSUPPORTED"->"—";server.latencyMs!=null->"${server.latencyMs} ms"+(if(!BuildConfig.SIGNET_ACCOUNT&&server.probeMode in setOf("TCP","HTTPS"))" · порт"else"");problem!=null->problem;server.available==false->"Нет ответа";else->"—"},color=if(server.available==false||problem!=null)AppColors.warning else AppColors.muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)11.sp else 10.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
             if(active&&BuildConfig.SIGNET_ACCOUNT)Text("Подключён",color=color,fontSize=10.sp)
         }
         if(BuildConfig.SIGNET_ACCOUNT) {
