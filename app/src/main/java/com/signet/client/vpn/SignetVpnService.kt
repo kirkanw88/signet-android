@@ -103,6 +103,10 @@ class SignetVpnService : VpnService() {
             }
                 assetDir
             }
+            startupStage="подготовка конфигурации"
+            engine.prepare(selected, settings.dns, physical)
+            ConnectionLog.add("CORE","CONFIG_PREPARED")
+            startupStage="настройка TUN"
             engine.attach(this,if(dns.contains(':'))"[$dns]:53"else"$dns:53",physical)
             val builder = Builder().setSession("Signet VPN").setMtu(1500).addAddress("172.19.0.1", 30).addRoute("0.0.0.0", 0)
                 .addAddress("fdfe:dcba:9876::1", 126).addRoute("::", 0).addDnsServer(engine.dnsAddress)
@@ -147,7 +151,7 @@ class SignetVpnService : VpnService() {
             ConnectionLog.add("VPN","CONNECT_FAILED",ConnectionHealth.category(e))
             stopCore(closeTun=false)
             fail(if(startupStage=="проверка HTTPS")"${ConnectionHealth.latest.value?.description?:"HTTPS недоступен"}. Откройте диагностику в настройках."
-                else "Не удалось подключиться: $startupStage (${e.javaClass.simpleName}). Проверьте подписку и доступность сервера.")
+                else "Не удалось подключиться: $startupStage (${if(e is CoreFailure)e.code else e.javaClass.simpleName}). Проверьте подписку и доступность сервера.")
         }
     }
     private suspend fun watch(server: Server) {
@@ -157,7 +161,7 @@ class SignetVpnService : VpnService() {
         try {
             while (currentCoroutineContext().isActive && requested) {
                 delay(3000)
-                if (!engine.running()) {
+                if (!runCatching { engine.running() }.getOrDefault(false)) {
                     stopCore(closeTun=false)
                     fail("Ядро VPN остановилось")
                     break
