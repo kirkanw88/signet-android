@@ -2,6 +2,8 @@ package com.signet.client.vpn
 
 import android.net.Network
 import android.net.VpnService
+import android.os.SystemClock
+import com.signet.client.data.ConnectionLog
 import com.signet.core.TemplateCompatibility
 import org.json.JSONArray
 import org.json.JSONObject
@@ -23,8 +25,18 @@ internal class RustCoreEngine : CoreEngine {
 
     @Synchronized override fun prepare(server: com.signet.core.Server, fallbackDns: String, network: Network) {
         prepared = null
-        prepared = RustRuntimeConfig.prepare(server.config, fallbackDns) { host ->
-            network.getAllByName(host).mapNotNull { it.hostAddress }
+        val started = SystemClock.elapsedRealtime()
+        ConnectionLog.add("RUST","PREPARE_BEGIN")
+        try {
+            prepared = RustRuntimeConfig.prepare(server.config, fallbackDns) { host ->
+                val dnsStarted = SystemClock.elapsedRealtime()
+                try { network.getAllByName(host).mapNotNull { it.hostAddress } }
+                finally { ConnectionLog.elapsed("RUST","BOOTSTRAP_LOOKUP",dnsStarted) }
+            }
+            ConnectionLog.elapsed("RUST","PREPARE_OK",started)
+        } catch (e: Exception) {
+            ConnectionLog.elapsed("RUST","PREPARE_FAILED",started)
+            throw e
         }
     }
 
@@ -35,6 +47,8 @@ internal class RustCoreEngine : CoreEngine {
         check(core == null)
         val config = prepared ?: throw CoreFailure("RUST_PREPARE_REQUIRED")
         prepared = null
+        val createStarted=SystemClock.elapsedRealtime()
+        ConnectionLog.add("RUST","CREATE_BEGIN")
         val instance = try {
             XrayCore.create(
                 configJson = config.toString(),
@@ -46,17 +60,25 @@ internal class RustCoreEngine : CoreEngine {
                 tunMtu = 1500
             )
         } catch (failure: LinkageError) {
+            ConnectionLog.elapsed("RUST","CREATE_FAILED",createStarted)
             throw CoreFailure("RUST_SDK_LINKAGE")
         } catch (failure: Exception) {
+            ConnectionLog.elapsed("RUST","CREATE_FAILED",createStarted)
             throw CoreFailure(classify("CREATE", failure))
         }
+        ConnectionLog.elapsed("RUST","CREATE_OK",createStarted)
+        val startStarted=SystemClock.elapsedRealtime()
+        ConnectionLog.add("RUST","START_BEGIN")
         try {
             instance.start()
             core = instance
+            ConnectionLog.elapsed("RUST","START_OK",startStarted)
         } catch (failure: LinkageError) {
+            ConnectionLog.elapsed("RUST","START_FAILED",startStarted)
             runCatching { instance.close() }
             throw CoreFailure("RUST_SDK_LINKAGE")
         } catch (failure: Exception) {
+            ConnectionLog.elapsed("RUST","START_FAILED",startStarted)
             runCatching { instance.close() }
             throw CoreFailure(classify("START", failure))
         }
@@ -82,7 +104,9 @@ internal class RustCoreEngine : CoreEngine {
 
     @Synchronized override fun running(): Boolean {
         val stats = core?.stats() ?: return false
-        return stats.tunFdReadLoopExits == 0L && stats.tunFdWriteLoopExits == 0L
+        val running = stats.tunFdReadLoopExits == 0L && stats.tunFdWriteLoopExits == 0L
+        if(!running) ConnectionLog.add("RUST","TUN_LOOP_EXIT")
+        return running
     }
 
     @Synchronized override fun traffic(): EngineTraffic? =
