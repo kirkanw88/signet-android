@@ -23,8 +23,9 @@ object Probes {
     private val serviceFailure get()=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"FAILED"else"SERVICE_ERROR"
     suspend fun measure(context:Context,servers:List<Server>):Map<String,Long?> = measureDetailed(context,servers,ProbeSettings()).mapValues{it.value.delay}
     suspend fun validate(context:Context,server:Server):Boolean=measureDetailed(context,listOf(server),ProbeSettings(mode=ProbeMode.XRAY,timeoutMs=15000),validateOnly=true)[server.id]?.status=="VALID"
-    suspend fun measureDetailed(context:Context,servers:List<Server>,options:ProbeSettings,validateOnly:Boolean=false):Map<String,ProbeMeasurement> = withTimeout((options.timeoutMs.toLong()+5000)*servers.size.coerceAtLeast(1)+5000) {
-        options.validated();require(servers.size in 1..10)
+    suspend fun measureDetailed(context:Context,servers:List<Server>,options:ProbeSettings,validateOnly:Boolean=false,worker:Int=0):Map<String,ProbeMeasurement> = withTimeout((options.timeoutMs.toLong()+5000)*servers.size.coerceAtLeast(1)+5000) {
+        options.validated();require(servers.size in 1..10);require(worker in 0..4)
+        require(worker==0||!com.signet.client.BuildConfig.SIGNET_ACCOUNT)
         val array=JSONArray();servers.forEach{array.put(JSONObject().put("id",it.id).put("config",it.config))}
         val fallbackDns=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"1.1.1.1"else com.signet.client.data.SettingsStore(context).load().dns
         val request=JSONObject().put("servers",array).put("options",options.json()).put("validateOnly",validateOnly).put("bootstrapDns",fallbackDns).toString().toByteArray()
@@ -48,7 +49,8 @@ object Probes {
                     override fun onBindingDied(name:ComponentName?){onServiceDisconnected(name)}
                     override fun onNullBinding(name:ComponentName?){onServiceDisconnected(name)}
                 }
-                if(!context.bindService(Intent(context,ProbeService::class.java),connection!!,Context.BIND_AUTO_CREATE))continuation.resume(servers.associate{it.id to ProbeMeasurement(null,serviceFailure)})
+                val intent=if(worker==0)Intent(context,ProbeService::class.java) else Intent().setClassName(context.packageName,"com.signet.client.vpn.ProbeWorker$worker")
+                if(!context.bindService(intent,connection!!,Context.BIND_AUTO_CREATE))continuation.resume(servers.associate{it.id to ProbeMeasurement(null,serviceFailure)})
             }
         } finally {connection?.let{runCatching{context.unbindService(it)}};writer.cancel();pipe.forEach{runCatching{it.close()}}}
     }
