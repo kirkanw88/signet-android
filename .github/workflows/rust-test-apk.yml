@@ -36,13 +36,13 @@ jobs:
           ./gradlew --dependency-verification strict --no-daemon --stacktrace --max-workers=2 \
             -PsignetRustAar="${RUNNER_TEMP}/rust-sdk/xray-rust-mobile.aar" \
             -PsignetRustAarSha256=007aee812ef3beb4abfe4df6ce46d57b43bb21f630b59e1ac831b8e463a4ad83 \
-            :app:assembleSignetDebug :app:assembleExternalDebug
+            :app:assembleExternalDebug
       - name: Verify packages and prepare test artifacts
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist/rust-test
-          for edition in signet external; do
+          for edition in external; do
             apk="app/build/outputs/apk/$edition/debug/app-$edition-arm64-v8a-debug.apk"
             test -s "$apk"
             "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify "$apk"
@@ -54,7 +54,9 @@ jobs:
               print(native)
               assert all("lib/arm64-v8a/" + n in native for n in ("libxray_ffi.so", "libxray_mobile_jni.so")), "Rust SDK native libraries missing"
           PY
-            cp "$apk" "dist/rust-test/Signet-$edition-rust-test-arm64-v8a.apk"
+            "${ANDROID_HOME}/build-tools/36.0.0/aapt" dump badging "$apk" > /tmp/signet-package.txt
+            grep -F "package: name='com.signet.client.external'" /tmp/signet-package.txt | grep -F "versionName='0.2.23'"
+            cp "$apk" "dist/rust-test/Signet-Universal-0.2.23-Rust-arm64-v8a.apk"
           done
           curl --fail --location --retry 3 -o dist/rust-test/RUST-LICENSE.txt https://raw.githubusercontent.com/aimalygin/xray-rust-mobile/v0.10.1/LICENSE
           curl --fail --location --retry 3 -o dist/rust-test/RUST-THIRD-PARTY-NOTICES.md https://raw.githubusercontent.com/aimalygin/xray-rust-mobile/v0.10.1/THIRD_PARTY_NOTICES.md
@@ -62,7 +64,7 @@ jobs:
           (cd dist/rust-test && sha256sum *.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
-          name: signet-rust-test-arm64
+          name: signet-universal-rust-test-arm64
           path: dist/rust-test/
           if-no-files-found: error
           compression-level: 0
