@@ -47,8 +47,8 @@ android {
             manifestPlaceholders["importScheme"] = "signet"
         }
         create("external") {
-            versionCode = 25
-            versionName = "0.2.23"
+            versionCode = 26
+            versionName = "0.2.24"
             dimension = "edition"
             applicationIdSuffix = ".external"
             buildConfigField("boolean", "SIGNET_ACCOUNT", "false")
