@@ -2,7 +2,7 @@ name: Android
 # Runtime UI/native fixture targets Universal; the build job compiles both editions for regression.
 on:
   push:
-    branches: [main, feature/android-0.2.0]
+    branches: [main, feature/android-0.2.0, feature/rust-core]
   pull_request:
   workflow_dispatch:
 
