@@ -103,7 +103,7 @@ class SignetVpnService : VpnService() {
             }
             engine.attach(this,if(dns.contains(':'))"[$dns]:53"else"$dns:53",physical)
             val builder = Builder().setSession("Signet VPN").setMtu(1500).addAddress("172.19.0.1", 30).addRoute("0.0.0.0", 0)
-                .addAddress("fdfe:dcba:9876::1", 126).addRoute("::", 0).addDnsServer(AndroidDns.ADDRESS)
+                .addAddress("fdfe:dcba:9876::1", 126).addRoute("::", 0).addDnsServer(engine.dnsAddress)
                 .setConfigureIntent(PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE))
             if (Build.VERSION.SDK_INT >= 29) builder.setMetered(false)
             builder.setUnderlyingNetworks(arrayOf(physical))
@@ -123,10 +123,9 @@ class SignetVpnService : VpnService() {
             tun = builder.establish() ?: error("Разрешение VPN отозвано")
             ConnectionLog.add("VPN","TUN_ESTABLISHED")
             runCatching { previousTun?.close() }
-            val config = Profiles.androidRuntime(selected, tun!!.fd, metricsPort, assetDir.absolutePath, settings.dns)
-            ConnectionLog.add("DNS","XRAY_BRIDGE_READY")
             startupStage="запуск ядра"
-            engine.start(config)
+            engine.start(EngineSession(this, physical, dns, selected, tun!!.fd, assetDir, settings.dns, metricsPort))
+            ConnectionLog.add("DNS","XRAY_BRIDGE_READY")
             ConnectionLog.add("CORE","STARTED")
             // A running Go instance alone is insufficient: require real HTTPS over the selected outbound.
             startupStage="проверка HTTPS"
@@ -167,6 +166,12 @@ class SignetVpnService : VpnService() {
                     if(failures>=3){stopCore(closeTun=false);fail("VPN перестал передавать HTTPS-трафик");break}
                 }
                 runCatching {
+                    val nativeTraffic=engine.traffic()
+                    if(nativeTraffic!=null){
+                        val rates=traffic.sample(nativeTraffic.uploaded,nativeTraffic.downloaded,SystemClock.elapsedRealtime())
+                        VpnState.status.update{it.copy(uploaded=nativeTraffic.uploaded,downloaded=nativeTraffic.downloaded,uploadRate=rates.upload,downloadRate=rates.download)}
+                        return@runCatching
+                    }
                     client.newCall(Request.Builder().url("http://127.0.0.1:$metricsPort/debug/vars").build()).execute().use { response ->
                         val raw = response.body?.byteStream()?.use { String(it.readLimited(512*1024),Charsets.UTF_8) } ?: return@use
                         val all=JSONObject(raw).optJSONObject("stats")?:return@use
