@@ -52,10 +52,10 @@ import kotlinx.coroutines.*
     var error by remember{mutableStateOf<String?>(null)}
     FullScreenPanel("Настройки Ping",close) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-            listOf(ProbeMode.XRAY to "Via Proxy GET · полная проверка через Xray",ProbeMode.OUTBOUND to "Via Proxy HEAD · HTTPS через профиль",ProbeMode.TCP to "TCP Connect · только доступность порта",ProbeMode.HTTPS to "HTTPS · TLS доступность узла").forEach { (mode,label)->
+            listOf(ProbeMode.XRAY to "Via Proxy GET · полная проверка через Xray",ProbeMode.OUTBOUND to "Via Proxy HEAD · HTTPS через профиль",ProbeMode.TCP to (if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"TCP Connect · только доступность порта"else"TCP · проверка работоспособности VPN"),ProbeMode.HTTPS to "HTTPS · TLS доступность узла").forEach { (mode,label)->
                 Row(Modifier.fillMaxWidth().clickable{value=value.copy(mode=mode)},verticalAlignment=Alignment.CenterVertically){RadioButton(value.mode==mode,{value=value.copy(mode=mode)});Text(label)}
             }
-            Text("Via Proxy HEAD и GET проверяют HTTPS через выбранный профиль. TCP/HTTPS проверяют только доступность узла, не работу VPN. AUTO сохраняет правила поставщика.",style=MaterialTheme.typography.bodySmall)
+            Text(if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"TCP/HTTPS проверяют доступность узла."else"TCP подтверждает передачу HTTPS через выбранный VPN-профиль, а не только открытый порт. Via Proxy GET/HEAD проверяют HTTPS. HTTPS проверяет TLS узла напрямую. AUTO сохраняет правила поставщика.",style=MaterialTheme.typography.bodySmall)
             Text("Для generate_204 ожидается HTTP 204; для других HTTPS-адресов — успешный ответ.",style=MaterialTheme.typography.bodySmall)
             OutlinedTextField(value.url,{value=value.copy(url=it)},label={Text("HTTPS URL проверки Xray")},modifier=Modifier.fillMaxWidth(),singleLine=true)
             ProbeNumber("Таймаут, мс · 500–30000",timeout){timeout=it}
