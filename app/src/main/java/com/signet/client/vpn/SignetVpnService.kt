@@ -37,6 +37,7 @@ class SignetVpnService : VpnService() {
     private var connectJob: Job? = null
     private var requested = false
     private var retryCount = 0
+    @Volatile private var permanentFailure = false
     private var metricsPort = 0
     @Volatile private var engine: CoreEngine = LibXrayEngine()
     private val connectivity by lazy { getSystemService(ConnectivityManager::class.java) }
@@ -46,7 +47,7 @@ class SignetVpnService : VpnService() {
     }
     private var networkJob: Job? = null
     private fun changedNetwork() {
-        if (requested && repository.state.value.settings.reconnect && VpnState.status.value.phase in listOf(VpnPhase.CONNECTED, VpnPhase.ERROR)) {
+        if (requested && !permanentFailure && repository.state.value.settings.reconnect && VpnState.status.value.phase in listOf(VpnPhase.CONNECTED, VpnPhase.ERROR)) {
             networkJob?.cancel()
             networkJob = scope.launch { delay(1200); if (requested) reconnect() }
         }
@@ -68,13 +69,13 @@ class SignetVpnService : VpnService() {
             return START_NOT_STICKY
         }
         notification("Подключение…")
-        requested = true; retryCount = 0
+        requested = true; retryCount = 0; permanentFailure = false
         connectJob?.cancel()
         connectJob = scope.launch { repository.awaitReady(); reconnect() }
         return START_STICKY
     }
     private suspend fun reconnect() = mutex.withLock {
-        if (!requested) return@withLock
+        if (!requested || permanentFailure) return@withLock
         val current = VpnState.status.value
         VpnState.status.value = VpnStatus(if (current.phase == VpnPhase.CONNECTED) VpnPhase.RECONNECTING else VpnPhase.CONNECTING)
         ConnectionHealth.clear()
@@ -84,6 +85,7 @@ class SignetVpnService : VpnService() {
         if (selected == null) { fail("Добавьте подписку и выберите сервер"); return@withLock }
         if(com.signet.core.TransportChecks.requiresOAuthConsent(JSONObject(selected.config))&&!repository.allowsOAuth(selected.id)){fail("Для XDrive OAuth требуется согласие при повторном импорте подписки");return@withLock}
         if (!selected.enabled) { fail("Сервер отключён в подписке"); return@withLock }
+        val connectionStarted=SystemClock.elapsedRealtime()
         var startupStage="настройка TUN"
         try {
             val settings = repository.state.value.settings
@@ -104,7 +106,9 @@ class SignetVpnService : VpnService() {
                 assetDir
             }
             startupStage="подготовка конфигурации"
+            val preparedStarted=SystemClock.elapsedRealtime()
             engine.prepare(selected, settings.dns, physical)
+            ConnectionLog.elapsed("CORE","PREPARE_DURATION",preparedStarted)
             ConnectionLog.add("CORE","CONFIG_PREPARED")
             startupStage="настройка TUN"
             engine.attach(this,if(dns.contains(':'))"[$dns]:53"else"$dns:53",physical)
@@ -145,10 +149,17 @@ class SignetVpnService : VpnService() {
             repository.success(selected.id)
             notification("Подключено · ${if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)selected.countryName else com.signet.core.DisplayText.clean(selected.name)}")
             ConnectionLog.add("VPN","CONNECTED")
+            ConnectionLog.elapsed("VPN","CONNECT_DURATION",connectionStarted)
             monitor = scope.launch { watch(selected) }
         } catch (e: CancellationException) { stopCore(closeTun=false); throw e }
         catch (e: Exception) {
             ConnectionLog.add("VPN","CONNECT_FAILED",ConnectionHealth.category(e))
+            ConnectionLog.elapsed("VPN","FAILED_DURATION",connectionStarted)
+            if(e is CoreFailure && (e.code.endsWith("_UNSUPPORTED") || e.code in setOf("RUST_INVALID_PROFILE","RUST_UNRENDERED_TEMPLATE","RUST_SDK_LINKAGE","RUST_CREATE_INVALID_CONFIG","RUST_START_INVALID_CONFIG"))) {
+                permanentFailure=true
+                networkJob?.cancel()
+                ConnectionLog.add("VPN","RETRY_SUPPRESSED","CONFIGURATION")
+            }
             stopCore(closeTun=false)
             fail(if(startupStage=="проверка HTTPS")"${ConnectionHealth.latest.value?.description?:"HTTPS недоступен"}. Откройте диагностику в настройках."
                 else "Не удалось подключиться: $startupStage (${if(e is CoreFailure)e.code else e.javaClass.simpleName}). Проверьте подписку и доступность сервера.")
@@ -205,7 +216,7 @@ class SignetVpnService : VpnService() {
     private fun fail(message: String) {
         VpnState.status.value = VpnStatus(VpnPhase.ERROR, error = message,tunActive=tun!=null)
         notification(message)
-        if(requested && repository.state.value.settings.reconnect && retryCount<3) {
+        if(requested && !permanentFailure && repository.state.value.settings.reconnect && retryCount<3) {
             retryCount++;networkJob?.cancel()
             networkJob=scope.launch { delay(2_000L shl (retryCount-1));if(requested)reconnect() }
         }
