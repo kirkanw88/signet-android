@@ -19,13 +19,22 @@ internal class RustCoreEngine : CoreEngine {
     override val name = "xray-rust"
     override val dnsAddress = XrayTunInterface.DNS_ANCHOR
     private var core: XrayCore? = null
+    private var prepared: JSONObject? = null
+
+    @Synchronized override fun prepare(server: com.signet.core.Server, fallbackDns: String, network: Network) {
+        prepared = null
+        prepared = RustRuntimeConfig.prepare(server.config, fallbackDns) { host ->
+            network.getAllByName(host).mapNotNull { it.hostAddress }
+        }
+    }
 
     override fun attach(service: VpnService, dns: String, network: Network) = Unit
     override fun freeMetricsPort() = 0
 
     @Synchronized override fun start(session: EngineSession) {
         check(core == null)
-        val config = RustRuntimeConfig.prepare(session.server.config, session.fallbackDns)
+        val config = prepared ?: throw CoreFailure("RUST_PREPARE_REQUIRED")
+        prepared = null
         try {
             val instance = XrayCore.create(
                 configJson = config.toString(),
@@ -43,7 +52,9 @@ internal class RustCoreEngine : CoreEngine {
                 runCatching { instance.close() }
                 throw failure
             }
-        } catch (failure: LinkageError) {
+        } catch (failure: CoreFailure) { throw failure }
+        catch (failure: Exception) { throw CoreFailure("RUST_NATIVE_CONFIG_OR_START") }
+        catch (failure: LinkageError) {
             throw CoreFailure("RUST_SDK_LINKAGE")
         }
     }
@@ -57,6 +68,7 @@ internal class RustCoreEngine : CoreEngine {
         core?.stats()?.let { EngineTraffic(it.uplinkBytes.coerceAtLeast(0), it.downlinkBytes.coerceAtLeast(0)) }
 
     @Synchronized override fun stop(service: VpnService) {
+        prepared = null
         val instance = core ?: return
         core = null
         try { instance.stop() } finally { instance.close() }
