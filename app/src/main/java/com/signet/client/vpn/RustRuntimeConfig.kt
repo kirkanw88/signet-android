@@ -12,6 +12,8 @@ internal object RustRuntimeConfig {
         val config = JSONObject(raw)
         if (!TemplateCompatibility.inspect(config).accepted) throw CoreFailure("RUST_INVALID_PROFILE")
         if (config.has("remnawave")) throw CoreFailure("RUST_UNRENDERED_TEMPLATE")
+        val inboundTag = TemplateCompatibility.inboundTag(config)
+        val sourceSniffing = TemplateCompatibility.sourceInbound(config)?.optJSONObject("sniffing")
         // Host metadata and Go-only instrumentation are not Rust runtime fields.
         // Do not remove routing, DNS, security or unsupported balancing features.
         for (key in listOf("signet", "stats", "metrics", "env")) config.remove(key)
@@ -84,8 +86,8 @@ internal object RustRuntimeConfig {
             else if (address.startsWith("[") && address.contains("]:")) bootstrap(address.substringBefore("]:").removePrefix("["))
             else bootstrap(address.substringBefore(':'))
         }
-        val inbound = JSONObject().put("protocol", "tun").put("tag", TemplateCompatibility.inboundTag(config))
-        TemplateCompatibility.sourceInbound(config)?.optJSONObject("sniffing")?.let {
+        val inbound = JSONObject().put("protocol", "tun").put("tag", inboundTag)
+        sourceSniffing?.let {
             inbound.put("sniffing", JSONObject(it.toString()))
         }
         config.put("inbounds", JSONArray().put(inbound))
