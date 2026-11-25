@@ -47,8 +47,8 @@ android {
             manifestPlaceholders["importScheme"] = "signet"
         }
         create("external") {
-            versionCode = 26
-            versionName = "0.2.24"
+            versionCode = 27
+            versionName = "0.2.25"
             dimension = "edition"
             applicationIdSuffix = ".external"
             buildConfigField("boolean", "SIGNET_ACCOUNT", "false")
@@ -56,6 +56,7 @@ android {
             manifestPlaceholders["importScheme"] = "signet-external"
         }
     }
+    defaultConfig { buildConfigField("boolean", "RUST_BURST_SUPPORTED", providers.gradleProperty("signetRustBurst").orNull?.let { (it == "true" && rustAar != null).toString() } ?: "false") }
     buildFeatures { compose = true; buildConfig = true }
     sourceSets.getByName("main").java.srcDir(if (rustAar != null) "src/rustEngine/java" else "src/goEngine/java")
     sourceSets.getByName("androidTest").assets.srcDir(rootProject.file(".gradle/transport-lab/android-assets"))
