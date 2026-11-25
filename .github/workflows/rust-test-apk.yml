@@ -52,10 +52,13 @@ jobs:
               names = z.namelist()
               native = [n for n in names if n.startswith("lib/arm64-v8a/") and n.endswith(".so")]
               print(native)
-              assert any("xray" in n.lower() and "rust" in n.lower() for n in native), "Rust native library not identified"
+              assert all("lib/arm64-v8a/" + n in native for n in ("libxray_ffi.so", "libxray_mobile_jni.so")), "Rust SDK native libraries missing"
           PY
             cp "$apk" "dist/rust-test/Signet-$edition-rust-test-arm64-v8a.apk"
           done
+          curl --fail --location --retry 3 -o dist/rust-test/RUST-LICENSE.txt https://raw.githubusercontent.com/aimalygin/xray-rust-mobile/v0.10.1/LICENSE
+          curl --fail --location --retry 3 -o dist/rust-test/RUST-THIRD-PARTY-NOTICES.md https://raw.githubusercontent.com/aimalygin/xray-rust-mobile/v0.10.1/THIRD_PARTY_NOTICES.md
+          printf "%s\n" "SDK source: https://github.com/aimalygin/xray-rust-mobile/tree/v0.10.1" "Core source: https://github.com/aimalygin/xray-rust/tree/3cef7c42c2fd296afd27ab0b6435c632842e1a26" > dist/rust-test/RUST-SOURCE.txt
           (cd dist/rust-test && sha256sum *.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
