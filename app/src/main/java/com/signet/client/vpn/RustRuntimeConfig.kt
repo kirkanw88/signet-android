@@ -8,7 +8,7 @@ import java.util.Locale
 
 /** Bootstrap carrier names on the physical network, never replace TLS/SNI or provider routing. */
 internal object RustRuntimeConfig {
-    fun prepare(raw: String, fallbackDns: String, resolve: (String) -> List<String> = { throw CoreFailure("RUST_BOOTSTRAP_REQUIRED") }): JSONObject {
+    fun prepare(raw: String, fallbackDns: String, burstSupported: Boolean = com.signet.client.BuildConfig.RUST_BURST_SUPPORTED, resolve: (String) -> List<String> = { throw CoreFailure("RUST_BOOTSTRAP_REQUIRED") }): JSONObject {
         val config = JSONObject(raw)
         if (!TemplateCompatibility.inspect(config).accepted) throw CoreFailure("RUST_INVALID_PROFILE")
         if (config.has("remnawave")) throw CoreFailure("RUST_UNRENDERED_TEMPLATE")
@@ -18,7 +18,8 @@ internal object RustRuntimeConfig {
         // Do not remove routing, DNS, security or unsupported balancing features.
         for (key in listOf("signet", "stats", "metrics", "env")) config.remove(key)
         val supported = setOf("inbounds", "outbounds", "routing", "observatory", "dns", "policy", "log", "reverse", "remarks", "meta")
-        val unsupported = config.keys().asSequence().filter { it !in supported }.toList()
+        val allowed = if (burstSupported) supported + "burstObservatory" else supported
+        val unsupported = config.keys().asSequence().filter { it !in allowed }.toList()
         if (unsupported.isNotEmpty()) {
             val code = if ("burstObservatory" in unsupported) "RUST_BURST_OBSERVATORY_UNSUPPORTED"
                 else if ("api" in unsupported) "RUST_API_UNSUPPORTED" else "RUST_TOP_LEVEL_UNSUPPORTED"
