@@ -90,11 +90,11 @@ jobs:
           mkdir -p dist/universal-arm64
           apk="app/build/outputs/apk/external/release/app-external-arm64-v8a-release.apk"
           test -s "$apk"
-          cp "$apk" dist/universal-arm64/Signet-Universal-0.2.22-arm64-v8a.apk
-          (cd dist/universal-arm64 && sha256sum Signet-Universal-0.2.22-arm64-v8a.apk > SHA256SUMS.txt)
+          cp "$apk" dist/universal-arm64/Signet-Universal-0.2.23-arm64-v8a.apk
+          (cd dist/universal-arm64 && sha256sum Signet-Universal-0.2.23-arm64-v8a.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
-          name: signet-universal-0.2.22-arm64
+          name: signet-universal-0.2.23-arm64
           if-no-files-found: error
           compression-level: 0
           path: dist/universal-arm64/
@@ -104,12 +104,12 @@ jobs:
           set -euo pipefail
           mkdir -p dist/release-assets
           for abi in arm64-v8a armeabi-v7a x86_64; do
-            cp "app/build/outputs/apk/external/release/app-external-$abi-release.apk" "dist/release-assets/signet-external-0.2.22-$abi.apk"
+            cp "app/build/outputs/apk/external/release/app-external-$abi-release.apk" "dist/release-assets/signet-external-0.2.23-$abi.apk"
           done
           (cd dist/release-assets && sha256sum *.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
-          name: signet-external-0.2.22-release-assets
+          name: signet-external-0.2.23-release-assets
           path: dist/release-assets/
           if-no-files-found: error
           compression-level: 0
