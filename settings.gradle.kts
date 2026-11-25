@@ -2,6 +2,8 @@ pluginManagement {
     repositories {
         google()
         mavenCentral()
+        // Alternate official Central hostname; all artifacts still undergo strict SHA-256 verification.
+        maven { name = "CentralAlternate"; url = uri("https://repo1.maven.org/maven2/") }
     }
     // These plugins are published on Maven Central. Resolve the already pinned
     // implementation modules directly, not repository-specific marker POMs.
@@ -18,7 +20,9 @@ pluginManagement {
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories { google(); mavenCentral() }
+    repositories { google(); mavenCentral()
+        // Alternate official Central hostname; all artifacts still undergo strict SHA-256 verification.
+        maven { name = "CentralAlternate"; url = uri("https://repo1.maven.org/maven2/") } }
 }
 rootProject.name = "SignetVPN"
 include(":app", ":core")
