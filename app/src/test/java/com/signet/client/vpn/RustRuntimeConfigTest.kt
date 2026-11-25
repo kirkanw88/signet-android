@@ -23,15 +23,29 @@ class RustRuntimeConfigTest {
         assertEquals("socks", adapted.getJSONArray("inbounds").getJSONObject(0).getString("tag"))
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test(expected = CoreFailure::class)
     fun rejectsUnverifiedBootstrapDomain() {
         RustRuntimeConfig.prepare(profile("example.invalid"), "1.0.0.1")
     }
 
-    @Test(expected = IllegalArgumentException::class)
-    fun rejectsNonNumericResolver() {
+    @Test(expected = CoreFailure::class)
+    fun rejectsUnresolvedResolver() {
         val config = JSONObject(profile())
         config.getJSONObject("dns").put("servers", org.json.JSONArray().put("https://example.invalid/dns-query"))
         RustRuntimeConfig.prepare(config.toString(), "1.0.0.1")
+    }
+    @Test fun bootstrapsDomainsWithoutChangingCarrierOrTls() {
+        val original = JSONObject(profile("node.example"))
+        original.getJSONObject("dns").put("servers", org.json.JSONArray().put("https://dns.example/dns-query"))
+        val outbound = original.getJSONArray("outbounds").getJSONObject(0)
+        outbound.put("streamSettings", JSONObject().put("security","tls").put("tlsSettings",JSONObject().put("serverName","node.example")))
+        val requested = mutableListOf<String>()
+        val adapted = RustRuntimeConfig.prepare(original.toString(), "1.1.1.1") { host ->
+            requested.add(host); listOf("192.0.2.10")
+        }
+        assertEquals(setOf("node.example","dns.example"), requested.toSet())
+        assertEquals(original.getJSONArray("outbounds").toString(), adapted.getJSONArray("outbounds").toString())
+        assertEquals(original.getJSONObject("dns").getJSONArray("servers").toString(),adapted.getJSONObject("dns").getJSONArray("servers").toString())
+        assertEquals("192.0.2.10",adapted.getJSONObject("dns").getJSONObject("hosts").getJSONArray("node.example").getString(0))
     }
 }
