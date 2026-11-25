@@ -61,6 +61,15 @@ class DisplayAndSettingsTest {
         assertEquals(ProbeMode.OUTBOUND,restored.mode)
         assertFalse(restored.pingOnLaunch)
     }
+    @Test fun strictProbeOverridesDirectWithoutChangingOriginal(){
+        val original=org.json.JSONObject("""{"remarks":"DE","outbounds":[{"protocol":"freedom","tag":"direct"},{"protocol":"vless","tag":"proxy"}],"routing":{"rules":[{"type":"field","network":"tcp","outboundTag":"direct"}]}}""")
+        val s=Profiles.parseJson(original.toString()).single()
+        val result=Profiles.probeRuntime(s,12345,"/private/geo","ephemeral",strict=true)
+        val rules=result.getJSONObject("routing").getJSONArray("rules")
+        assertEquals("proxy",rules.getJSONObject(0).getString("outboundTag"))
+        assertEquals("direct",rules.getJSONObject(1).getString("outboundTag"))
+        assertEquals(original.toString(),s.config)
+    }
     @Test fun autoHasNoInventedTcpEndpoint(){assertNull(Endpoints.from(server().copy(isAuto=true)));assertEquals("example.com",Endpoints.from(server())?.host)}
     @Test fun fullProfileProbePreservesRoutingAndOutbounds(){val original=org.json.JSONObject(server("AUTO").config).put("routing",org.json.JSONObject().put("rules",org.json.JSONArray().put(org.json.JSONObject().put("balancerTag","server"))).put("balancers",org.json.JSONArray().put(org.json.JSONObject().put("tag","server").put("selector",org.json.JSONArray().put("proxy"))))).put("dns",org.json.JSONObject().put("servers",org.json.JSONArray().put("9.9.9.9")));val s=Profiles.parseJson(original.toString()).single();val probe=Profiles.probeRuntime(s,12345,"/private/geo","ephemeral");listOf("outbounds","dns","routing").forEach{assertEquals(original.get(it).toString(),probe.get(it).toString())};assertFalse(probe.getJSONObject("env").has("xray.tun.fd"));assertFalse(s.config.contains("ephemeral"))}
 }

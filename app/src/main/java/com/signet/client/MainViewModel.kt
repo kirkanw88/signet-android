@@ -86,7 +86,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         }
                         if(attempt<options.attempts-1)delay(options.intervalMs.toLong())
                     }
-                    batch.forEach { server->val values=samples.getValue(server.id).sorted();repository.measurement(server.id,values.getOrNull(values.size/2),options.mode.name,if(values.isEmpty())statuses[server.id]else"OK") }
+                    batch.forEach { server->val values=samples.getValue(server.id).sorted();val complete=if(BuildConfig.SIGNET_ACCOUNT)values.isNotEmpty()else values.size==options.attempts;repository.measurement(server.id,if(complete)values.getOrNull(values.size/2)else null,options.mode.name,if(complete)"OK"else statuses[server.id]?.takeUnless{it=="OK"}?:"FAILED") }
                     _probingIds.value=emptySet()
                     delay(200)
                 }

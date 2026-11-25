@@ -110,7 +110,7 @@ object Profiles {
         policy.put("system", system); config.put("policy", policy)
         return config
     }
-    fun probeRuntime(server:Server,port:Int,assets:String,secret:String):JSONObject {
+    fun probeRuntime(server:Server,port:Int,assets:String,secret:String,strict:Boolean=false):JSONObject {
         val config=JSONObject(server.config)
         val tag=TemplateCompatibility.inboundTag(config)
         val sniffing=TemplateCompatibility.sourceInbound(config)?.optJSONObject("sniffing")
@@ -118,6 +118,21 @@ object Profiles {
         if(sniffing!=null)config.getJSONArray("inbounds").getJSONObject(0).put("sniffing",JSONObject(sniffing.toString()))
         val env=config.optJSONObject("env")?:JSONObject();env.remove("xray.tun.fd");env.put("xray.location.asset",assets);config.put("env",env)
         config.remove("metrics");config.remove("api");config.put("log",JSONObject().put("loglevel","none"))
+        if(strict&&!server.isAuto){
+            val out=config.getJSONArray("outbounds")
+            val target=(0 until out.length()).map{out.getJSONObject(it)}.firstOrNull{it.optString("tag")==server.outboundTag&&it.optString("protocol") !in listOf("freedom","blackhole","dns","loopback")}
+                ?:error("No proxy outbound for probe")
+            var targetTag=target.optString("tag")
+            if(targetTag.isBlank()){
+                targetTag="signet-probe-target"
+                while((0 until out.length()).any{out.getJSONObject(it).optString("tag")==targetTag})targetTag+="-"
+                target.put("tag",targetTag)
+            }
+            val routing=config.optJSONObject("routing")?:JSONObject()
+            val rules=JSONArray().put(JSONObject().put("type","field").put("inboundTag",JSONArray().put(tag)).put("outboundTag",targetTag))
+            routing.optJSONArray("rules")?.let{old->for(i in 0 until old.length())rules.put(old.get(i))}
+            config.put("routing",routing.put("rules",rules))
+        }
         return config
     }
 }

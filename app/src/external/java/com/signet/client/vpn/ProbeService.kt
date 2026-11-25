@@ -65,19 +65,16 @@ class ProbeService:Service() {
         val options=ProbeSettings.parse(request.getJSONObject("options").toString())
         val array=request.getJSONArray("servers");require(array.length() in 1..10)
         val servers=(0 until array.length()).map { i->val s=array.getJSONObject(i);Profiles.parseJson(s.getString("config")).single().copy(id=s.getString("id")) }
-        if(!request.optBoolean("validateOnly"))bootstrap(options.mode!=ProbeMode.TCP&&options.mode!=ProbeMode.HTTPS)
+        if(!request.optBoolean("validateOnly"))bootstrap(options.mode!=ProbeMode.HTTPS)
         val out=JSONArray()
         if(request.optBoolean("validateOnly")) {
             for(server in servers)out.put(fullProfile(server,options,validateOnly=true))
-        } else if(options.mode==ProbeMode.TCP||options.mode==ProbeMode.HTTPS) {
+        } else if(options.mode==ProbeMode.HTTPS) {
             val result=coroutineScope {servers.map{s->async { direct(s,options) }}.awaitAll()}
             result.forEach(out::put)
-        } else if(options.mode==ProbeMode.OUTBOUND) {
-            val results=OutboundProbeBatch.measure(servers.filterNot{it.isAuto},options,{payload->NativeCore.call("pingBatch",payload)})
-                .associateBy{it.getString("id")}.toMutableMap()
-            for(server in servers.filter{it.isAuto})results[server.id]=fullProfile(server,options)
-            for(server in servers)out.put(results.getValue(server.id))
         } else {
+            // TCP is an end-to-end connectivity test in Universal, not a raw port probe.
+            // Both TCP and XRAY send HTTPS GET; OUTBOUND sends HTTPS HEAD.
             for(server in servers)out.put(fullProfile(server,options))
         }
         return JSONObject().put("results",out)
@@ -97,9 +94,8 @@ class ProbeService:Service() {
         val started=SystemClock.elapsedRealtime()
         return runCatching {
             val network=network?:error("NO_NETWORK")
-            if(options.mode==ProbeMode.TCP) {
-                ProbeTcp.connect(network.getAllByName(endpoint.host).toList(),endpoint.port,options.timeoutMs){network.socketFactory.createSocket()}
-            } else {
+            // Direct HTTPS remains a node/TLS diagnostic, never used for TCP availability.
+            run {
                 val host=endpoint.tlsName?:endpoint.host
                 val factory=network.socketFactory
                 val client=OkHttpClient.Builder().socketFactory(factory).dns(object:Dns {
@@ -124,7 +120,11 @@ class ProbeService:Service() {
             stage="CONFIG_ERROR"
             val port=NativeCore.call("getFreePorts",JSONObject().put("count",1)).getJSONArray("ports").getInt(0)
             val secret=UUID.randomUUID().toString()
-            val config=Profiles.probeRuntime(server,port,assetsDir.absolutePath,secret)
+            val config=Profiles.probeRuntime(server,port,assetsDir.absolutePath,secret,strict=!validateOnly)
+            if(!config.has("dns")){
+                val dnsAddress=if(fallbackDns.contains(':'))"[$fallbackDns]"else fallbackDns
+                config.put("dns",JSONObject().put("servers",JSONArray().put("tcp://$dnsAddress:53")))
+            }
             NativeCore.call("testXray",JSONObject().put("xrayJson",config.toString()))
             if(validateOnly)return JSONObject().put("id",server.id).put("status","VALID")
             stage="CORE_ERROR";attemptedRun=true
@@ -132,11 +132,16 @@ class ProbeService:Service() {
             stage="REQUEST"
             client=OkHttpClient.Builder().proxy(java.net.Proxy(java.net.Proxy.Type.HTTP,InetSocketAddress("127.0.0.1",port)))
                 .proxyAuthenticator { _,response->if(response.request.header("Proxy-Authorization")!=null)null else response.request.newBuilder().header("Proxy-Authorization",Credentials.basic("signet",secret)).build() }
-                .followRedirects(false).followSslRedirects(false).callTimeout(options.timeoutMs.toLong(),TimeUnit.MILLISECONDS).build()
+                .followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false).callTimeout(options.timeoutMs.toLong(),TimeUnit.MILLISECONDS).build()
             // Via Proxy GET measures the request through the selected full Xray profile.
             requestStarted=SystemClock.elapsedRealtime()
-            client.newCall(Request.Builder().url(options.url).get().build()).awaitResponse().use {
-                check(it.handshake!=null && it.code in 200..399) { "HTTP response ${it.code}" }
+            val request=Request.Builder().url(options.url).header("Connection","close")
+            if(options.mode==ProbeMode.OUTBOUND)request.head()else request.get()
+            client.newCall(request.build()).awaitResponse().use {
+                if(it.handshake==null)return JSONObject().put("id",server.id).put("status","TLS")
+                val expected=if(options.url.substringBefore('?').endsWith("/generate_204"))it.code==204 else it.code in 200..299
+                if(!expected)return JSONObject().put("id",server.id).put("status","HTTP_ERROR")
+                if(options.mode!=ProbeMode.OUTBOUND)it.body?.byteStream()?.read()
             }
             JSONObject().put("id",server.id).put("delay",SystemClock.elapsedRealtime()-requestStarted).put("status","OK")
         } catch(e:CancellationException){throw e}

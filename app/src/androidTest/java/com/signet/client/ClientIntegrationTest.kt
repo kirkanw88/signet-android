@@ -65,8 +65,21 @@ class ClientIntegrationTest {
         val sub=repository.state.value.subscriptions.first{it.title=="LOCAL TEST ONLY"}
         repository.select(sub.servers.first().id)
         try {
-            val beforeTun=Probes.measure(context,sub.servers)
-            assertNotNull("Outbound before TUN establishment",beforeTun[sub.servers.first().id])
+            val tcpOptions=com.signet.core.ProbeSettings(mode=com.signet.core.ProbeMode.TCP,timeoutMs=12000)
+            val beforeTun=Probes.measureDetailed(context,sub.servers,tcpOptions)
+            assertNotNull("TCP must carry HTTPS before TUN: ${beforeTun[sub.servers.first().id]?.status}",beforeTun[sub.servers.first().id]?.delay)
+            delay(700)
+            if(link==null){
+                // Same listening fixture and transport, but deliberately invalid VLESS credentials.
+                // A raw TCP connect would falsely report success.
+                java.net.Socket().use{it.connect(java.net.InetSocketAddress("127.0.0.1",10888),3000)}
+                val broken=com.signet.core.Profiles.parseJson(sub.servers.first().config.replace("00000000-0000-4000-8000-000000000001","00000000-0000-4000-8000-000000000099")).single()
+                val result=Probes.measureDetailed(context,listOf(broken),tcpOptions)[broken.id]
+                assertNotNull("Probe must return a result",result)
+                assertNull("Listening port with invalid VPN credentials must not show latency",result?.delay)
+                assertNotEquals("OK",result?.status)
+                delay(700)
+            }
             context.startForegroundService(Intent(context,SignetVpnService::class.java))
             val connected=withTimeout(40_000){VpnState.status.first{it.phase==VpnPhase.CONNECTED||it.phase==VpnPhase.ERROR}}
             assertEquals(connected.error,VpnPhase.CONNECTED,connected.phase)
@@ -76,8 +89,8 @@ class ClientIntegrationTest {
             }finally{client.connectionPool.evictAll();client.dispatcher.executorService.shutdown()}
             delay(3500)
             assertTrue("Real Xray traffic statistics",VpnState.status.value.uploaded>0||VpnState.status.value.downloaded>0)
-            val probe=Probes.measure(context,sub.servers)
-            assertNotNull("Isolated HTTP probe while VPN runs",probe[sub.servers.first().id])
+            val probe=Probes.measureDetailed(context,sub.servers,tcpOptions)
+            assertNotNull("TCP must carry HTTPS while VPN runs: ${probe[sub.servers.first().id]?.status}",probe[sub.servers.first().id]?.delay)
         }finally{
             context.startService(Intent(context,SignetVpnService::class.java).setAction("STOP"))
             withTimeout(15_000){VpnState.status.first{it.phase==VpnPhase.DISCONNECTED}}
