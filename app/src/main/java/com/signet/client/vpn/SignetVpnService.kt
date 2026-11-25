@@ -38,7 +38,7 @@ class SignetVpnService : VpnService() {
     private var requested = false
     private var retryCount = 0
     private var metricsPort = 0
-    private val engine: CoreEngine = LibXrayEngine()
+    @Volatile private var engine: CoreEngine = LibXrayEngine()
     private val connectivity by lazy { getSystemService(ConnectivityManager::class.java) }
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) { changedNetwork() }
@@ -87,6 +87,8 @@ class SignetVpnService : VpnService() {
         var startupStage="настройка TUN"
         try {
             val settings = repository.state.value.settings
+            engine = EngineFactory.create(settings.preferRustCore)
+            ConnectionLog.add("CORE", "SELECTED", engine.name)
             require(TemplateCompatibility.numericAddress(settings.dns)) { "Укажите IP DNS-сервера" }
             val physical=physicalNetwork()?:error("Нет доступной сети")
             val linkDns=connectivity.getLinkProperties(physical)?.dnsServers.orEmpty()
@@ -106,7 +108,8 @@ class SignetVpnService : VpnService() {
                 .addAddress("fdfe:dcba:9876::1", 126).addRoute("::", 0).addDnsServer(engine.dnsAddress)
                 .setConfigureIntent(PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE))
             if (Build.VERSION.SDK_INT >= 29) builder.setMetered(false)
-            builder.setUnderlyingNetworks(arrayOf(physical))
+            // Rust SDK protects sockets but does not bind them to a specific Android Network.
+            builder.setUnderlyingNetworks(if (engine is LibXrayEngine) arrayOf(physical) else null)
             when (settings.appMode) {
                 "include" -> {
                     require(settings.packages.isNotEmpty()) { "Выберите приложения для VPN" }
@@ -131,7 +134,7 @@ class SignetVpnService : VpnService() {
             startupStage="проверка HTTPS"
             // Android updates VPN routes/DNS asynchronously after establish(). Allow bounded warm-up retries.
             delay(300)
-            check(ConnectionHealth.check(settings.connectionCheckUrl,throughTunnel=true).healthy)
+            check(ConnectionHealth.check(settings.connectionCheckUrl,throughTunnel=true,tunnelDnsAddress=engine.dnsAddress).healthy)
             currentCoroutineContext().ensureActive()
             if (!requested) { stopCore(); return@withLock }
             VpnState.status.value = VpnStatus(VpnPhase.CONNECTED, selected.id, SystemClock.elapsedRealtime(),tunActive=true)
@@ -160,7 +163,7 @@ class SignetVpnService : VpnService() {
                     break
                 }
                 if(SystemClock.elapsedRealtime()>=nextHealth) {
-                    val reachable=ConnectionHealth.check(repository.state.value.settings.connectionCheckUrl,attempts=1,throughTunnel=true).healthy
+                    val reachable=ConnectionHealth.check(repository.state.value.settings.connectionCheckUrl,attempts=1,throughTunnel=true,tunnelDnsAddress=engine.dnsAddress).healthy
                     failures=if(reachable)0 else failures+1;nextHealth=SystemClock.elapsedRealtime()+30_000
                     if(reachable)retryCount=0
                     if(failures>=3){stopCore(closeTun=false);fail("VPN перестал передавать HTTPS-трафик");break}
