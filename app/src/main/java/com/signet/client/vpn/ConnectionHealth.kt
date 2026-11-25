@@ -43,11 +43,11 @@ object ConnectionHealth {
             else->"IO"
         }
     }
-    suspend fun check(url:String,attempts:Int=3,record:Boolean=true,client:OkHttpClient?=null,throughTunnel:Boolean=false):Result {
+    suspend fun check(url:String,attempts:Int=3,record:Boolean=true,client:OkHttpClient?=null,throughTunnel:Boolean=false,tunnelDnsAddress:String=com.signet.core.AndroidDns.ADDRESS):Result {
         require(SubscriptionMetadata.safeLink(url)!=null)
         require(attempts in 1..3)
         val owned=client==null
-        val http=client?:OkHttpClient.Builder().apply{if(throughTunnel&&!com.signet.client.BuildConfig.SIGNET_ACCOUNT)dns(TunnelDns())}.proxy(Proxy.NO_PROXY).followRedirects(false).followSslRedirects(false)
+        val http=client?:OkHttpClient.Builder().apply{if(throughTunnel&&!com.signet.client.BuildConfig.SIGNET_ACCOUNT)dns(TunnelDns(address=tunnelDnsAddress))}.proxy(Proxy.NO_PROXY).followRedirects(false).followSslRedirects(false)
             .retryOnConnectionFailure(false).connectTimeout(5,TimeUnit.SECONDS).readTimeout(5,TimeUnit.SECONDS).callTimeout(7,TimeUnit.SECONDS).build()
         try {
             var result=Result("IO",0)
