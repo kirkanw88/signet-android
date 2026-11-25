@@ -1,0 +1,72 @@
+name: Rust test APK
+on:
+  push:
+    branches: [feature/rust-core]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rust-test-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install SDK
+        run: '"${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-36" "build-tools;36.0.0"'
+      - name: Fetch pinned native engines
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/fetch-native.py
+          mkdir -p "${RUNNER_TEMP}/rust-sdk"
+          curl --fail --location --retry 3 --output "${RUNNER_TEMP}/rust-sdk/xray-rust-mobile.aar" https://github.com/aimalygin/xray-rust-mobile/releases/download/v0.10.1/xray-rust-mobile-0.10.1.aar
+          echo "007aee812ef3beb4abfe4df6ce46d57b43bb21f630b59e1ac831b8e463a4ad83  ${RUNNER_TEMP}/rust-sdk/xray-rust-mobile.aar" | sha256sum -c -
+      - name: Build debug APKs with both engines
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew --dependency-verification strict --no-daemon --stacktrace --max-workers=2 \
+            -PsignetRustAar="${RUNNER_TEMP}/rust-sdk/xray-rust-mobile.aar" \
+            -PsignetRustAarSha256=007aee812ef3beb4abfe4df6ce46d57b43bb21f630b59e1ac831b8e463a4ad83 \
+            :app:assembleSignetDebug :app:assembleExternalDebug
+      - name: Verify packages and prepare test artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/rust-test
+          for edition in signet external; do
+            apk="app/build/outputs/apk/$edition/debug/app-$edition-arm64-v8a-debug.apk"
+            test -s "$apk"
+            "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify "$apk"
+            python3 - "$apk" <<'PY'
+          import sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              names = z.namelist()
+              native = [n for n in names if n.startswith("lib/arm64-v8a/") and n.endswith(".so")]
+              print(native)
+              assert any("xray" in n.lower() and "rust" in n.lower() for n in native), "Rust native library not identified"
+          PY
+            cp "$apk" "dist/rust-test/Signet-$edition-rust-test-arm64-v8a.apk"
+          done
+          (cd dist/rust-test && sha256sum *.apk > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signet-rust-test-arm64
+          path: dist/rust-test/
+          if-no-files-found: error
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rust-test-build-reports
+          path: |
+            build/reports/dependency-verification/
+            app/build/reports/
