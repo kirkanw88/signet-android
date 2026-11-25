@@ -7,7 +7,7 @@ import java.net.SocketTimeoutException
 
 /** Try all DNS answers within one budget instead of declaring a host down on its first address. */
 internal object ProbeTcp {
-    fun connect(addresses:List<InetAddress>,port:Int,timeoutMs:Int,socket:()->Socket={Socket()}) {
+    fun connect(addresses:List<InetAddress>,port:Int,timeoutMs:Int,socket:()->Socket={Socket()}):Long {
         require(addresses.isNotEmpty())
         val deadline=System.nanoTime()+timeoutMs*1_000_000L
         var failure:Exception=SocketTimeoutException()
@@ -17,7 +17,7 @@ internal object ProbeTcp {
             if(remaining<=0)break
             // Reserve time for the other IPv4/IPv6 answers if one route silently drops SYNs.
             val budget=(remaining/(addresses.size-index)).coerceAtLeast(1)
-            try {socket().use{it.connect(InetSocketAddress(address,port),budget)};return}
+            try {socket().use{ val start=System.nanoTime(); it.connect(InetSocketAddress(address,port),budget); return ((System.nanoTime()-start)/1_000_000L).coerceAtLeast(1) }}
             catch(e:Exception){failure=e}
         }
         throw failure
