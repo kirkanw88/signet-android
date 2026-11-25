@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 
 /** Isolated process; unbinding kills its native runtime and cancels sockets. */
-class ProbeService:Service() {
+open class ProbeService:Service() {
     private val scope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
     private val lock=Mutex()
     private val protector=android.net.VpnService()
@@ -168,3 +168,9 @@ class ProbeService:Service() {
     }
     override fun onDestroy(){scope.cancel();super.onDestroy();android.os.Process.killProcess(android.os.Process.myPid())}
 }
+
+// Each worker has its own native singleton and Android process.
+class ProbeWorker1 : ProbeService()
+class ProbeWorker2 : ProbeService()
+class ProbeWorker3 : ProbeService()
+class ProbeWorker4 : ProbeService()
