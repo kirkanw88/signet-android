@@ -65,15 +65,16 @@ class ProbeService:Service() {
         val options=ProbeSettings.parse(request.getJSONObject("options").toString())
         val array=request.getJSONArray("servers");require(array.length() in 1..10)
         val servers=(0 until array.length()).map { i->val s=array.getJSONObject(i);Profiles.parseJson(s.getString("config")).single().copy(id=s.getString("id")) }
-        if(!request.optBoolean("validateOnly"))bootstrap(options.mode!=ProbeMode.TCP&&options.mode!=ProbeMode.HTTPS)
+        if(!request.optBoolean("validateOnly"))bootstrap(options.mode!=ProbeMode.HTTPS)
         val out=JSONArray()
         if(request.optBoolean("validateOnly")) {
             for(server in servers)out.put(fullProfile(server,options,validateOnly=true))
-        } else if(options.mode==ProbeMode.TCP||options.mode==ProbeMode.HTTPS) {
+        } else if(options.mode==ProbeMode.HTTPS) {
             val result=coroutineScope {servers.map{s->async { direct(s,options) }}.awaitAll()}
             result.forEach(out::put)
         } else {
-            // A HEAD/GET response through the full proxy is required, not just batch latency.
+            // TCP is an end-to-end connectivity test in Universal, not a raw port probe.
+            // Both TCP and XRAY send HTTPS GET; OUTBOUND sends HTTPS HEAD.
             for(server in servers)out.put(fullProfile(server,options))
         }
         return JSONObject().put("results",out)
@@ -93,9 +94,8 @@ class ProbeService:Service() {
         val started=SystemClock.elapsedRealtime()
         return runCatching {
             val network=network?:error("NO_NETWORK")
-            if(options.mode==ProbeMode.TCP) {
-                ProbeTcp.connect(network.getAllByName(endpoint.host).toList(),endpoint.port,options.timeoutMs){network.socketFactory.createSocket()}
-            } else {
+            // Direct HTTPS remains a node/TLS diagnostic, never used for TCP availability.
+            run {
                 val host=endpoint.tlsName?:endpoint.host
                 val factory=network.socketFactory
                 val client=OkHttpClient.Builder().socketFactory(factory).dns(object:Dns {
