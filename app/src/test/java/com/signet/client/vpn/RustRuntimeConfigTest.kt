@@ -48,4 +48,21 @@ class RustRuntimeConfigTest {
         assertEquals(original.getJSONObject("dns").getJSONArray("servers").toString(),adapted.getJSONObject("dns").getJSONArray("servers").toString())
         assertEquals("192.0.2.10",adapted.getJSONObject("dns").getJSONObject("hosts").getJSONArray("node.example").getString(0))
     }
+    @Test fun removesOnlyGoMetadataAndKeepsExplicitIngress() {
+        val original=JSONObject(profile())
+        original.put("signet",JSONObject().put("tunInboundTag","socks"))
+        original.put("stats",JSONObject()).put("metrics",JSONObject()).put("env",JSONObject())
+        val adapted=RustRuntimeConfig.prepare(original.toString(),"1.1.1.1")
+        for(key in listOf("signet","stats","metrics","env"))assertFalse(adapted.has(key))
+        assertEquals("socks",adapted.getJSONArray("inbounds").getJSONObject(0).getString("tag"))
+        assertEquals(original.getJSONObject("routing").toString(),adapted.getJSONObject("routing").toString())
+    }
+
+    @Test fun rejectsUnsupportedBalancerInsteadOfRemovingIt() {
+        val original=JSONObject(profile()).put("burstObservatory",JSONObject())
+        try {
+            RustRuntimeConfig.prepare(original.toString(),"1.1.1.1")
+            fail("Expected incompatible configuration")
+        }catch(e:CoreFailure){assertEquals("RUST_BURST_OBSERVATORY_UNSUPPORTED",e.code)}
+    }
 }
