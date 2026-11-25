@@ -25,6 +25,7 @@ internal interface CoreEngine {
     val name: String
     val dnsAddress: String
     fun attach(service: VpnService, dns: String, network: Network)
+    fun prepare(server: Server, fallbackDns: String, network: Network) = Unit
     fun freeMetricsPort(): Int
     fun start(session: EngineSession)
     fun running(): Boolean
