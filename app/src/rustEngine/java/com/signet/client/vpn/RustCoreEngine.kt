@@ -35,8 +35,8 @@ internal class RustCoreEngine : CoreEngine {
         check(core == null)
         val config = prepared ?: throw CoreFailure("RUST_PREPARE_REQUIRED")
         prepared = null
-        try {
-            val instance = XrayCore.create(
+        val instance = try {
+            XrayCore.create(
                 configJson = config.toString(),
                 vpnService = session.service,
                 tunFileDescriptor = XrayTunFileDescriptor(session.tunFd),
@@ -45,18 +45,39 @@ internal class RustCoreEngine : CoreEngine {
                 geodataSearchDirectory = session.assets,
                 tunMtu = 1500
             )
-            try {
-                instance.start()
-                core = instance
-            } catch (failure: Throwable) {
-                runCatching { instance.close() }
-                throw failure
-            }
-        } catch (failure: CoreFailure) { throw failure }
-        catch (failure: Exception) { throw CoreFailure("RUST_NATIVE_CONFIG_OR_START") }
-        catch (failure: LinkageError) {
+        } catch (failure: LinkageError) {
             throw CoreFailure("RUST_SDK_LINKAGE")
+        } catch (failure: Exception) {
+            throw CoreFailure(classify("CREATE", failure))
         }
+        try {
+            instance.start()
+            core = instance
+        } catch (failure: LinkageError) {
+            runCatching { instance.close() }
+            throw CoreFailure("RUST_SDK_LINKAGE")
+        } catch (failure: Exception) {
+            runCatching { instance.close() }
+            throw CoreFailure(classify("START", failure))
+        }
+    }
+
+    // Raw native messages can include UUIDs, endpoints or credentials.
+    // Only emit fixed categories, never exception text.
+    private fun classify(stage: String, failure: Exception): String {
+        val message = generateSequence<Throwable>(failure) { it.cause }.take(8)
+            .joinToString(" ") { it.message.orEmpty() }.lowercase(java.util.Locale.ROOT)
+        val category = when {
+            "unknown field" in message || "unsupported" in message -> "UNSUPPORTED"
+            "geosite" in message || "geoip" in message || "geodata" in message -> "GEODATA"
+            "observatory" in message || "balancer" in message -> "BALANCER"
+            "dns" in message -> "DNS"
+            "certificate" in message || "tls" in message -> "TLS"
+            "tun" in message || "descriptor" in message -> "TUN"
+            failure is IllegalArgumentException -> "INVALID_CONFIG"
+            else -> "FAILED"
+        }
+        return "RUST_${stage}_$category"
     }
 
     @Synchronized override fun running(): Boolean {
