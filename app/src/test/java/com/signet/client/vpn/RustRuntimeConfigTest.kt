@@ -61,8 +61,21 @@ class RustRuntimeConfigTest {
     @Test fun rejectsUnsupportedBalancerInsteadOfRemovingIt() {
         val original=JSONObject(profile()).put("burstObservatory",JSONObject())
         try {
-            RustRuntimeConfig.prepare(original.toString(),"1.1.1.1")
+            RustRuntimeConfig.prepare(original.toString(),"1.1.1.1",burstSupported=false)
             fail("Expected incompatible configuration")
         }catch(e:CoreFailure){assertEquals("RUST_BURST_OBSERVATORY_UNSUPPORTED",e.code)}
+    }
+    @Test fun preservesBurstAndBalancerForCandidate() {
+        val original = JSONObject(profile())
+        val burst = JSONObject("""{"subjectSelector":["proxy"],"pingConfig":{"destination":"https://example.invalid/generate_204","interval":"10s","sampling":2}}""")
+        original.put("burstObservatory",burst)
+        for (strategy in listOf("leastPing","leastLoad","random","roundRobin")) {
+            val routing=original.getJSONObject("routing")
+            routing.put("balancers",org.json.JSONArray().put(JSONObject().put("tag","auto").put("selector",org.json.JSONArray().put("proxy")).put("fallbackTag","direct").put("strategy",JSONObject().put("type",strategy))))
+            routing.put("rules",org.json.JSONArray().put(JSONObject().put("type","field").put("network","tcp,udp").put("balancerTag","auto")))
+            val adapted=RustRuntimeConfig.prepare(original.toString(),"1.1.1.1",burstSupported=true)
+            assertEquals(burst.toString(),adapted.getJSONObject("burstObservatory").toString())
+            assertEquals(routing.toString(),adapted.getJSONObject("routing").toString())
+        }
     }
 }
