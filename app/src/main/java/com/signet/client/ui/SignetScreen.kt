@@ -349,7 +349,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     var labelSize by remember{mutableStateOf(IntSize.Zero)}
     var area by remember{mutableStateOf(IntSize.Zero)}
     Box(modifier.testTag("home-globe").clip(RoundedCornerShape(if(AppColors.dark)0.dp else 24.dp)).onSizeChanged{area=it}) {
-        AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);renderer=it.globe;globeView=it}},modifier=Modifier.fillMaxSize(),onRelease={it.releaseHost();if(globeView===it)globeView=null},update={it.bindHost(lifecycle);it.photoCover(false);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,parentScroll,rotateVertical=false)})
+        AndroidView(factory={context->GlobeView(context,settings.graphics=="High").also{it.bindHost(lifecycle);val view=it;view.post{if(view.isAttachedToWindow){renderer=view.globe;globeView=view}}}},modifier=Modifier.fillMaxSize(),onRelease={view->view.releaseHost();view.post{if(globeView===view){globeView=null;renderer=null}}},update={it.bindHost(lifecycle);it.photoCover(false);it.update(server,phase,settings.graphics,settings.reduceMotion,lightTheme,parentScroll,rotateVertical=false)})
         if(!BuildConfig.SIGNET_ACCOUNT&&phase==VpnPhase.DISCONNECTED) {
             // Rotate only while disconnected; vertical or diagonal drags remain
             // available to the Home screen's normal scrolling behavior.
