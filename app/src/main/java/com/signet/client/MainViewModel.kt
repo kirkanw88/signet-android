@@ -70,7 +70,44 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 val targets=if(subscriptionId!=null)state.value.subscriptions.firstOrNull{it.id==subscriptionId}?.servers.orEmpty().filter{it.enabled}else if(onlySelected)listOfNotNull(state.value.server)else state.value.servers.filter{it.enabled}
                 val allowed=targets.filter { !com.signet.core.TransportChecks.requiresOAuthConsent(org.json.JSONObject(it.config))||repository.allowsOAuth(it.id) }
                 targets.filterNot{it in allowed}.forEach{repository.measurement(it.id,null,options.mode.name,"CONSENT_REQUIRED")}
-                for(batch in allowed.chunked(options.parallelism)) {
+                if(!BuildConfig.SIGNET_ACCOUNT) {
+                    // A rolling queue, not a barrier between groups. Each worker owns its native process.
+                    val queue=kotlinx.coroutines.channels.Channel<com.signet.core.Server>(capacity=allowed.size.coerceAtLeast(1))
+                    allowed.forEach { check(queue.trySend(it).isSuccess) }
+                    queue.close()
+                    _probingIds.value=allowed.map{it.id}.toSet()
+                    coroutineScope {
+                        repeat(minOf(options.parallelism,4,allowed.size)) { index ->
+                            launch {
+                                for(server in queue) {
+                                    try {
+                                        val samples=mutableListOf<Long>()
+                                        var status="FAILED"
+                                        repeat(options.attempts) { attempt ->
+                                            suspend fun probe():ProbeMeasurement =
+                                                try {
+                                                    Probes.measureDetailed(getApplication(),listOf(server),options,worker=index+1)[server.id]
+                                                        ?: ProbeMeasurement(null,"SERVICE_ERROR")
+                                                } catch(e:TimeoutCancellationException) {
+                                                    currentCoroutineContext().ensureActive()
+                                                    ProbeMeasurement(null,"TIMEOUT")
+                                                }
+                                            var result=probe()
+                                            if(result.status=="SERVICE_ERROR") { delay(250); result=probe() }
+                                            status=result.status
+                                            ConnectionLog.add("PROBE",options.mode.name,status)
+                                            if(status=="OK")result.delay?.let(samples::add)
+                                            if(attempt<options.attempts-1)delay(options.intervalMs.toLong())
+                                        }
+                                        val complete=samples.size==options.attempts
+                                        repository.measurement(server.id,if(complete)samples.sorted()[samples.size/2]else null,
+                                            options.mode.name,if(complete)"OK"else status.takeUnless{it=="OK"}?:"FAILED")
+                                    } finally { _probingIds.update{it-server.id} }
+                                }
+                            }
+                        }
+                    }
+                } else for(batch in allowed.chunked(options.parallelism)) {
                     _probingIds.value=batch.map{it.id}.toSet()
                     val samples=batch.associate{it.id to mutableListOf<Long>()};val statuses=mutableMapOf<String,String>()
                     repeat(options.attempts) { attempt->
