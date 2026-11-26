@@ -19,7 +19,7 @@ class ConnectionHealthTest {
     @Test fun loggingIsBoundedAndRejectsUrlsAndUuids(){
         val log=com.signet.client.data.ConnectionLog
         try {
-            log.configure(false);log.configure(true)
+            log.clear();log.configure(true)
             repeat(2500){log.add("VPN","EVENT",it.toString())}
             assertEquals(2000,log.entries.value.size)
             assertTrue(log.entries.value.first().endsWith("VPN EVENT 500"))
@@ -29,10 +29,12 @@ class ConnectionHealthTest {
             log.add("VPN","https://example.com/private-token")
             log.add("VPN","550e8400-e29b-41d4-a716-446655440000")
             assertEquals(before,log.entries.value)
-            log.configure(false);assertTrue(log.entries.value.isEmpty())
-            log.add("VPN","EVENT","DISABLED")
-            assertTrue(log.entries.value.isEmpty())
-        }finally {log.configure(false)}
+            log.configure(false);assertTrue(log.enabled)
+            assertEquals(before,log.entries.value)
+            log.add("VPN","EVENT","ALWAYS_ENABLED")
+            assertTrue(log.entries.value.last().endsWith("VPN EVENT ALWAYS_ENABLED"))
+            log.clear();assertTrue(log.entries.value.isEmpty())
+        }finally {log.clear()}
     }
     @Test fun verifiedHttpErrorsStillProveHttpsTraffic()=runBlocking {
         val client=trustedClient()
