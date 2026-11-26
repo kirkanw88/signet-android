@@ -191,14 +191,14 @@ private val Accent:Color @Composable get()=AppColors.accent
                 }
             }
             "logs"->{
-                SettingsCard {SettingsToggle("Записывать события","Запуск VPN, проверка HTTPS и коды ошибок",s.logging){model.save(s.copy(logging=it))}}
-                Text("Журнал хранится только в памяти: не более 2000 строк. Ссылки подписки, UUID, HWID и ключи не записываются. При отключении логирования журнал очищается.",fontSize=15.sp,lineHeight=22.sp,color=SecondaryInk)
+
+                Text("Журнал хранится только в памяти: не более 2000 строк. Ссылки подписки, UUID, HWID и ключи не записываются. Логирование всегда включено.",fontSize=15.sp,lineHeight=22.sp,color=SecondaryInk)
                 Row(horizontalArrangement=Arrangement.spacedBy(12.dp)){
                     GlassButton(onClick={(context.getSystemService(ClipboardManager::class.java)).setPrimaryClip(ClipData.newPlainText("Signet connection log",ConnectionLog.export()));model.repository.notify("Журнал скопирован")},enabled=logLines.isNotEmpty()){Icon(Icons.Outlined.ContentCopy,null);Text("Копировать",Modifier.padding(start=8.dp))}
                     IconButton(onClick={exportLog.launch("signet-connection-log.txt")},enabled=logLines.isNotEmpty()){Icon(Icons.Outlined.SaveAlt,"Экспорт журнала")}
                     IconButton(onClick=ConnectionLog::clear,enabled=logLines.isNotEmpty()){Icon(Icons.Outlined.DeleteOutline,"Очистить журнал")}
                 }
-                SettingsCard {SelectionContainer {Text(if(logLines.isEmpty())"Событий пока нет. Включите запись и выполните подключение."else logLines.joinToString("\n"),fontFamily=FontFamily.Monospace,fontSize=13.sp,lineHeight=20.sp,color=Ink,modifier=Modifier.fillMaxWidth().padding(14.dp))}}
+                SettingsCard {SelectionContainer {Text(if(logLines.isEmpty())"Событий пока нет. Выполните подключение."else logLines.joinToString("\n"),fontFamily=FontFamily.Monospace,fontSize=13.sp,lineHeight=20.sp,color=Ink,modifier=Modifier.fillMaxWidth().padding(14.dp))}}
             }
             "diagnostics"->{
                 if(!BuildConfig.SIGNET_ACCOUNT)SettingsCard {
