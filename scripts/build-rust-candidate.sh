@@ -34,6 +34,25 @@ XRAY_RUST_FFI_HEADER_SHA256=926e7a5318916a9ebc706a2b48bbdd58f8c6601282683ad942f2
 XRAY_RUST_MODULEMAP_SHA256=28552741cc3df9540cef79770cc103c516dbc565dc87387be01a86ef38066f11
 XRAY_FFI_ABI_MAJOR=1
 EOF
+# Resolve the Kotlin Android plugin marker exclusively from Maven Central.
+# Keep upstream dependency verification and all pinned checksums intact.
+python3 - "$mobile/android/settings.gradle.kts" <<'PY'
+import pathlib, sys
+p = pathlib.Path(sys.argv[1])
+s = p.read_text()
+old = "        google()\n        mavenCentral()\n        gradlePluginPortal()"
+new = """        exclusiveContent {
+            forRepository { mavenCentral() }
+            filter {
+                includeModule("org.jetbrains.kotlin.android", "org.jetbrains.kotlin.android.gradle.plugin")
+            }
+        }
+        google()
+        mavenCentral()
+        gradlePluginPortal()"""
+assert s.count(old) == 1, "Unexpected upstream plugin repository configuration"
+p.write_text(s.replace(old, new, 1))
+PY
 export XRAY_RUST_SOURCE="$core"
 export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/26.3.11579264"
 export CARGO_BUILD_JOBS=2
