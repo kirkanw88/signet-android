@@ -69,6 +69,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch(Dispatchers.IO){try{repository.refreshSubscription(id)}finally{_refreshingSubscriptions.update{it-id}}}
     }
     fun measureSubscription(id:String){measure(subscriptionId=id)}
+    fun measureServer(id:String){if(!_probing.value && vpn.value.phase !in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.DISCONNECTING))measure(serverId=id)}
     fun refresh() { if(_refreshing.value)return;_refreshing.value=true;viewModelScope.launch(Dispatchers.IO) {try{repository.refreshAll()}finally{_refreshing.value=false}} }
     fun save(s: Settings) { viewModelScope.launch { runCatching { s.probes.validated();repository.settings(s) }.onFailure { repository.notify("Проверьте настройки: HTTPS URL, таймаут и допустимые ограничения") } } }
     fun reset(full:Boolean) { viewModelScope.launch {
@@ -87,7 +88,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun stop() { selectionJob?.cancel(); getApplication<Application>().startService(Intent(getApplication(), SignetVpnService::class.java).setAction("STOP")) }
     private var automaticProbe=false
     fun cancelAutoProbes(){if(automaticProbe)probeJob?.cancel()}
-    fun measure(onlySelected: Boolean = false,automatic:Boolean=false,subscriptionId:String?=null) {
+    fun measure(onlySelected: Boolean = false,automatic:Boolean=false,subscriptionId:String?=null,serverId:String?=null) {
         if (_probing.value) { probeJob?.cancel(); return }
         _probing.value=true
         automaticProbe=automatic
@@ -95,7 +96,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             _probing.value = true
             try {
                 val options=state.value.settings.probes.validated()
-                val targets=if(subscriptionId!=null)state.value.subscriptions.firstOrNull{it.id==subscriptionId}?.servers.orEmpty().filter{it.enabled}else if(onlySelected)listOfNotNull(state.value.server)else state.value.servers.filter{it.enabled}
+                val targets=if(serverId!=null)state.value.servers.filter{it.id==serverId&&it.enabled}else if(subscriptionId!=null)state.value.subscriptions.firstOrNull{it.id==subscriptionId}?.servers.orEmpty().filter{it.enabled}else if(onlySelected)listOfNotNull(state.value.server)else state.value.servers.filter{it.enabled}
                 val allowed=targets.filter { !com.signet.core.TransportChecks.requiresOAuthConsent(org.json.JSONObject(it.config))||repository.allowsOAuth(it.id) }
                 targets.filterNot{it in allowed}.forEach{repository.measurement(it.id,null,options.mode.name,"CONSENT_REQUIRED")}
                 if(!BuildConfig.SIGNET_ACCOUNT) {
