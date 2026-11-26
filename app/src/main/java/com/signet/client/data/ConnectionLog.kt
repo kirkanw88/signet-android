@@ -5,14 +5,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-/** Opt-in, bounded RAM only. Callers pass event codes, never request/configuration contents. */
+/** Always enabled, bounded RAM only. Callers pass event codes, never request/configuration contents. */
 object ConnectionLog {
     private val lines=MutableStateFlow<List<String>>(emptyList())
     val entries=lines.asStateFlow()
-    @Volatile var enabled=false
+    @Volatile var enabled=true
         private set
     private val clock=DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
-    @Synchronized fun configure(value:Boolean){enabled=value;if(!value)lines.value=emptyList()else if(lines.value.isEmpty())add("APP","LOGGING_ENABLED")}
+    @Synchronized fun configure(value:Boolean){enabled=true;if(lines.value.isEmpty())add("APP","LOGGING_ENABLED")}
     @Synchronized fun clear(){lines.value=emptyList()}
     @Synchronized fun add(area:String,event:String,code:String="") {
         if(!enabled)return
