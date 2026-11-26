@@ -13,7 +13,7 @@ data class Settings(
     val graphics: String = if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"Balanced"else com.signet.core.UniversalDefaults.GRAPHICS, val reduceMotion: Boolean = false,
     val appMode: String = "all", val packages: Set<String> = emptySet(), val cabinet: String = if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)SignetLinks.CABINET else "",
     val hwid: Boolean = true, val probes:ProbeSettings=ProbeSettings(),val automaticUpdates:Boolean=true,
-    val connectionCheckUrl:String=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"https://example.com"else com.signet.core.UniversalDefaults.CONNECTION_URL,val logging:Boolean=false,val theme:String="dark",val collapsedSubscriptions:Set<String> = emptySet(),val pinnedSubscriptions:Set<String> = emptySet(),val showTrafficRates:Boolean=true,val preferRustCore:Boolean=false
+    val connectionCheckUrl:String=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"https://example.com"else com.signet.core.UniversalDefaults.CONNECTION_URL,val logging:Boolean=true,val theme:String="dark",val collapsedSubscriptions:Set<String> = emptySet(),val pinnedSubscriptions:Set<String> = emptySet(),val showTrafficRates:Boolean=true,val preferRustCore:Boolean=false
 )
 class SettingsStore(private val context: Context) {
     suspend fun load(): Settings {
@@ -31,7 +31,7 @@ class SettingsStore(private val context: Context) {
             if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)p[booleanPreferencesKey("reduceMotion")] ?: false else false, p[stringPreferencesKey("appMode")] ?: "all",
             p[stringSetPreferencesKey("packages")] ?: emptySet(), if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)SignetLinks.CABINET else "", true,
             p[stringPreferencesKey("probes")]?.let { runCatching { ProbeSettings.parse(it) }.getOrNull() }?:ProbeSettings(),if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)p[booleanPreferencesKey("automaticUpdates")]?:true else true,
-            p[stringPreferencesKey("connectionCheckUrl")]?.takeIf{com.signet.core.SubscriptionMetadata.safeLink(it)!=null}?:(if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"https://example.com"else com.signet.core.UniversalDefaults.CONNECTION_URL),p[booleanPreferencesKey("logging")]?:false,p[stringPreferencesKey("theme")]?.takeIf{it in setOf("dark","light","system")}?:"dark",p[stringSetPreferencesKey("collapsedSubscriptions")]?:emptySet(),p[stringSetPreferencesKey("pinnedSubscriptions")]?:emptySet(),p[booleanPreferencesKey("showTrafficRates")]?:true,p[booleanPreferencesKey("preferRustCore")]?:false)
+            p[stringPreferencesKey("connectionCheckUrl")]?.takeIf{com.signet.core.SubscriptionMetadata.safeLink(it)!=null}?:(if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"https://example.com"else com.signet.core.UniversalDefaults.CONNECTION_URL),true,p[stringPreferencesKey("theme")]?.takeIf{it in setOf("dark","light","system")}?:"dark",p[stringSetPreferencesKey("collapsedSubscriptions")]?:emptySet(),p[stringSetPreferencesKey("pinnedSubscriptions")]?:emptySet(),p[booleanPreferencesKey("showTrafficRates")]?:true,p[booleanPreferencesKey("preferRustCore")]?:false)
     }
     suspend fun save(s: Settings) = context.settingsStore.edit {
         it[booleanPreferencesKey("reconnect")] = s.reconnect; it[booleanPreferencesKey("autoConnect")] = s.autoConnect
@@ -43,7 +43,7 @@ class SettingsStore(private val context: Context) {
         it[stringPreferencesKey("connectionCheckUrl")] = s.connectionCheckUrl
         it[stringPreferencesKey("probes")] = s.probes.validated().json().toString()
         it[booleanPreferencesKey("automaticUpdates")] = if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)s.automaticUpdates else true
-        it[booleanPreferencesKey("logging")] = s.logging
+        it.remove(booleanPreferencesKey("logging"))
         require(s.theme in setOf("dark","light","system"))
         it[stringPreferencesKey("theme")] = s.theme
         it[stringSetPreferencesKey("collapsedSubscriptions")] = s.collapsedSubscriptions
