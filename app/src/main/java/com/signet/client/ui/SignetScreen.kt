@@ -8,6 +8,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Animatable
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.unit.Constraints
@@ -65,6 +67,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
     val vpn by model.vpn.collectAsStateWithLifecycle()
     val probing by model.probing.collectAsStateWithLifecycle()
     val update by model.updates.state.collectAsStateWithLifecycle()
+    var startup by rememberSaveable { mutableStateOf(true) }
     var page by rememberSaveable { mutableIntStateOf(0) }
     var showServers by rememberSaveable { mutableStateOf(false) }
     var openDiagnostics by rememberSaveable { mutableStateOf(false) }
@@ -158,6 +161,24 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
         if(!BuildConfig.SIGNET_ACCOUNT&&page==0)update.available?.let{release->
             Box(Modifier.align(Alignment.TopCenter).padding(top=64.dp)) {
                 UpdateBanner(release,model)
+            }
+        }
+        if(startup) {
+            val opacity=remember { Animatable(0f) }
+            val exit=remember { Animatable(1f) }
+            LaunchedEffect(Unit) {
+                opacity.animateTo(1f,tween(if(state.settings.reduceMotion) 100 else 650))
+                delay(if(state.settings.reduceMotion) 100L else 350L)
+                exit.animateTo(0f,tween(if(state.settings.reduceMotion) 100 else 400))
+                startup=false
+            }
+            SpaceBackdrop(Modifier.fillMaxSize().graphicsLayer { alpha=exit.value }.pointerInput(Unit){awaitEachGesture { awaitFirstDown().consume(); do { val event=awaitPointerEvent(); event.changes.forEach{it.consume()} } while(event.changes.any{it.pressed}) }},animated=!state.settings.reduceMotion) {
+                Image(painterResource(R.drawable.signet_logo),"Signet VPN",
+                    Modifier.align(Alignment.Center).fillMaxWidth(.52f).height(120.dp).graphicsLayer {
+                        alpha=opacity.value
+                        scaleX=.94f+.06f*opacity.value
+                        scaleY=scaleX
+                    },colorFilter=if(AppColors.dark)null else androidx.compose.ui.graphics.ColorFilter.tint(AppColors.text))
             }
         }
         }
