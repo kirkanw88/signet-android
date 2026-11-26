@@ -116,7 +116,7 @@ open class ProbeService:Service() {
         var client:OkHttpClient?=null;var attemptedRun=false;var stage="ASSET_ERROR"
         return try {
             val assetsDir=GeoAssets.prepare(this)
-            stage="DNS_SETUP_ERROR";if(!validateOnly)bootstrap()
+            // The worker already bootstrapped its physical network and DNS once per batch.
             stage="CONFIG_ERROR"
             val port=NativeCore.call("getFreePorts",JSONObject().put("count",1)).getJSONArray("ports").getInt(0)
             val secret=UUID.randomUUID().toString()
@@ -125,8 +125,11 @@ open class ProbeService:Service() {
                 val dnsAddress=if(fallbackDns.contains(':'))"[$fallbackDns]"else fallbackDns
                 config.put("dns",JSONObject().put("servers",JSONArray().put("tcp://$dnsAddress:53")))
             }
-            NativeCore.call("testXray",JSONObject().put("xrayJson",config.toString()))
-            if(validateOnly)return JSONObject().put("id",server.id).put("status","VALID")
+            if(validateOnly){
+                NativeCore.call("testXray",JSONObject().put("xrayJson",config.toString()))
+                return JSONObject().put("id",server.id).put("status","VALID")
+            }
+            // runXray parses the configuration itself; avoid a second cold core initialization for each ping.
             stage="CORE_ERROR";attemptedRun=true
             NativeCore.call("runXray",JSONObject().put("xrayJson",config.toString()))
             stage="REQUEST"
