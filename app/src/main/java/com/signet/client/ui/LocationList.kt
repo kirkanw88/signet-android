@@ -1,6 +1,8 @@
 package com.signet.client.ui
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,7 +34,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.Role
 
 @OptIn(ExperimentalFoundationApi::class)
-@Composable fun LocationList(state:AppState,vpn:VpnStatus,probing:Boolean,select:(String)->Unit,favorite:(String)->Unit,ping:()->Unit,refresh:()->Unit,modifier:Modifier=Modifier,compact:Boolean=false,activeProbes:Set<String> = emptySet(),toggleSubscription:(String)->Unit={},pinSubscription:(String)->Unit={},refreshSubscription:(String)->Unit={},pingSubscription:(String)->Unit={},removeSubscription:(String)->Unit={},refreshingSubscriptions:Set<String> = emptySet(),addSubscription:(()->Unit)?=null,management:Boolean=false) {
+@Composable fun LocationList(state:AppState,vpn:VpnStatus,probing:Boolean,select:(String)->Unit,favorite:(String)->Unit,ping:()->Unit,refresh:()->Unit,modifier:Modifier=Modifier,compact:Boolean=false,activeProbes:Set<String> = emptySet(),toggleSubscription:(String)->Unit={},pinSubscription:(String)->Unit={},refreshSubscription:(String)->Unit={},pingSubscription:(String)->Unit={},removeSubscription:(String)->Unit={},refreshingSubscriptions:Set<String> = emptySet(),addSubscription:(()->Unit)?=null,management:Boolean=false,pingServer:(String)->Unit={}) {
     var query by rememberSaveable{mutableStateOf("")};var favoriteOnly by rememberSaveable{mutableStateOf(false)}
     var sort by rememberSaveable{mutableStateOf(false)};var tools by rememberSaveable{mutableStateOf(false)}
     var removeId by rememberSaveable{mutableStateOf<String?>(null)}
@@ -149,7 +151,10 @@ import androidx.compose.ui.semantics.Role
                             softWrap=true)
                     }
                 }
-                items(if(sort)visible.sortedBy{it.latencyMs?:Long.MAX_VALUE}else visible,key={"${sub.id}:${it.id}"}){server->ServerRow(server,displays.getValue(server.id),state,vpn,select,favorite,server.id in activeProbes,Modifier.animateItem())}
+                items(if(sort)visible.sortedBy{it.latencyMs?:Long.MAX_VALUE}else visible,key={"${sub.id}:${it.id}"}){server->ServerRow(server,displays.getValue(server.id),state,vpn,select,favorite,server.id in activeProbes,Modifier.animateItem().then(if(canPing&&!probing&&server.enabled)Modifier.pointerInput(server.id){
+                    var distance=0f
+                    detectHorizontalDragGestures(onDragStart={distance=0f},onDragCancel={distance=0f},onDragEnd={if(distance>=64.dp.toPx())pingServer(server.id);distance=0f}){change,amount->change.consume();distance+=amount}
+                }else Modifier))}
                 if(visible.isEmpty())item(key="${sub.id}:empty"){Text("В подписке пока нет серверов",Modifier.padding(12.dp),color=AppColors.muted)}
             }
         }
