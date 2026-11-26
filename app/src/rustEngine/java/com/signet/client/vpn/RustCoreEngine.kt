@@ -64,6 +64,7 @@ internal class RustCoreEngine : CoreEngine {
             throw CoreFailure("RUST_SDK_LINKAGE")
         } catch (failure: Exception) {
             ConnectionLog.elapsed("RUST","CREATE_FAILED",createStarted)
+            logFailureShape("CREATE", failure)
             throw CoreFailure(classify("CREATE", failure))
         }
         ConnectionLog.elapsed("RUST","CREATE_OK",createStarted)
@@ -80,7 +81,15 @@ internal class RustCoreEngine : CoreEngine {
         } catch (failure: Exception) {
             ConnectionLog.elapsed("RUST","START_FAILED",startStarted)
             runCatching { instance.close() }
+            logFailureShape("START", failure)
             throw CoreFailure(classify("START", failure))
+        }
+    }
+
+    private fun logFailureShape(stage: String, failure: Exception) {
+        generateSequence<Throwable>(failure) { it.cause }.take(8).forEachIndexed { index, cause ->
+            val type = cause.javaClass.simpleName.take(60).filter { it.isLetterOrDigit() || it == '_' }
+            ConnectionLog.add("RUST", "${stage}_CAUSE", "index=$index type=$type")
         }
     }
 
