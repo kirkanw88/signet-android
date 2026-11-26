@@ -25,6 +25,11 @@ import com.signet.client.vpn.VpnPhase
 import com.signet.core.*
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
@@ -203,7 +208,11 @@ import androidx.compose.ui.semantics.Role
             }
         }
         Column(horizontalAlignment=Alignment.End) {
-            if(probing)CircularProgressIndicator(Modifier.size(if(BuildConfig.SIGNET_ACCOUNT)18.dp else 14.dp),strokeWidth=2.dp)
+            if(probing){
+                val transition=rememberInfiniteTransition(label="ping-spinner")
+                val rotation by transition.animateFloat(0f,360f,infiniteRepeatable(tween(850,easing=LinearEasing)),label="ping-rotation")
+                Icon(Icons.Outlined.Refresh,"Измерение задержки",Modifier.size(18.dp).rotate(rotation),tint=AppColors.muted)
+            } else {
             val problem=if(BuildConfig.SIGNET_ACCOUNT)null else when(server.probeMessage){
                 "SERVICE_ERROR","PROBE_ERROR","IO"->"Сбой Ping"
                 "NO_NETWORK"->"Нет сети"
@@ -220,6 +229,7 @@ import androidx.compose.ui.semantics.Role
                 else->null
             }
             Text(when {server.probeMessage=="CONSENT_REQUIRED"->"Нужно согласие";server.probeMessage=="UNSUPPORTED"->"—";server.latencyMs!=null->"${server.latencyMs} ms";problem!=null->problem;server.available==false->"Нет ответа";else->"—"},color=if(server.available==false||problem!=null)AppColors.warning else AppColors.muted,fontSize=if(BuildConfig.SIGNET_ACCOUNT)11.sp else 10.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
+            }
             if(active&&BuildConfig.SIGNET_ACCOUNT)Text("Подключён",color=color,fontSize=10.sp)
         }
         if(BuildConfig.SIGNET_ACCOUNT) {
