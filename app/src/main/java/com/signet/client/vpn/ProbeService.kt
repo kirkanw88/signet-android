@@ -23,7 +23,7 @@ object Probes {
     private val serviceFailure get()=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"FAILED"else"SERVICE_ERROR"
     suspend fun measure(context:Context,servers:List<Server>):Map<String,Long?> = measureDetailed(context,servers,ProbeSettings()).mapValues{it.value.delay}
     suspend fun validate(context:Context,server:Server):Boolean=measureDetailed(context,listOf(server),ProbeSettings(mode=ProbeMode.XRAY,timeoutMs=15000),validateOnly=true)[server.id]?.status=="VALID"
-    suspend fun measureDetailed(context:Context,servers:List<Server>,options:ProbeSettings,validateOnly:Boolean=false,worker:Int=0):Map<String,ProbeMeasurement> = withTimeout((options.timeoutMs.toLong()+5000)*servers.size.coerceAtLeast(1)+5000) {
+    suspend fun measureDetailed(context:Context,servers:List<Server>,options:ProbeSettings,validateOnly:Boolean=false,worker:Int=0):Map<String,ProbeMeasurement> = withTimeout((options.timeoutMs.toLong()*(if(options.mode==ProbeMode.TCP&&!validateOnly)2 else 1)+5000)*servers.size.coerceAtLeast(1)+5000) {
         options.validated();require(servers.size in 1..10);require(worker in 0..4)
         require(worker==0||!com.signet.client.BuildConfig.SIGNET_ACCOUNT)
         val array=JSONArray();servers.forEach{array.put(JSONObject().put("id",it.id).put("config",it.config))}
