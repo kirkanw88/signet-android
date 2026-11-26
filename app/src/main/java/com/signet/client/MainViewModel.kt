@@ -33,9 +33,25 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _diagnostic = MutableStateFlow(""); val diagnostic = _diagnostic.asStateFlow()
     private var probeJob: Job? = null
     fun import(text: String, ageKey: String = "",allowXDriveOAuth:Boolean=false) { viewModelScope.launch(Dispatchers.IO) { repository.import(com.signet.core.ImportReview.normalize(text),ageKey=ageKey,allowXDriveOAuth=allowXDriveOAuth) } }
-    fun select(id: String) { viewModelScope.launch { repository.select(id)
-        if(vpn.value.phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING))start()
-    } }
+    private var selectionJob: Job? = null
+    fun select(id: String) {
+        selectionJob?.cancel()
+        selectionJob = viewModelScope.launch {
+            val before = vpn.value
+            val active = before.phase in listOf(VpnPhase.CONNECTED,VpnPhase.CONNECTING,VpnPhase.RECONNECTING) ||
+                (before.phase == VpnPhase.ERROR && before.tunActive)
+            repository.select(id)
+            if (state.value.selected != id) return@launch
+            if (active && (before.serverId != id || before.phase == VpnPhase.ERROR)) {
+                probeJob?.cancelAndJoin()
+                ensureActive()
+                if (vpn.value.phase != VpnPhase.DISCONNECTING && vpn.value.phase != VpnPhase.DISCONNECTED) {
+                    ConnectionLog.add("VPN","SWITCH_REQUESTED")
+                    getApplication<Application>().startForegroundService(Intent(getApplication(), SignetVpnService::class.java))
+                }
+            }
+        }
+    }
     fun selectAuto() {
         val selectedSubscription=state.value.subscriptions.firstOrNull { sub->sub.servers.any { it.id==state.value.selected } }
         val available=selectedSubscription?.servers?.firstOrNull { it.isAuto&&it.enabled }
@@ -68,7 +84,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
           catch(e:Exception) { repository.notify("Не удалось выполнить сброс") }
     } }
     fun start() { viewModelScope.launch {probeJob?.cancelAndJoin();getApplication<Application>().startForegroundService(Intent(getApplication(), SignetVpnService::class.java))} }
-    fun stop() { getApplication<Application>().startService(Intent(getApplication(), SignetVpnService::class.java).setAction("STOP")) }
+    fun stop() { selectionJob?.cancel(); getApplication<Application>().startService(Intent(getApplication(), SignetVpnService::class.java).setAction("STOP")) }
     private var automaticProbe=false
     fun cancelAutoProbes(){if(automaticProbe)probeJob?.cancel()}
     fun measure(onlySelected: Boolean = false,automatic:Boolean=false,subscriptionId:String?=null) {
