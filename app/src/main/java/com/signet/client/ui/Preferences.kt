@@ -38,6 +38,7 @@ private val SecondaryInk:Color @Composable get()=AppColors.muted
 private val Accent:Color @Composable get()=AppColors.accent
 
 @Composable fun Preferences(state:AppState,model:MainViewModel,subscriptions:()->Unit,servers:()->Unit,openDiagnostics:Boolean,diagnosticsHandled:()->Unit,close:()->Unit) {
+    var resetChoice by remember { mutableStateOf<Boolean?>(null) }
     var section by rememberSaveable { mutableStateOf("main") }
     var apps by rememberSaveable{mutableStateOf(false)}
     var probes by rememberSaveable{mutableStateOf(false)}
@@ -58,7 +59,7 @@ private val Accent:Color @Composable get()=AppColors.accent
     fun parentSection():String=if(!BuildConfig.SIGNET_ACCOUNT)when(section){"logs"->"diagnostics";"updates"->"about";else->"main"}else"main"
     BackHandler { if(section!="main")section=parentSection() else close() }
     LaunchedEffect(section){scroll.scrollTo(0)}
-    val title=when(section){"connection"->"Подключение";"routing"->"Сеть и маршрутизация";"appearance"->"Внешний вид";"subscription-options"->"Ping";"about"->"О приложении";"updates"->"Обновления";"diagnostics"->"Диагностика";"logs"->"Журнал подключения";"account"->"Аккаунт";else->"Настройки"}
+    val title=when(section){"reset"->"Сброс";"connection"->"Подключение";"routing"->"Сеть и маршрутизация";"appearance"->"Внешний вид";"subscription-options"->"Ping";"about"->"О приложении";"updates"->"Обновления";"diagnostics"->"Диагностика";"logs"->"Журнал подключения";"account"->"Аккаунт";else->"Настройки"}
     Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)20.dp else 14.dp),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)16.dp else 10.dp)) {
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
             IconButton(onClick={if(section=="main")close()else{section=parentSection()}}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=Ink)}
@@ -66,6 +67,7 @@ private val Accent:Color @Composable get()=AppColors.accent
         }
         when(section){
             "main"->{
+                SettingsCard { MenuItem(Icons.Outlined.DeleteOutline,"Сброс","Частичный или полный сброс",{section="reset"}) }
                 if(!BuildConfig.SIGNET_ACCOUNT){
                     // Category-level navigation adapted for Universal. No placeholder/inert actions.
                     SettingsCard {
@@ -92,6 +94,14 @@ private val Accent:Color @Composable get()=AppColors.accent
                         MenuItem(Icons.Outlined.Article,"Журнал подключения","Логирование, просмотр и экспорт",{section="logs"})
                     }
                     Text("Signet VPN ${BuildConfig.VERSION_NAME}",fontSize=14.sp,color=SecondaryInk,modifier=Modifier.padding(8.dp))
+                }
+            }
+            "reset"->{
+                SettingsCard {
+                    GlassButton(onClick={resetChoice=false},modifier=Modifier.fillMaxWidth()){Text("Частичный сброс")}
+                    Text("Настройки по умолчанию, подписки и HWID сохраняются.",modifier=Modifier.padding(12.dp))
+                    GlassButton(onClick={resetChoice=true},modifier=Modifier.fillMaxWidth()){Text("Полный сброс")}
+                    Text("Удаление подписок и журнала, HWID сохраняется.",modifier=Modifier.padding(12.dp))
                 }
             }
             "subscription-options"->{
@@ -192,7 +202,7 @@ private val Accent:Color @Composable get()=AppColors.accent
             }
             "logs"->{
 
-                Text("Журнал хранится только в памяти: не более 2000 строк. Ссылки подписки, UUID, HWID и ключи не записываются. Логирование всегда включено.",fontSize=15.sp,lineHeight=22.sp,color=SecondaryInk)
+                Text("Журнал хранится в закрытом хранилище приложения: не более 2000 строк. Ссылки подписки, UUID, HWID и ключи не записываются. Логирование всегда включено.",fontSize=15.sp,lineHeight=22.sp,color=SecondaryInk)
                 Row(horizontalArrangement=Arrangement.spacedBy(12.dp)){
                     GlassButton(onClick={(context.getSystemService(ClipboardManager::class.java)).setPrimaryClip(ClipData.newPlainText("Signet connection log",ConnectionLog.export()));model.repository.notify("Журнал скопирован")},enabled=logLines.isNotEmpty()){Icon(Icons.Outlined.ContentCopy,null);Text("Копировать",Modifier.padding(start=8.dp))}
                     IconButton(onClick={exportLog.launch("signet-connection-log.txt")},enabled=logLines.isNotEmpty()){Icon(Icons.Outlined.SaveAlt,"Экспорт журнала")}
@@ -225,6 +235,7 @@ private val Accent:Color @Composable get()=AppColors.accent
         }
         Spacer(Modifier.height(20.dp))
     }
+    resetChoice?.let { full -> AlertDialog(onDismissRequest={resetChoice=null},title={Text(if(full)"Полный сброс?" else "Частичный сброс?")},text={Text(if(full)"Подписки и журнал будут удалены. VPN будет остановлен." else "Настройки будут восстановлены. VPN будет остановлен.")},confirmButton={TextButton(onClick={resetChoice=null;model.reset(full)}){Text("Сбросить")}},dismissButton={TextButton(onClick={resetChoice=null}){Text("Отмена")}}) }
     if(apps)ApplicationsScreen(model){apps=false}
     if(probes)ProbePreferences(model){probes=false}
 
