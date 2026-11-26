@@ -79,7 +79,6 @@ private val Accent:Color @Composable get()=AppColors.accent
                         MenuItem(Icons.Outlined.Info,"О приложении","Версия, обновления и исходный код",{section="about"})
                     }
                 } else {
-                    Text("Ваш доступ и приложение",fontSize=16.sp,color=SecondaryInk,modifier=Modifier.padding(vertical=4.dp))
                     SettingsCard {
                         MenuItem(Icons.Outlined.CreditCard,"Подписки","Добавить, отсканировать QR или обновить",subscriptions)
                         MenuItem(Icons.Outlined.Public,"Серверы","Выбрать локацию и измерить задержку",servers)
@@ -99,9 +98,7 @@ private val Accent:Color @Composable get()=AppColors.accent
             "reset"->{
                 SettingsCard {
                     GlassButton(onClick={resetChoice=false},modifier=Modifier.fillMaxWidth()){Text("Частичный сброс")}
-                    Text("Настройки по умолчанию, подписки и HWID сохраняются.",modifier=Modifier.padding(12.dp))
                     GlassButton(onClick={resetChoice=true},modifier=Modifier.fillMaxWidth()){Text("Полный сброс")}
-                    Text("Удаление подписок и журнала, HWID сохраняется.",modifier=Modifier.padding(12.dp))
                 }
             }
             "subscription-options"->{
@@ -115,8 +112,6 @@ private val Accent:Color @Composable get()=AppColors.accent
                     SettingsToggle("Периодическая проверка","Проверять выбранный сервер с интервалом",
                         s.probes.automatic){model.save(s.copy(probes=s.probes.copy(automatic=it)))}
                 }
-                Text("Обновление подписок выполняется автоматически. Интервал может задаваться провайдером.",
-                    fontSize=12.sp,lineHeight=17.sp,color=SecondaryInk,modifier=Modifier.padding(horizontal=8.dp))
             }
             "about"->{
                 SettingsCard {
@@ -141,8 +136,6 @@ private val Accent:Color @Composable get()=AppColors.accent
                     SettingsToggle("Rust (экспериментально)",
                         "Применяется при следующем подключении. Несовместимые профили отклоняются.",
                         s.preferRustCore) { model.save(s.copy(preferRustCore=it)) }
-                    Text("Для проверки задержки пока используется libXray.",
-                        color=SecondaryInk, modifier=Modifier.padding(12.dp))
                 }
                 SettingsCard {
                     SettingsToggle("Подключаться при открытии","Использовать выбранный сервер",s.autoConnect){model.save(s.copy(autoConnect=it))}
@@ -152,7 +145,6 @@ private val Accent:Color @Composable get()=AppColors.accent
                 }
                 SettingsCard {
                     SettingsHeading("Проверка подключения")
-                    Text("HTTPS проверяется через VPN. Адрес должен разрешаться правилами профиля. Эта проверка не зависит от режима измерения задержки.",fontSize=15.sp,lineHeight=22.sp,color=SecondaryInk,modifier=Modifier.padding(horizontal=12.dp))
                     OutlinedTextField(health,{health=it},label={Text("HTTPS адрес")},singleLine=true,modifier=Modifier.fillMaxWidth().padding(12.dp))
                     GlassButton(onClick={if(SubscriptionMetadata.safeLink(health)!=null)model.save(s.copy(connectionCheckUrl=health))else model.repository.notify("Укажите корректный HTTPS адрес")},modifier=Modifier.fillMaxWidth().padding(12.dp)){Text("Сохранить адрес проверки")}
                 }
@@ -160,7 +152,6 @@ private val Accent:Color @Composable get()=AppColors.accent
             "routing"->{
                 SettingsCard {
                     SettingsHeading("DNS")
-                    Text("DNS из полного профиля сохраняется. Этот адрес используется, когда в профиле DNS не задан.",fontSize=15.sp,lineHeight=22.sp,color=SecondaryInk,modifier=Modifier.padding(horizontal=12.dp))
                     OutlinedTextField(dns,{dns=it},label={Text("Резервный DNS · IP")},singleLine=true,modifier=Modifier.fillMaxWidth().padding(12.dp))
                     GlassButton(onClick={if(com.signet.core.TemplateCompatibility.numericAddress(dns))model.save(s.copy(dns=dns))else model.repository.notify("Укажите IPv4 или IPv6 адрес")},modifier=Modifier.fillMaxWidth().padding(12.dp)){Text("Сохранить DNS")}
                 }
@@ -187,7 +178,7 @@ private val Accent:Color @Composable get()=AppColors.accent
                 }
                 SettingsCard {
                     listOf(Triple("High","Высокое качество","До 60 кадров/с"),Triple("Balanced","Баланс","До 30 кадров/с"),Triple("Battery Saver","Экономия энергии","До 10 кадров/с")).forEach{(mode,label,detail)->
-                        Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(graphics=mode))}.padding(12.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(s.graphics==mode,{model.save(s.copy(graphics=mode))});Column(Modifier.padding(start=8.dp)){Text(label,fontSize=17.sp,color=Ink);Text(detail,fontSize=14.sp,color=SecondaryInk)}}
+                        Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(graphics=mode))}.padding(12.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(s.graphics==mode,{model.save(s.copy(graphics=mode))});Column(Modifier.padding(start=8.dp)){Text(label,fontSize=17.sp,color=Ink)}}
                     }
                     SettingsToggle("Уменьшить движение","Спокойная анимация планеты",s.reduceMotion){model.save(s.copy(reduceMotion=it))}
                     if(!BuildConfig.SIGNET_ACCOUNT)SettingsToggle("Показывать отправку и получение","Скорость и объём трафика на главной странице",s.showTrafficRates){model.save(s.copy(showTrafficRates=it))}
@@ -202,7 +193,6 @@ private val Accent:Color @Composable get()=AppColors.accent
             }
             "logs"->{
 
-                Text("Журнал хранится в закрытом хранилище приложения: не более 2000 строк. Ссылки подписки, UUID, HWID и ключи не записываются. Логирование всегда включено.",fontSize=15.sp,lineHeight=22.sp,color=SecondaryInk)
                 Row(horizontalArrangement=Arrangement.spacedBy(12.dp)){
                     GlassButton(onClick={(context.getSystemService(ClipboardManager::class.java)).setPrimaryClip(ClipData.newPlainText("Signet connection log",ConnectionLog.export()));model.repository.notify("Журнал скопирован")},enabled=logLines.isNotEmpty()){Icon(Icons.Outlined.ContentCopy,null);Text("Копировать",Modifier.padding(start=8.dp))}
                     IconButton(onClick={exportLog.launch("signet-connection-log.txt")},enabled=logLines.isNotEmpty()){Icon(Icons.Outlined.SaveAlt,"Экспорт журнала")}
@@ -215,7 +205,6 @@ private val Accent:Color @Composable get()=AppColors.accent
                     MenuItem(Icons.Outlined.Article,"Журнал Xray и подключения",
                         "Запись, просмотр и экспорт событий",{section="logs"})
                 }
-                Text("Отчёт показывает результат HTTPS и причину сбоя. Ссылка подписки и ключи в него не входят.",fontSize=15.sp,lineHeight=22.sp,color=SecondaryInk)
                 GlassButton(onClick=model::diagnostics,modifier=Modifier.fillMaxWidth()){Icon(Icons.Outlined.Troubleshoot,null);Text("Проверить соединение",Modifier.padding(start=8.dp))}
                 if(report.isNotBlank()){
                     SettingsCard {SelectionContainer {Text(report,fontSize=16.sp,lineHeight=25.sp,color=Ink,modifier=Modifier.fillMaxWidth().padding(16.dp))}}
@@ -256,13 +245,13 @@ private val Accent:Color @Composable get()=AppColors.accent
 @Composable private fun MenuItem(icon:ImageVector,title:String,subtitle:String,onClick:()->Unit,enabled:Boolean=true){
     Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable(enabled=enabled,onClick=onClick).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp,vertical=if(BuildConfig.SIGNET_ACCOUNT)14.dp else 7.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)14.dp else 9.dp)){
         Box(Modifier.size(if(BuildConfig.SIGNET_ACCOUNT)42.dp else 34.dp).background(AppColors.tint,RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)14.dp else 10.dp)),contentAlignment=Alignment.Center){Icon(icon,null,tint=Accent,modifier=Modifier.size(if(BuildConfig.SIGNET_ACCOUNT)23.dp else 19.dp))}
-        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)4.dp else 2.dp)){Text(title,fontSize=if(BuildConfig.SIGNET_ACCOUNT)17.sp else 15.sp,lineHeight=if(BuildConfig.SIGNET_ACCOUNT)23.sp else 20.sp,fontWeight=FontWeight.Medium,color=Ink);Text(subtitle,fontSize=if(BuildConfig.SIGNET_ACCOUNT)14.sp else 12.sp,lineHeight=if(BuildConfig.SIGNET_ACCOUNT)20.sp else 17.sp,color=SecondaryInk)}
+        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)4.dp else 2.dp)){Text(title,fontSize=if(BuildConfig.SIGNET_ACCOUNT)17.sp else 15.sp,lineHeight=if(BuildConfig.SIGNET_ACCOUNT)23.sp else 20.sp,fontWeight=FontWeight.Medium,color=Ink)}
         if(enabled)Icon(Icons.Outlined.ChevronRight,null,tint=SecondaryInk,modifier=Modifier.size(20.dp))
     }
 }
 @Composable private fun SettingsToggle(title:String,subtitle:String,value:Boolean,onChange:(Boolean)->Unit){
     Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable{onChange(!value)}.padding(if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp)){
-        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)4.dp else 2.dp)){Text(title,fontSize=if(BuildConfig.SIGNET_ACCOUNT)17.sp else 15.sp,lineHeight=if(BuildConfig.SIGNET_ACCOUNT)23.sp else 20.sp,fontWeight=FontWeight.Medium,color=Ink);Text(subtitle,fontSize=if(BuildConfig.SIGNET_ACCOUNT)14.sp else 12.sp,lineHeight=if(BuildConfig.SIGNET_ACCOUNT)20.sp else 17.sp,color=SecondaryInk)}
+        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)4.dp else 2.dp)){Text(title,fontSize=if(BuildConfig.SIGNET_ACCOUNT)17.sp else 15.sp,lineHeight=if(BuildConfig.SIGNET_ACCOUNT)23.sp else 20.sp,fontWeight=FontWeight.Medium,color=Ink)}
         Switch(value,onChange)
     }
 }
