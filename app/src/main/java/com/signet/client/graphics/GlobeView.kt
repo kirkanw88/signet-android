@@ -384,7 +384,8 @@ class GlobeRenderer(private val context: Context,initialHigh:Boolean=false) : GL
         val targetZoom=if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING,VpnPhase.CONNECTED))
             (if(premiumVisual)1.25f else countryZoom) else 1f
         zoom+=(targetZoom-zoom)*(if(premiumVisual)com.signet.core.GlobeMotion.zoomEasing(dt,reduced) else (dt*2.4f).coerceAtMost(1f))
-        val cameraDistance=(if (aspect < 1f) 3.7f/aspect else 3.7f)/zoom
+        val fitDistance = 1.08f / kotlin.math.sin(kotlin.math.atan(kotlin.math.tan(Math.toRadians(18.0)).toFloat() * aspect.coerceAtMost(1f)))
+        val cameraDistance=((if (aspect < 1f) 3.7f/aspect else 3.7f)/zoom).coerceAtLeast(fitDistance)
         Matrix.setLookAtM(view, 0, 0f, 0f, cameraDistance, 0f,0f,0f,0f,1f,0f)
         Matrix.multiplyMM(mv,0,view,0,model,0); Matrix.multiplyMM(mvp,0,projection,0,mv,0)
         GLES20.glUseProgram(program)
