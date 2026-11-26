@@ -1,7 +1,7 @@
 name: Rust test APK
 on:
   push:
-    branches: [feature/rust-core-0.2.25]
+    branches: [feature/rust-core-0.2.26]
   workflow_dispatch:
 permissions:
   contents: read
@@ -57,8 +57,8 @@ jobs:
               assert all("lib/arm64-v8a/" + n in native for n in ("libxray_ffi.so", "libxray_mobile_jni.so")), "Rust SDK native libraries missing"
           PY
             "${ANDROID_HOME}/build-tools/36.0.0/aapt" dump badging "$apk" > /tmp/signet-package.txt
-            grep -F "package: name='com.signet.client.external'" /tmp/signet-package.txt | grep -F "versionName='0.2.25'"
-            cp "$apk" "dist/rust-test/Signet-Universal-0.2.25-Rust-arm64-v8a.apk"
+            grep -F "package: name='com.signet.client.external'" /tmp/signet-package.txt | grep -F "versionName='0.2.26'"
+            cp "$apk" "dist/rust-test/Signet-Universal-0.2.26-Rust-arm64-v8a.apk"
           done
           cp "$RUNNER_TEMP/rust-sdk/LICENSE" dist/rust-test/RUST-LICENSE.txt
           cp "$RUNNER_TEMP/rust-sdk/THIRD_PARTY_NOTICES.md" dist/rust-test/RUST-THIRD-PARTY-NOTICES.md
@@ -68,7 +68,7 @@ jobs:
           (cd dist/rust-test && sha256sum *.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
-          name: signet-universal-0.2.25-rust-test-arm64
+          name: signet-universal-0.2.26-rust-test-arm64
           path: dist/rust-test/
           if-no-files-found: error
           compression-level: 0
