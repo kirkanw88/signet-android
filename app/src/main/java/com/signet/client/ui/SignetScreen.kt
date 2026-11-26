@@ -166,7 +166,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
             val sheet=rememberModalBottomSheetState(skipPartiallyExpanded=true)
             ModalBottomSheet(onDismissRequest={showServers=false},sheetState=sheet,containerColor=Surface,contentColor=AppColors.text,modifier=Modifier.testTag("server-sheet")) {
                 LocationList(state,vpn,probing,{id->model.select(id);scope.launch{sheet.hide();showServers=false}},model::favorite,{model.measure()},model::refresh,
-                    Modifier.fillMaxWidth().fillMaxHeight(.88f).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)20.dp else 12.dp),activeProbes=activeProbes,toggleSubscription=model::toggleSubscription,pinSubscription=model::pinSubscription,refreshSubscription=model::refreshSubscription,pingSubscription=model::measureSubscription,removeSubscription=model::remove,refreshingSubscriptions=refreshingGroups,addSubscription={showServers=false;addMenu=true})
+                    Modifier.fillMaxWidth().fillMaxHeight(.88f).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)20.dp else 12.dp),activeProbes=activeProbes,toggleSubscription=model::toggleSubscription,pinSubscription=model::pinSubscription,refreshSubscription=model::refreshSubscription,pingSubscription=model::measureSubscription,removeSubscription=model::remove,refreshingSubscriptions=refreshingGroups,addSubscription={showServers=false;addMenu=true},pingServer=model::measureServer)
             }
         }
         if(BuildConfig.SIGNET_ACCOUNT&&accountPage!=null)MobileAccountScreen(model,accountPage!!){model.accountPage.value=null}
