@@ -281,7 +281,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 }
             }
         }
-        val actionLabel=if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))"Отменить подключение"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else if(phase==VpnPhase.ERROR)"Повторить подключение"else"Подключиться"
+        val actionLabel=if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))"Отменить подключение"else if(phase==VpnPhase.ERROR&&vpn.tunActive)"Снять блокировку трафика"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else if(phase==VpnPhase.ERROR)"Повторить подключение"else"Подключиться"
         val action:()->Unit={
             // Respect system touch-feedback settings. No VIBRATE permission or timed vibration.
             buttonView.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
