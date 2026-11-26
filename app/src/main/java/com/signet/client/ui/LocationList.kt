@@ -210,8 +210,21 @@ import androidx.compose.ui.semantics.Role
         Column(horizontalAlignment=Alignment.End) {
             if(probing){
                 val transition=rememberInfiniteTransition(label="ping-spinner")
-                val rotation by transition.animateFloat(0f,360f,infiniteRepeatable(tween(850,easing=LinearEasing)),label="ping-rotation")
-                Icon(Icons.Outlined.Refresh,"Измерение задержки",Modifier.size(18.dp).rotate(rotation),tint=AppColors.muted)
+                val rotation by transition.animateFloat(0f,12f,infiniteRepeatable(tween(900,easing=LinearEasing)),label="ping-rotation")
+                val ink=AppColors.muted
+                Canvas(Modifier.size(18.dp).semantics { stateDescription="Измерение задержки" }) {
+                    val radius=size.minDimension/2f
+                    for(i in 0 until 12){
+                        val angle=i*Math.PI/6.0
+                        val x=kotlin.math.cos(angle).toFloat()
+                        val y=kotlin.math.sin(angle).toFloat()
+                        val age=(rotation.toInt()-i+12)%12
+                        drawLine(ink.copy(alpha=1f-age*.075f),
+                            center+androidx.compose.ui.geometry.Offset(x*radius*.50f,y*radius*.50f),
+                            center+androidx.compose.ui.geometry.Offset(x*radius*.88f,y*radius*.88f),
+                            strokeWidth=radius*.18f,cap=androidx.compose.ui.graphics.StrokeCap.Round)
+                    }
+                }
             } else {
             val problem=if(BuildConfig.SIGNET_ACCOUNT)null else when(server.probeMessage){
                 "SERVICE_ERROR","PROBE_ERROR","IO"->"Сбой Ping"
