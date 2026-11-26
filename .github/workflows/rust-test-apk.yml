@@ -4,7 +4,7 @@ on:
     branches: [feature/rust-core-0.2.26]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: rust-test-${{ github.ref }}
   cancel-in-progress: true
@@ -79,3 +79,12 @@ jobs:
           path: |
             build/reports/dependency-verification/
             app/build/reports/
+
+      - name: Publish verified APK as prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="rust-test-0.2.26-build-${GITHUB_RUN_NUMBER}"
+          gh release create "$tag" --target "$GITHUB_SHA" --prerelease --title "Signet 0.2.26 test build ${GITHUB_RUN_NUMBER}" --notes "ARM64 debug test build with Go and Rust engines." dist/rust-test/*
