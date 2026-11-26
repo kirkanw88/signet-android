@@ -387,7 +387,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
             IntOffset((marker.x-labelSize.width/2).coerceIn(0,(area.width-labelSize.width).coerceAtLeast(0)),(marker.y-labelSize.height).coerceAtLeast(0))
         }) {
             Column(Modifier.onSizeChanged{labelSize=it},horizontalAlignment=Alignment.CenterHorizontally){
-                Text(marker.name,color=Color.White,fontWeight=FontWeight.SemiBold,fontSize=15.sp,modifier=Modifier.background(Color(0xDC0D1728),RoundedCornerShape(10.dp)).padding(horizontal=10.dp,vertical=5.dp))
+
                 Icon(Icons.Outlined.LocationOn,null,tint=Primary,modifier=Modifier.size(28.dp))
             }
         }
