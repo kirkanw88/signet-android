@@ -30,6 +30,7 @@ class Repository(private val context: Context, private val vault: Vault, private
     private var installId = UUID.randomUUID().toString()
     init { scope.launch {
         runCatching {
+            ConnectionLog.initialize(context)
             val settings = settingsStore.load()
             ConnectionLog.configure(settings.logging)
             val saved = vault.read()?.let(::JSONObject)
@@ -69,6 +70,21 @@ class Repository(private val context: Context, private val vault: Vault, private
         commit(state.value.copy(selected=id))
     }
     suspend fun settings(s: Settings) = mutex.withLock { val fixed=s.copy(reduceMotion=com.signet.client.BuildConfig.SIGNET_ACCOUNT&&s.reduceMotion,pinnedSubscriptions=state.value.settings.pinnedSubscriptions,collapsedSubscriptions=state.value.settings.collapsedSubscriptions,graphics=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)s.graphics else UniversalDefaults.GRAPHICS,automaticUpdates=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)s.automaticUpdates else true,cabinet=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)SignetLinks.CABINET else "",hwid=true);settingsStore.save(fixed);ConnectionLog.configure(fixed.logging); _state.update { it.copy(settings = fixed) } }
+    suspend fun reset(full: Boolean) {
+        awaitReady()
+        importMutex.withLock { mutex.withLock {
+            check(unlocked)
+            val current = state.value
+            val defaults = Settings()
+            val subscriptions = if (full) emptyList() else current.subscriptions.map { sub ->
+                sub.copy(servers = sub.servers.map { it.copy(latencyMs=null, available=null, checkedAt=0L, probeMessage=null) })
+            }
+            settingsStore.save(defaults)
+            commit(current.copy(settings=defaults, subscriptions=subscriptions, selected=if(full)null else current.selected, message="Настройки сброшены"))
+            if(full) ConnectionLog.clear()
+            ConnectionLog.add("APP", if(full)"RESET_FULL" else "RESET_PARTIAL")
+        } }
+    }
     suspend fun favorite(id: String) = updateServers { if (it.id == id) it.copy(favorite = !it.favorite) else it }
     suspend fun success(id: String) = updateServers { if (it.id == id) it.copy(successes = it.successes + 1) else it }
     suspend fun edit(id: String, text: String) {
