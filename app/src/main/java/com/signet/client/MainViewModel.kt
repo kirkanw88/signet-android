@@ -55,6 +55,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun measureSubscription(id:String){measure(subscriptionId=id)}
     fun refresh() { if(_refreshing.value)return;_refreshing.value=true;viewModelScope.launch(Dispatchers.IO) {try{repository.refreshAll()}finally{_refreshing.value=false}} }
     fun save(s: Settings) { viewModelScope.launch { runCatching { s.probes.validated();repository.settings(s) }.onFailure { repository.notify("Проверьте настройки: HTTPS URL, таймаут и допустимые ограничения") } } }
+    fun reset(full:Boolean) { viewModelScope.launch {
+        try {
+            probeJob?.cancelAndJoin()
+            if(vpn.value.phase != VpnPhase.DISCONNECTED || vpn.value.tunActive) {
+                stop()
+                withTimeout(10000) { vpn.first { it.phase == VpnPhase.DISCONNECTED && !it.tunActive } }
+            }
+            withContext(Dispatchers.IO) { repository.reset(full) }
+            _diagnostic.value = ""
+        } catch(e:CancellationException) { throw e }
+          catch(e:Exception) { repository.notify("Не удалось выполнить сброс") }
+    } }
     fun start() { viewModelScope.launch {probeJob?.cancelAndJoin();getApplication<Application>().startForegroundService(Intent(getApplication(), SignetVpnService::class.java))} }
     fun stop() { getApplication<Application>().startService(Intent(getApplication(), SignetVpnService::class.java).setAction("STOP")) }
     private var automaticProbe=false
