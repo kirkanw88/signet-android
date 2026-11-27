@@ -111,9 +111,10 @@ internal object RustRuntimeConfig {
                     throw CoreFailure("RUST_REALITY_PUBLIC_KEY_INVALID_CONFIG")
                 reality.put("publicKey", key)
                 reality.remove("password")
-                val sid = reality.opt("shortId") as? String
+                val sid = if (reality.isNull("shortId")) "" else reality.opt("shortId") as? String
                 if (sid == null || !sid.matches(Regex("(?:[0-9a-fA-F]{2}){0,8}")))
                     throw CoreFailure("RUST_REALITY_SHORT_ID_INVALID_CONFIG")
+                reality.put("shortId", sid)
                 if ((reality.opt("serverName") as? String).isNullOrEmpty())
                     throw CoreFailure("RUST_REALITY_SERVER_NAME_INVALID_CONFIG")
                 val spider = reality.opt("spiderX") as? String
