@@ -126,6 +126,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                                             if(result.status=="SERVICE_ERROR") { delay(250); result=probe() }
                                             status=result.status
                                             ConnectionLog.add("PROBE",options.mode.name,"server="+targets.indexOf(server)+" status="+status+" ms="+(result.delay?:-1L))
+                                            ConnectionLog.add("PROBE","TIMINGS","server="+targets.indexOf(server)+" stage="+result.stage+" dns="+result.dnsMs+" tcp="+result.tcpMs+" core="+result.coreMs+" tls="+result.tlsMs+" https="+result.proxyMs)
                                             if(status=="OK")result.delay?.let(samples::add)
                                             if(attempt<options.attempts-1)delay(options.intervalMs.toLong())
                                         }
