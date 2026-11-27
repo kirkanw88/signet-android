@@ -90,6 +90,12 @@ internal class RustCoreEngine : CoreEngine {
         generateSequence<Throwable>(failure) { it.cause }.take(8).forEachIndexed { index, cause ->
             val type = cause.javaClass.simpleName.take(60).filter { it.isLetterOrDigit() || it == '_' }
             ConnectionLog.add("RUST", "${stage}_CAUSE", "index=$index type=$type")
+            val message = cause.message.orEmpty().lowercase(java.util.Locale.ROOT)
+            // Fixed vocabulary only: never copy arbitrary native text into the journal.
+            val hints = listOf("finalmask","fragment","xhttp","splithttp","reality","flow","routing","balancer","burstobservatory","observatory","geodata","geosite","geoip","dns","tls","inbound","outbound","tun","mtu","invalid","unsupported","unknown","missing","duplicate","parse","deserialize","permission","address","protocol","network","socket","failed","not found","not supported","not implemented","expected","required","empty","panic","config")
+                .filter { it in message }.map { it.replace(' ','_') }
+            hints.chunked(5).forEach { ConnectionLog.add("RUST", "${stage}_DETAIL", it.joinToString(" ")) }
+            ConnectionLog.add("RUST", "${stage}_DETAIL", "messageLength=${message.length}")
         }
     }
 
