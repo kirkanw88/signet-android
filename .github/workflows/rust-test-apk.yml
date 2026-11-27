@@ -29,15 +29,29 @@ jobs:
           python3 scripts/fetch-native.py
           bash scripts/build-rust-candidate.sh
       - name: Build debug APKs with both engines
+        env:
+          SIGNET_SIGNING_KEYSTORE_B64: ${{ secrets.SIGNET_SIGNING_KEYSTORE_B64 }}
+          SIGNET_SIGNING_STORE_PASSWORD: ${{ secrets.SIGNET_SIGNING_STORE_PASSWORD }}
+          SIGNET_SIGNING_KEY_ALIAS: ${{ secrets.SIGNET_SIGNING_KEY_ALIAS }}
+          SIGNET_SIGNING_KEY_PASSWORD: ${{ secrets.SIGNET_SIGNING_KEY_PASSWORD }}
         shell: bash
         run: |
           set -euo pipefail
           chmod +x gradlew
+          if [[ -n "$SIGNET_SIGNING_KEYSTORE_B64" ]]; then
+            umask 077
+            export SIGNET_SIGNING_KEYSTORE="$RUNNER_TEMP/signet-signing.keystore"
+            trap 'rm -f "$SIGNET_SIGNING_KEYSTORE"' EXIT
+            printf %s "$SIGNET_SIGNING_KEYSTORE_B64" | base64 --decode > "$SIGNET_SIGNING_KEYSTORE"
+            unset SIGNET_SIGNING_KEYSTORE_B64
+          else
+            echo "::warning::Persistent signing key not configured; this test APK may require reinstall."
+          fi
           (cd "$RUNNER_TEMP/rust-sdk" && sha256sum -c SHA256SUMS)
           rust_sha=$(cut -d" " -f1 "$RUNNER_TEMP/rust-sdk/SHA256SUMS")
           ./gradlew --dependency-verification strict --no-daemon --stacktrace --max-workers=2 \
             -PsignetRustAar="${RUNNER_TEMP}/rust-sdk/xray-rust-mobile.aar" \
-            -PsignetRustAarSha256="$rust_sha" -PsignetRustBurst=true \
+            -PsignetRustAarSha256="$rust_sha" -PsignetRustBurst=true -PsignetVersionCode="$((28 + GITHUB_RUN_NUMBER))" \
             :app:testExternalDebugUnitTest :app:assembleExternalDebug
       - name: Verify packages and prepare test artifacts
         shell: bash
@@ -47,7 +61,7 @@ jobs:
           for edition in external; do
             apk="app/build/outputs/apk/$edition/debug/app-$edition-arm64-v8a-debug.apk"
             test -s "$apk"
-            "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify "$apk"
+            "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify --print-certs "$apk" > dist/rust-test/SIGNING-CERTIFICATE.txt
             python3 - "$apk" <<'PY'
           import sys, zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
