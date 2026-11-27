@@ -67,7 +67,7 @@ private val Accent:Color @Composable get()=AppColors.accent
         }
         when(section){
             "main"->{
-                SettingsCard { MenuItem(Icons.Outlined.DeleteOutline,"Сброс","Частичный или полный сброс",{section="reset"}) }
+                SettingsCard { MenuItem(Icons.Outlined.DeleteOutline,"Сброс","Частичный или полный сброс",{section="reset"}, destructive=true) }
                 if(!BuildConfig.SIGNET_ACCOUNT){
                     // Category-level navigation adapted for Universal. No placeholder/inert actions.
                     SettingsCard {
@@ -97,8 +97,8 @@ private val Accent:Color @Composable get()=AppColors.accent
             }
             "reset"->{
                 SettingsCard {
-                    GlassButton(onClick={resetChoice=false},modifier=Modifier.fillMaxWidth()){Text("Частичный сброс")}
-                    GlassButton(onClick={resetChoice=true},modifier=Modifier.fillMaxWidth()){Text("Полный сброс")}
+                    GlassButton(onClick={resetChoice=false},modifier=Modifier.fillMaxWidth()){Text("Частичный сброс",color=MaterialTheme.colorScheme.error)}
+                    GlassButton(onClick={resetChoice=true},modifier=Modifier.fillMaxWidth()){Text("Полный сброс",color=MaterialTheme.colorScheme.error)}
                 }
             }
             "subscription-options"->{
@@ -172,13 +172,13 @@ private val Accent:Color @Composable get()=AppColors.accent
                     listOf("light" to "Светлая","dark" to "Тёмная","system" to "Как на устройстве").forEach{(mode,label)->
                         Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(theme=mode))}.padding(6.dp),verticalAlignment=Alignment.CenterVertically){
                             RadioButton(s.theme==mode,{model.save(s.copy(theme=mode))})
-                            Text(label,Modifier.padding(start=8.dp),fontSize=17.sp,color=Ink)
+                            Text(label,Modifier.padding(start=8.dp),fontSize=15.sp,color=Ink)
                         }
                     }
                 }
                 SettingsCard {
                     listOf(Triple("High","Высокое качество","До 60 кадров/с"),Triple("Balanced","Баланс","До 30 кадров/с"),Triple("Battery Saver","Экономия энергии","До 10 кадров/с")).forEach{(mode,label,detail)->
-                        Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(graphics=mode))}.padding(6.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(s.graphics==mode,{model.save(s.copy(graphics=mode))});Column(Modifier.padding(start=8.dp)){Text(label,fontSize=17.sp,color=Ink)}}
+                        Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(graphics=mode))}.padding(horizontal=6.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(s.graphics==mode,{model.save(s.copy(graphics=mode))});Column(Modifier.padding(start=8.dp)){Text(label,fontSize=15.sp,color=Ink)}}
                     }
                     SettingsToggle("Уменьшить движение","Спокойная анимация планеты",s.reduceMotion){model.save(s.copy(reduceMotion=it))}
                     if(!BuildConfig.SIGNET_ACCOUNT)SettingsToggle("Показывать отправку и получение","Скорость и объём трафика на главной странице",s.showTrafficRates){model.save(s.copy(showTrafficRates=it))}
@@ -242,10 +242,10 @@ private val Accent:Color @Composable get()=AppColors.accent
     }
 }
 @Composable private fun SettingsHeading(text:String){Text(text,fontSize=16.sp,fontWeight=FontWeight.SemiBold,color=Ink,modifier=Modifier.padding(6.dp))}
-@Composable private fun MenuItem(icon:ImageVector,title:String,subtitle:String,onClick:()->Unit,enabled:Boolean=true){
+@Composable private fun MenuItem(icon:ImageVector,title:String,subtitle:String,onClick:()->Unit,enabled:Boolean=true,destructive:Boolean=false){
     Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable(enabled=enabled,onClick=onClick).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)14.dp else 9.dp)){
-        Box(Modifier.size(if(BuildConfig.SIGNET_ACCOUNT)42.dp else 34.dp).background(AppColors.tint,RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)14.dp else 10.dp)),contentAlignment=Alignment.Center){Icon(icon,null,tint=Accent,modifier=Modifier.size(if(BuildConfig.SIGNET_ACCOUNT)23.dp else 19.dp))}
-        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)4.dp else 2.dp)){Text(title,fontSize=if(BuildConfig.SIGNET_ACCOUNT)17.sp else 15.sp,lineHeight=if(BuildConfig.SIGNET_ACCOUNT)23.sp else 20.sp,fontWeight=FontWeight.Medium,color=Ink)}
+        Box(Modifier.size(if(BuildConfig.SIGNET_ACCOUNT)42.dp else 34.dp).background(AppColors.tint,RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)14.dp else 10.dp)),contentAlignment=Alignment.Center){Icon(icon,null,tint=if(destructive)MaterialTheme.colorScheme.error else Accent,modifier=Modifier.size(if(BuildConfig.SIGNET_ACCOUNT)23.dp else 19.dp))}
+        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)4.dp else 2.dp)){Text(title,fontSize=if(BuildConfig.SIGNET_ACCOUNT)17.sp else 15.sp,lineHeight=if(BuildConfig.SIGNET_ACCOUNT)23.sp else 20.sp,fontWeight=FontWeight.Medium,color=if(destructive)MaterialTheme.colorScheme.error else Ink)}
         if(enabled)Icon(Icons.Outlined.ChevronRight,null,tint=SecondaryInk,modifier=Modifier.size(20.dp))
     }
 }
