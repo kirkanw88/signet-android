@@ -18,7 +18,7 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 
-data class ProbeMeasurement(val delay:Long?,val status:String)
+data class ProbeMeasurement(val delay:Long?,val status:String,val stage:String="",val dnsMs:Long=-1,val tcpMs:Long=-1,val coreMs:Long=-1,val tlsMs:Long=-1,val proxyMs:Long=-1)
 object Probes {
     private val serviceFailure get()=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"FAILED"else"SERVICE_ERROR"
     suspend fun measure(context:Context,servers:List<Server>):Map<String,Long?> = measureDetailed(context,servers,ProbeSettings()).mapValues{it.value.delay}
@@ -39,7 +39,7 @@ object Probes {
                     val result=runCatching {
                         val response=JSONObject(m.data.getString("result")?:"{}")
                         val values=response.optJSONArray("results")?:return@runCatching servers.associate{it.id to ProbeMeasurement(null,if(!com.signet.client.BuildConfig.SIGNET_ACCOUNT&&response.optString("status") in ProbeErrors.codes)response.getString("status")else serviceFailure)}
-                        servers.associate{s->val value=(0 until values.length()).map{values.getJSONObject(it)}.firstOrNull{it.optString("id")==s.id};s.id to ProbeMeasurement(if(value?.isNull("delay")==false)value.optLong("delay")else null,value?.optString("status")?:"FAILED")}
+                        servers.associate{s->val value=(0 until values.length()).map{values.getJSONObject(it)}.firstOrNull{it.optString("id")==s.id};s.id to ProbeMeasurement(if(value?.isNull("delay")==false)value.optLong("delay")else null,value?.optString("status")?:"FAILED",value?.optString("stage").orEmpty().takeIf{it.matches(Regex("[A-Z_]{1,32}"))}.orEmpty(),value?.optLong("dnsMs",-1)?:-1,value?.optLong("tcpMs",-1)?:-1,value?.optLong("coreMs",-1)?:-1,value?.optLong("tlsMs",-1)?:-1,value?.optLong("proxyMs",-1)?:-1)}
                     }.getOrElse{servers.associate{it.id to ProbeMeasurement(null,serviceFailure)}}
                     if(continuation.isActive)continuation.resume(result);true
                 })
