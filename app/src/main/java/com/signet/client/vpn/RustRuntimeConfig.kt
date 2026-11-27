@@ -25,6 +25,7 @@ internal object RustRuntimeConfig {
                 else if ("api" in unsupported) "RUST_API_UNSUPPORTED" else "RUST_TOP_LEVEL_UNSUPPORTED"
             throw CoreFailure(code)
         }
+        normalizeReality(config.getJSONArray("outbounds"))
         val dns = config.optJSONObject("dns") ?: JSONObject().also { config.put("dns", it) }
         if (!dns.has("servers")) {
             if (!TemplateCompatibility.numericAddress(fallbackDns)) throw CoreFailure("RUST_DNS_REQUIRED")
@@ -93,5 +94,40 @@ internal object RustRuntimeConfig {
         }
         config.put("inbounds", JSONArray().put(inbound))
         return config
+    }
+    /** Translate the Go alias in the runtime copy only; never modify saved profiles. */
+    private fun normalizeReality(outbounds: JSONArray) {
+        fun normalize(stream: JSONObject) {
+            if (stream.optString("security") == "reality") {
+                val reality = stream.optJSONObject("realitySettings")
+                    ?: throw CoreFailure("RUST_REALITY_SETTINGS_INVALID_CONFIG")
+                val password = reality.opt("password") as? String
+                val publicKey = reality.opt("publicKey") as? String
+                if (!password.isNullOrEmpty() && !publicKey.isNullOrEmpty() && password != publicKey)
+                    throw CoreFailure("RUST_REALITY_KEY_CONFLICT_INVALID_CONFIG")
+                val key = password?.takeIf { it.isNotEmpty() } ?: publicKey
+                if (key == null || !key.matches(Regex("[A-Za-z0-9_-]{43}")) ||
+                    runCatching { java.util.Base64.getUrlDecoder().decode(key).size }.getOrDefault(0) != 32)
+                    throw CoreFailure("RUST_REALITY_PUBLIC_KEY_INVALID_CONFIG")
+                reality.put("publicKey", key)
+                reality.remove("password")
+                val sid = reality.opt("shortId") as? String
+                if (sid == null || !sid.matches(Regex("(?:[0-9a-fA-F]{2}){0,8}")))
+                    throw CoreFailure("RUST_REALITY_SHORT_ID_INVALID_CONFIG")
+                if ((reality.opt("serverName") as? String).isNullOrEmpty())
+                    throw CoreFailure("RUST_REALITY_SERVER_NAME_INVALID_CONFIG")
+                val spider = reality.opt("spiderX") as? String
+                if (!spider.isNullOrEmpty() && !spider.startsWith("/"))
+                    throw CoreFailure("RUST_REALITY_SPIDER_INVALID_CONFIG")
+            }
+            // XHTTP can have an independent download transport.
+            for (name in listOf("xhttpSettings", "splithttpSettings")) {
+                val settings = stream.optJSONObject(name) ?: continue
+                settings.optJSONObject("downloadSettings")?.let(::normalize)
+                settings.optJSONObject("extra")?.optJSONObject("downloadSettings")?.let(::normalize)
+            }
+        }
+        for (i in 0 until outbounds.length())
+            outbounds.getJSONObject(i).optJSONObject("streamSettings")?.let(::normalize)
     }
 }
