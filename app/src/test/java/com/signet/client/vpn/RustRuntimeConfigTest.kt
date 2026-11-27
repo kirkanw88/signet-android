@@ -78,4 +78,69 @@ class RustRuntimeConfigTest {
             assertEquals(routing.toString(),adapted.getJSONObject("routing").toString())
         }
     }
+    private val realityKey = "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+    private fun realityProfile(field: String = "password"): JSONObject {
+        val config = JSONObject(profile())
+        config.getJSONArray("outbounds").getJSONObject(0).put("streamSettings",
+            JSONObject().put("network","raw").put("security","reality").put("realitySettings",
+                JSONObject().put(field,realityKey).put("shortId","02030405").put("serverName","example.invalid")))
+        return config
+    }
+    private fun reality(config: JSONObject, index: Int = 0): JSONObject =
+        config.getJSONArray("outbounds").getJSONObject(index).getJSONObject("streamSettings").getJSONObject("realitySettings")
+
+    @Test fun adaptsPasswordWithoutMutatingSource() {
+        val original = realityProfile()
+        val adapted = RustRuntimeConfig.prepare(original.toString(),"1.1.1.1")
+        assertEquals(realityKey,reality(adapted).getString("publicKey"))
+        assertFalse(reality(adapted).has("password"))
+        assertFalse(reality(original).has("publicKey"))
+        assertEquals(realityKey,reality(original).getString("password"))
+        assertEquals(original.getJSONObject("routing").toString(),adapted.getJSONObject("routing").toString())
+    }
+
+    @Test fun preservesExistingPublicKey() {
+        val original = realityProfile("publicKey")
+        assertEquals(reality(original).toString(),reality(RustRuntimeConfig.prepare(original.toString(),"1.1.1.1")).toString())
+    }
+
+    @Test fun adaptsAllRealityOutboundsAndNestedDownload() {
+        val original = realityProfile()
+        val outbounds = original.getJSONArray("outbounds")
+        val second = JSONObject(outbounds.getJSONObject(0).toString()).put("tag","proxy2")
+        outbounds.put(second)
+        val stream = second.getJSONObject("streamSettings")
+        stream.put("network","xhttp").put("xhttpSettings",JSONObject().put("downloadSettings",
+            JSONObject().put("security","reality").put("realitySettings",JSONObject(reality(original).toString()))))
+        val adapted = RustRuntimeConfig.prepare(original.toString(),"1.1.1.1")
+        assertEquals(realityKey,reality(adapted,0).getString("publicKey"))
+        assertEquals(realityKey,reality(adapted,2).getString("publicKey"))
+        val download = adapted.getJSONArray("outbounds").getJSONObject(2).getJSONObject("streamSettings")
+            .getJSONObject("xhttpSettings").getJSONObject("downloadSettings").getJSONObject("realitySettings")
+        assertEquals(realityKey,download.getString("publicKey"))
+        assertFalse(download.has("password"))
+    }
+
+    @Test fun rejectsMissingOrInvalidRealityFields() {
+        for ((field,code) in listOf(
+            "password" to "RUST_REALITY_PUBLIC_KEY_INVALID_CONFIG",
+            "shortId" to "RUST_REALITY_SHORT_ID_INVALID_CONFIG",
+            "serverName" to "RUST_REALITY_SERVER_NAME_INVALID_CONFIG")) {
+            val original = realityProfile()
+            reality(original).remove(field)
+            try {
+                RustRuntimeConfig.prepare(original.toString(),"1.1.1.1")
+                fail("Expected failure for $field")
+            } catch(e: CoreFailure) { assertEquals(code,e.code) }
+        }
+    }
+
+    @Test fun rejectsConflictingRealityAliases() {
+        val original = realityProfile()
+        reality(original).put("publicKey","different")
+        try {
+            RustRuntimeConfig.prepare(original.toString(),"1.1.1.1")
+            fail("Expected conflict")
+        } catch(e: CoreFailure) { assertEquals("RUST_REALITY_KEY_CONFLICT_INVALID_CONFIG",e.code) }
+    }
 }
