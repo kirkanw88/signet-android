@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Animatable
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
@@ -167,16 +168,16 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
             val opacity=remember { Animatable(0f) }
             val exit=remember { Animatable(1f) }
             LaunchedEffect(Unit) {
-                opacity.animateTo(1f,tween(if(state.settings.reduceMotion) 100 else 650))
-                delay(if(state.settings.reduceMotion) 100L else 350L)
-                exit.animateTo(0f,tween(if(state.settings.reduceMotion) 100 else 400))
+                opacity.animateTo(1f,tween(if(state.settings.reduceMotion) 100 else 1000,easing=FastOutSlowInEasing))
+                delay(if(state.settings.reduceMotion) 100L else 650L)
+                exit.animateTo(0f,tween(if(state.settings.reduceMotion) 100 else 750,easing=FastOutSlowInEasing))
                 startup=false
             }
             SpaceBackdrop(Modifier.fillMaxSize().graphicsLayer { alpha=exit.value }.pointerInput(Unit){awaitEachGesture { awaitFirstDown().consume(); do { val event=awaitPointerEvent(); event.changes.forEach{it.consume()} } while(event.changes.any{it.pressed}) }},animated=!state.settings.reduceMotion) {
                 Image(painterResource(R.drawable.signet_logo),"Signet VPN",
                     Modifier.align(Alignment.Center).fillMaxWidth(.52f).height(120.dp).graphicsLayer {
                         alpha=opacity.value
-                        scaleX=.94f+.06f*opacity.value
+                        scaleX=.96f+.04f*opacity.value
                         scaleY=scaleX
                     },colorFilter=if(AppColors.dark)null else androidx.compose.ui.graphics.ColorFilter.tint(AppColors.text))
             }
@@ -285,7 +286,12 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                 }
             }
         }
-        if(phase==VpnPhase.CONNECTED && (BuildConfig.SIGNET_ACCOUNT || state.settings.showTrafficRates))Surface(color=Surface.copy(alpha=.62f),
+        AnimatedVisibility(
+            visible=phase==VpnPhase.CONNECTED && (BuildConfig.SIGNET_ACCOUNT || state.settings.showTrafficRates),
+            enter=expandVertically(animationSpec=tween(if(state.settings.reduceMotion) 0 else 550,easing=FastOutSlowInEasing),expandFrom=Alignment.Top)+fadeIn(tween(if(state.settings.reduceMotion) 0 else 450)),
+            exit=shrinkVertically(animationSpec=tween(if(state.settings.reduceMotion) 0 else 450,easing=FastOutSlowInEasing),shrinkTowards=Alignment.Top)+fadeOut(tween(if(state.settings.reduceMotion) 0 else 300))
+        ) {
+        Surface(color=Surface.copy(alpha=.62f),
             shape=RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)16.dp else 10.dp),
             modifier=Modifier.testTag("home-traffic").fillMaxWidth().padding(vertical=2.dp)){
             Row(Modifier.fillMaxWidth().padding(horizontal=10.dp,vertical=6.dp),
@@ -301,6 +307,7 @@ private val Error:Color @Composable get()=MaterialTheme.colorScheme.error
                     Text("Всего ${bytes(vpn.downloaded)}",color=Muted,fontSize=9.sp,maxLines=1)
                 }
             }
+        }
         }
         val actionLabel=if(phase==VpnPhase.DISCONNECTING)"Отключение…"else if(phase in listOf(VpnPhase.CONNECTING,VpnPhase.RECONNECTING))"Отменить подключение"else if(phase==VpnPhase.ERROR&&vpn.tunActive)"Снять блокировку трафика"else if(active)"Отключиться"else if(server==null)"Добавить подписку"else if(phase==VpnPhase.ERROR)"Повторить подключение"else"Подключиться"
         val action:()->Unit={
