@@ -106,7 +106,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     queue.close()
                     _probingIds.value=allowed.map{it.id}.toSet()
                     coroutineScope {
-                        repeat(minOf(options.parallelism,4,allowed.size)) { index ->
+                        val workerLimit = if (getApplication<Application>().getSystemService(android.app.ActivityManager::class.java).isLowRamDevice) 4 else 8
+                        repeat(minOf(options.parallelism,workerLimit,allowed.size)) { index ->
                             launch {
                                 for(server in queue) {
                                     try {
