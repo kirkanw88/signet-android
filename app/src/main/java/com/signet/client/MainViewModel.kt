@@ -124,7 +124,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                                             var result=probe()
                                             if(result.status=="SERVICE_ERROR") { delay(250); result=probe() }
                                             status=result.status
-                                            ConnectionLog.add("PROBE",options.mode.name,status)
+                                            ConnectionLog.add("PROBE",options.mode.name,"server="+targets.indexOf(server)+" status="+status+" ms="+(result.delay?:-1L))
                                             if(status=="OK")result.delay?.let(samples::add)
                                             if(attempt<options.attempts-1)delay(options.intervalMs.toLong())
                                         }
@@ -147,7 +147,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                             measured=Probes.measureDetailed(getApplication(),batch,options)
                         }
                         measured.forEach { (id,result)->
-                            ConnectionLog.add("PROBE",options.mode.name,result.status)
+                            ConnectionLog.add("PROBE",options.mode.name,"server="+targets.indexOfFirst{it.id==id}+" status="+result.status+" ms="+(result.delay?:-1L))
                             result.delay?.let { samples.getValue(id).add(it) };statuses[id]=result.status
                         }
                         if(attempt<options.attempts-1)delay(options.intervalMs.toLong())
