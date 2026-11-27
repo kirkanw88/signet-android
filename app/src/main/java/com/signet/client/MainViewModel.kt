@@ -109,6 +109,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         val workerLimit = if (getApplication<Application>().getSystemService(android.app.ActivityManager::class.java).isLowRamDevice) 4 else 8
                         repeat(minOf(options.parallelism,workerLimit,allowed.size)) { index ->
                             launch {
+                                Probes.withWorker(getApplication(),index+1) {
                                 for(server in queue) {
                                     try {
                                         val samples=mutableListOf<Long>()
@@ -134,6 +135,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                                         repository.measurement(server.id,if(complete)samples.sorted()[samples.size/2]else null,
                                             options.mode.name,if(complete)"OK"else status.takeUnless{it=="OK"}?:"FAILED")
                                     } finally { _probingIds.update{it-server.id} }
+                                }
                                 }
                             }
                         }
