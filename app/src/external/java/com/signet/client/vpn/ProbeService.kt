@@ -114,6 +114,8 @@ open class ProbeService:Service() {
         // Do not include cold process or geo-asset initialization in proxy latency.
         var requestStarted=SystemClock.elapsedRealtime()
         var client:OkHttpClient?=null;var attemptedRun=false;var stage="ASSET_ERROR"
+        var dnsMs=-1L;var tcpMs=-1L;var coreMs=-1L;var tlsMs=-1L;var proxyMs=-1L;var tlsStarted=0L
+        fun result(status:String,delay:Long?=null)=JSONObject().put("id",server.id).put("status",status).put("delay",delay?:JSONObject.NULL).put("stage",stage).put("dnsMs",dnsMs).put("tcpMs",tcpMs).put("coreMs",coreMs).put("tlsMs",tlsMs).put("proxyMs",proxyMs)
         return try {
             val assetsDir=GeoAssets.prepare(this)
             // The worker already bootstrapped its physical network and DNS once per batch.
@@ -144,31 +146,43 @@ open class ProbeService:Service() {
             val tcpDelay=if(endpoint!=null&&tcpCarrier){
                 stage="TCP_HANDSHAKE"
                 val physical=network?:throw CoreFailure("NO_NETWORK")
-                ProbeTcp.connect(physical.getAllByName(endpoint.host).toList(),endpoint.port,options.timeoutMs){physical.socketFactory.createSocket()}
+                stage="DNS_LOOKUP"
+                val dnsStarted=SystemClock.elapsedRealtime()
+                val addresses=try { physical.getAllByName(endpoint.host).toList() } finally { dnsMs=SystemClock.elapsedRealtime()-dnsStarted }
+                stage="TCP_HANDSHAKE"
+                val tcpStarted=SystemClock.elapsedRealtime()
+                try { ProbeTcp.connect(addresses,endpoint.port,options.timeoutMs){physical.socketFactory.createSocket()} } finally { tcpMs=SystemClock.elapsedRealtime()-tcpStarted }
             }else null
             stage="CONFIG_ERROR"
             // runXray parses the configuration itself; avoid a second cold core initialization for each ping.
             stage="CORE_ERROR";attemptedRun=true
-            NativeCore.call("runXray",JSONObject().put("xrayJson",config.toString()))
+            val coreStarted=SystemClock.elapsedRealtime()
+            try { NativeCore.call("runXray",JSONObject().put("xrayJson",config.toString())) } finally { coreMs=SystemClock.elapsedRealtime()-coreStarted }
             stage="REQUEST"
             client=OkHttpClient.Builder().proxy(java.net.Proxy(java.net.Proxy.Type.HTTP,InetSocketAddress("127.0.0.1",port)))
                 .proxyAuthenticator { _,response->if(response.request.header("Proxy-Authorization")!=null)null else response.request.newBuilder().header("Proxy-Authorization",Credentials.basic("signet",secret)).build() }
+                .eventListener(object:EventListener(){
+                    override fun secureConnectStart(call:Call){tlsStarted=SystemClock.elapsedRealtime()}
+                    override fun secureConnectEnd(call:Call,handshake:Handshake?){if(tlsStarted!=0L)tlsMs=SystemClock.elapsedRealtime()-tlsStarted}
+                })
                 .followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false).callTimeout(options.timeoutMs.toLong(),TimeUnit.MILLISECONDS).build()
             // Via Proxy GET measures the request through the selected full Xray profile.
             requestStarted=SystemClock.elapsedRealtime()
             val request=Request.Builder().url(options.url).header("Connection","close")
             if(options.mode==ProbeMode.OUTBOUND)request.head()else request.get()
             client.newCall(request.build()).awaitResponse().use {
-                if(it.handshake==null)return JSONObject().put("id",server.id).put("status","TLS")
+                proxyMs=SystemClock.elapsedRealtime()-requestStarted
+                if(it.handshake==null)return result("TLS")
                 val expected=if(options.url.substringBefore('?').endsWith("/generate_204"))it.code==204 else it.code in 200..299
-                if(!expected)return JSONObject().put("id",server.id).put("status","HTTP_ERROR")
+                if(!expected)return result("HTTP_ERROR")
                 if(options.mode!=ProbeMode.OUTBOUND)it.body?.byteStream()?.read()
             }
             val proxyDelay=SystemClock.elapsedRealtime()-requestStarted
+            proxyMs=proxyDelay
             val delay=tcpDelay?:proxyDelay
-            JSONObject().put("id",server.id).put("delay",delay).put("status","OK").put("proxyMs",proxyDelay).put("tcpMs",tcpDelay?:-1L)
+            result("OK",delay)
         } catch(e:CancellationException){throw e}
-        catch(e:Exception){JSONObject().put("id",server.id).put("status",if(e is CoreFailure)e.code else if(stage=="REQUEST"||stage=="TCP_HANDSHAKE")ConnectionHealth.category(e)else stage)}
+        catch(e:Exception){if(stage=="REQUEST")proxyMs=SystemClock.elapsedRealtime()-requestStarted;result(if(e is CoreFailure)e.code else if(stage in setOf("REQUEST","TCP_HANDSHAKE","DNS_LOOKUP"))ConnectionHealth.category(e)else stage)}
         finally {if(attemptedRun)runCatching{NativeCore.call("stopXray")};client?.connectionPool?.evictAll();client?.dispatcher?.executorService?.shutdown()}
     }
     override fun onDestroy(){scope.cancel();super.onDestroy();android.os.Process.killProcess(android.os.Process.myPid())}
