@@ -129,6 +129,24 @@ open class ProbeService:Service() {
                 NativeCore.call("testXray",JSONObject().put("xrayJson",config.toString()))
                 return JSONObject().put("id",server.id).put("status","VALID")
             }
+            // A composite profile or UDP carrier has no unambiguous TCP endpoint.
+            // Keep measured HTTPS latency for those profiles instead of probing an unrelated port.
+            val endpoint=if(options.mode==ProbeMode.TCP&&!server.isAuto) Endpoints.from(server) else null
+            val source=JSONObject(server.config).optJSONArray("outbounds")
+            val carriers=if(source==null) emptyList() else (0 until source.length()).map{source.getJSONObject(it)}.filter{it.optString("protocol") !in setOf("freedom","blackhole","dns","loopback")}
+            val carrier=carriers.singleOrNull()
+            val protocol=carrier?.optString("protocol").orEmpty()
+            val stream=carrier?.optJSONObject("streamSettings")
+            val transport=stream?.optString("network","tcp")?:"tcp"
+            val alpn=stream?.optJSONObject("tlsSettings")?.optJSONArray("alpn")
+            val quic=alpn!=null&&alpn.length()==1&&alpn.optString(0)=="h3"
+            val tcpCarrier=protocol in setOf("vless","vmess","trojan","shadowsocks","socks","http")&&transport in setOf("tcp","raw","ws","grpc","httpupgrade","xhttp","splithttp")&&!quic
+            val tcpDelay=if(endpoint!=null&&tcpCarrier){
+                stage="TCP_HANDSHAKE"
+                val physical=network?:throw CoreFailure("NO_NETWORK")
+                ProbeTcp.connect(physical.getAllByName(endpoint.host).toList(),endpoint.port,options.timeoutMs){physical.socketFactory.createSocket()}
+            }else null
+            stage="CONFIG_ERROR"
             // runXray parses the configuration itself; avoid a second cold core initialization for each ping.
             stage="CORE_ERROR";attemptedRun=true
             NativeCore.call("runXray",JSONObject().put("xrayJson",config.toString()))
@@ -147,24 +165,8 @@ open class ProbeService:Service() {
                 if(options.mode!=ProbeMode.OUTBOUND)it.body?.byteStream()?.read()
             }
             val proxyDelay=SystemClock.elapsedRealtime()-requestStarted
-            // A composite profile or UDP carrier has no unambiguous TCP endpoint.
-            // Keep measured HTTPS latency for those profiles instead of probing an unrelated port.
-            val endpoint=if(options.mode==ProbeMode.TCP&&!server.isAuto) Endpoints.from(server) else null
-            val source=JSONObject(server.config).optJSONArray("outbounds")
-            val carriers=if(source==null) emptyList() else (0 until source.length()).map{source.getJSONObject(it)}.filter{it.optString("protocol") !in setOf("freedom","blackhole","dns","loopback")}
-            val carrier=carriers.singleOrNull()
-            val protocol=carrier?.optString("protocol").orEmpty()
-            val stream=carrier?.optJSONObject("streamSettings")
-            val transport=stream?.optString("network","tcp")?:"tcp"
-            val alpn=stream?.optJSONObject("tlsSettings")?.optJSONArray("alpn")
-            val quic=alpn!=null&&alpn.length()==1&&alpn.optString(0)=="h3"
-            val tcpCarrier=protocol in setOf("vless","vmess","trojan","shadowsocks","socks","http")&&transport in setOf("tcp","raw","ws","grpc","httpupgrade","xhttp","splithttp")&&!quic
-            val delay=if(endpoint!=null&&tcpCarrier){
-                stage="TCP_HANDSHAKE"
-                val physical=network?:throw CoreFailure("NO_NETWORK")
-                ProbeTcp.connect(physical.getAllByName(endpoint.host).toList(),endpoint.port,options.timeoutMs){physical.socketFactory.createSocket()}
-            }else proxyDelay
-            JSONObject().put("id",server.id).put("delay",delay).put("status","OK")
+            val delay=tcpDelay?:proxyDelay
+            JSONObject().put("id",server.id).put("delay",delay).put("status","OK").put("proxyMs",proxyDelay).put("tcpMs",tcpDelay?:-1L)
         } catch(e:CancellationException){throw e}
         catch(e:Exception){JSONObject().put("id",server.id).put("status",if(e is CoreFailure)e.code else if(stage=="REQUEST"||stage=="TCP_HANDSHAKE")ConnectionHealth.category(e)else stage)}
         finally {if(attemptedRun)runCatching{NativeCore.call("stopXray")};client?.connectionPool?.evictAll();client?.dispatcher?.executorService?.shutdown()}
