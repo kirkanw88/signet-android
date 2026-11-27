@@ -109,6 +109,7 @@ class SignetVpnService : VpnService() {
             val preparedStarted=SystemClock.elapsedRealtime()
             engine.prepare(selected, settings.dns, physical)
             ConnectionLog.elapsed("CORE","PREPARE_DURATION",preparedStarted)
+            engine.validatePrepared(assetDir)
             ConnectionLog.add("CORE","CONFIG_PREPARED")
             startupStage="настройка TUN"
             engine.attach(this,if(dns.contains(':'))"[$dns]:53"else"$dns:53",physical)
