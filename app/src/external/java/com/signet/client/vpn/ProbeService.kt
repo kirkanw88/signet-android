@@ -179,3 +179,8 @@ class ProbeWorker1 : ProbeService()
 class ProbeWorker2 : ProbeService()
 class ProbeWorker3 : ProbeService()
 class ProbeWorker4 : ProbeService()
+
+class ProbeWorker5 : ProbeService()
+class ProbeWorker6 : ProbeService()
+class ProbeWorker7 : ProbeService()
+class ProbeWorker8 : ProbeService()
