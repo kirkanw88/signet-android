@@ -105,6 +105,7 @@ internal class RustCoreEngine : CoreEngine {
         val message = generateSequence<Throwable>(failure) { it.cause }.take(8)
             .joinToString(" ") { it.message.orEmpty() }.lowercase(java.util.Locale.ROOT)
         val category = when {
+            "missing reality" in message || "reality public key must" in message || "reality server name must" in message || "reality spiderx must" in message -> "INVALID_CONFIG"
             "unknown field" in message || "unsupported" in message -> "UNSUPPORTED"
             "geosite" in message || "geoip" in message || "geodata" in message -> "GEODATA"
             "observatory" in message || "balancer" in message -> "BALANCER"
