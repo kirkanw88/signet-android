@@ -50,13 +50,16 @@ import kotlinx.coroutines.*
     var parallel by remember{mutableStateOf(value.parallelism.toString())}
     var minutes by remember{mutableStateOf(value.autoMinutes.toString())}
     var error by remember{mutableStateOf<String?>(null)}
-    FullScreenPanel("Настройки Ping",close) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-            listOf(ProbeMode.XRAY to "Via Proxy GET · полная проверка через Xray",ProbeMode.OUTBOUND to "Via Proxy HEAD · HTTPS через профиль",ProbeMode.TCP to (if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"TCP Connect · только доступность порта"else"TCP · проверка работоспособности VPN"),ProbeMode.HTTPS to "HTTPS · TLS доступность узла").forEach { (mode,label)->
+    fun applyAndClose() {
+        runCatching { value.copy(timeoutMs=timeout.toInt(),attempts=attempts.toInt(),intervalMs=interval.toInt(),parallelism=parallel.toInt(),autoMinutes=minutes.toInt()).validated() }
+            .onSuccess { model.save(model.state.value.settings.copy(probes=it));close() }
+            .onFailure { error="Проверьте HTTPS URL и допустимые значения" }
+    }
+    FullScreenPanel("Настройки Ping",::applyAndClose) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+            listOf(ProbeMode.XRAY to "Via Proxy GET",ProbeMode.OUTBOUND to "Via Proxy HEAD",ProbeMode.TCP to (if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"TCP Connect · только доступность порта"else"TCP"),ProbeMode.HTTPS to "HTTPS").forEach { (mode,label)->
                 Row(Modifier.fillMaxWidth().clickable{value=value.copy(mode=mode)},verticalAlignment=Alignment.CenterVertically){RadioButton(value.mode==mode,{value=value.copy(mode=mode)});Text(label)}
             }
-            Text(if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"TCP/HTTPS проверяют доступность узла."else"TCP подтверждает передачу HTTPS через выбранный VPN-профиль, а не только открытый порт. Via Proxy GET/HEAD проверяют HTTPS. HTTPS проверяет TLS узла напрямую. AUTO сохраняет правила поставщика.",style=MaterialTheme.typography.bodySmall)
-            Text("Для generate_204 ожидается HTTP 204; для других HTTPS-адресов — успешный ответ.",style=MaterialTheme.typography.bodySmall)
             OutlinedTextField(value.url,{value=value.copy(url=it)},label={Text("HTTPS URL проверки Xray")},modifier=Modifier.fillMaxWidth(),singleLine=true)
             ProbeNumber("Таймаут, мс · 500–30000",timeout){timeout=it}
             ProbeNumber("Попыток · 1–3",attempts){attempts=it}
@@ -65,10 +68,8 @@ import kotlinx.coroutines.*
             Row(verticalAlignment=Alignment.CenterVertically){Text("Пинг всех серверов при запуске",Modifier.weight(1f));Switch(value.pingOnLaunch,{value=value.copy(pingOnLaunch=it)})}
             Row(verticalAlignment=Alignment.CenterVertically){Text("Периодически проверять выбранный сервер",Modifier.weight(1f));Switch(value.automatic,{value=value.copy(automatic=it)})}
             ProbeNumber("Автопроверка каждые, мин · 15–360",minutes){minutes=it}
-            Text("Автопроверка выполняется только пока приложение открыто. Проверки полного профиля идут последовательно в изолированном ядре.",style=MaterialTheme.typography.bodySmall)
             error?.let{Text(it,color=MaterialTheme.colorScheme.error)}
         }
-        GlassButton(onClick={runCatching {value=value.copy(timeoutMs=timeout.toInt(),attempts=attempts.toInt(),intervalMs=interval.toInt(),parallelism=parallel.toInt(),autoMinutes=minutes.toInt()).validated();model.save(model.state.value.settings.copy(probes=value));close()}.onFailure{error="Проверьте HTTPS URL и допустимые значения"}},modifier=Modifier.fillMaxWidth().padding(vertical=8.dp)){Text("Сохранить")}
     }
 }
 @Composable private fun ProbeNumber(label:String,value:String,change:(String)->Unit){OutlinedTextField(value,{if(it.length<=6&&it.all(Char::isDigit))change(it)},label={Text(label)},singleLine=true,keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),modifier=Modifier.fillMaxWidth())}
