@@ -6,5 +6,9 @@
         <service android:name="com.signet.client.vpn.ProbeWorker2" android:exported="false" android:process=":probe2" />
         <service android:name="com.signet.client.vpn.ProbeWorker3" android:exported="false" android:process=":probe3" />
         <service android:name="com.signet.client.vpn.ProbeWorker4" android:exported="false" android:process=":probe4" />
+        <service android:name="com.signet.client.vpn.ProbeWorker5" android:exported="false" android:process=":probe5" />
+        <service android:name="com.signet.client.vpn.ProbeWorker6" android:exported="false" android:process=":probe6" />
+        <service android:name="com.signet.client.vpn.ProbeWorker7" android:exported="false" android:process=":probe7" />
+        <service android:name="com.signet.client.vpn.ProbeWorker8" android:exported="false" android:process=":probe8" />
     </application>
 </manifest>
