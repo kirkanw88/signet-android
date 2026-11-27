@@ -124,7 +124,6 @@ class RustRuntimeConfigTest {
     @Test fun rejectsMissingOrInvalidRealityFields() {
         for ((field,code) in listOf(
             "password" to "RUST_REALITY_PUBLIC_KEY_INVALID_CONFIG",
-            "shortId" to "RUST_REALITY_SHORT_ID_INVALID_CONFIG",
             "serverName" to "RUST_REALITY_SERVER_NAME_INVALID_CONFIG")) {
             val original = realityProfile()
             reality(original).remove(field)
@@ -132,6 +131,18 @@ class RustRuntimeConfigTest {
                 RustRuntimeConfig.prepare(original.toString(),"1.1.1.1")
                 fail("Expected failure for $field")
             } catch(e: CoreFailure) { assertEquals(code,e.code) }
+        }
+    }
+
+    @Test fun acceptsMissingNullAndEmptyShortId() {
+        for (kind in 0..2) {
+            val original = realityProfile()
+            when(kind) {
+                0 -> reality(original).remove("shortId")
+                1 -> reality(original).put("shortId",JSONObject.NULL)
+                else -> reality(original).put("shortId","")
+            }
+            assertEquals("",reality(RustRuntimeConfig.prepare(original.toString(),"1.1.1.1")).getString("shortId"))
         }
     }
 
