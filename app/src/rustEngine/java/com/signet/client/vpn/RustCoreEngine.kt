@@ -40,6 +40,22 @@ internal class RustCoreEngine : CoreEngine {
         }
     }
 
+    @Synchronized override fun validatePrepared(assets: java.io.File) {
+        val config = prepared ?: throw CoreFailure("RUST_PREPARE_REQUIRED")
+        val started = SystemClock.elapsedRealtime()
+        try {
+            XrayCore.create(configJson=config.toString(), dnsBootstrapMode=XrayDnsBootstrapMode.StaticOnly,
+                tunRuntimeProfile=XrayTunRuntimeProfile.Mobile, geodataSearchDirectory=assets, tunMtu=1500).use { }
+            ConnectionLog.elapsed("RUST","VALIDATE_OK",started)
+        } catch (failure: LinkageError) {
+            throw CoreFailure("RUST_SDK_LINKAGE")
+        } catch (failure: Exception) {
+            ConnectionLog.elapsed("RUST","VALIDATE_FAILED",started)
+            logFailureShape("VALIDATE",failure)
+            throw CoreFailure(classify("VALIDATE",failure))
+        }
+    }
+
     override fun attach(service: VpnService, dns: String, network: Network) = Unit
     override fun freeMetricsPort() = 0
 
@@ -90,6 +106,7 @@ internal class RustCoreEngine : CoreEngine {
         generateSequence<Throwable>(failure) { it.cause }.take(8).forEachIndexed { index, cause ->
             val type = cause.javaClass.simpleName.take(60).filter { it.isLetterOrDigit() || it == '_' }
             ConnectionLog.add("RUST", "${stage}_CAUSE", "index=$index type=$type")
+            if (cause is org.xrayrust.mobile.XrayCoreException) ConnectionLog.add("RUST", "${stage}_NATIVE_CODE", "code="+cause.code)
             val message = cause.message.orEmpty().lowercase(java.util.Locale.ROOT)
             // Fixed vocabulary only: never copy arbitrary native text into the journal.
             val hints = listOf("finalmask","fragment","xhttp","splithttp","reality","flow","routing","balancer","burstobservatory","observatory","geodata","geosite","geoip","dns","tls","inbound","outbound","tun","mtu","invalid","unsupported","unknown","missing","duplicate","parse","deserialize","permission","address","protocol","network","socket","failed","not found","not supported","not implemented","expected","required","empty","panic","config")
