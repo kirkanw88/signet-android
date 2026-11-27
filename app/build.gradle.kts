@@ -47,7 +47,7 @@ android {
             manifestPlaceholders["importScheme"] = "signet"
         }
         create("external") {
-            versionCode = 28
+            versionCode = providers.gradleProperty("signetVersionCode").orNull?.toInt()?.also { require(it in 28..2100000000) } ?: 28
             versionName = "0.2.26"
             dimension = "edition"
             applicationIdSuffix = ".external"
@@ -63,6 +63,17 @@ android {
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
     packaging { jniLibs.useLegacyPackaging = false; resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+    // Optional CI signing key is supplied through environment variables, never committed.
+    val persistentKey = System.getenv("SIGNET_SIGNING_KEYSTORE")
+    if (!persistentKey.isNullOrBlank()) {
+        val persistent = signingConfigs.create("persistentTest") {
+            storeFile = file(persistentKey)
+            storePassword = System.getenv("SIGNET_SIGNING_STORE_PASSWORD") ?: error("Missing signing store password")
+            keyAlias = System.getenv("SIGNET_SIGNING_KEY_ALIAS") ?: error("Missing signing key alias")
+            keyPassword = System.getenv("SIGNET_SIGNING_KEY_PASSWORD") ?: error("Missing signing key password")
+        }
+        buildTypes.getByName("debug").signingConfig = persistent
+    }
     buildTypes { release {
         isMinifyEnabled = true; isShrinkResources = true
         // Installable development release. Production signing is injected outside the repository.
