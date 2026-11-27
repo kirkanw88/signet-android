@@ -155,7 +155,7 @@ class SignetVpnService : VpnService() {
         catch (e: Exception) {
             ConnectionLog.add("VPN","CONNECT_FAILED",ConnectionHealth.category(e))
             ConnectionLog.elapsed("VPN","FAILED_DURATION",connectionStarted)
-            if(e is CoreFailure && (e.code.endsWith("_UNSUPPORTED") || e.code in setOf("RUST_INVALID_PROFILE","RUST_UNRENDERED_TEMPLATE","RUST_SDK_LINKAGE","RUST_CREATE_INVALID_CONFIG","RUST_START_INVALID_CONFIG"))) {
+            if(e is CoreFailure && (e.code.endsWith("_UNSUPPORTED") || e.code.endsWith("_INVALID_CONFIG") || e.code in setOf("RUST_INVALID_PROFILE","RUST_UNRENDERED_TEMPLATE","RUST_SDK_LINKAGE","RUST_CREATE_INVALID_CONFIG","RUST_START_INVALID_CONFIG"))) {
                 permanentFailure=true
                 networkJob?.cancel()
                 ConnectionLog.add("VPN","RETRY_SUPPRESSED","CONFIGURATION")
