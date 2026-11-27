@@ -51,7 +51,7 @@ data class ServerDisplayModel(val id:String,val title:String,val description:Str
 }
 
 enum class ProbeMode { TCP, HTTPS, XRAY, OUTBOUND }
-data class ProbeSettings(val mode:ProbeMode=ProbeMode.OUTBOUND,val url:String="https://www.gstatic.com/generate_204",val timeoutMs:Int=8000,val attempts:Int=1,val intervalMs:Int=1000,val parallelism:Int=8,val automatic:Boolean=false,val autoMinutes:Int=15,val pingOnLaunch:Boolean=false) {
+data class ProbeSettings(val mode:ProbeMode=ProbeMode.OUTBOUND,val url:String="https://www.gstatic.com/generate_204",val timeoutMs:Int=3000,val attempts:Int=1,val intervalMs:Int=1000,val parallelism:Int=8,val automatic:Boolean=false,val autoMinutes:Int=15,val pingOnLaunch:Boolean=false) {
     fun validated():ProbeSettings {val uri=URI(url);require(uri.scheme=="https"&&!uri.host.isNullOrBlank()&&uri.rawUserInfo==null);require(timeoutMs in 500..30000 && attempts in 1..3 && intervalMs in 200..60000 && parallelism in 1..10 && autoMinutes in 15..360);return this}
     fun json():JSONObject=JSONObject().put("mode",mode.name).put("url",url).put("timeoutMs",timeoutMs).put("attempts",attempts).put("intervalMs",intervalMs).put("parallelism",parallelism).put("automatic",automatic) .put("autoMinutes",autoMinutes).put("pingOnLaunch",pingOnLaunch)
     companion object {fun parse(raw:String):ProbeSettings {val j=JSONObject(raw);return ProbeSettings(ProbeMode.valueOf(j.getString("mode")),j.getString("url"),j.getInt("timeoutMs"),j.getInt("attempts"),j.getInt("intervalMs"),j.getInt("parallelism"),j.getBoolean("automatic"),j.getInt("autoMinutes"),j.optBoolean("pingOnLaunch",false)).validated()} }
