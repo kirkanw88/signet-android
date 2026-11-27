@@ -60,10 +60,10 @@ private val Accent:Color @Composable get()=AppColors.accent
     BackHandler { if(section!="main")section=parentSection() else close() }
     LaunchedEffect(section){scroll.scrollTo(0)}
     val title=when(section){"reset"->"Сброс";"connection"->"Подключение";"routing"->"Сеть и маршрутизация";"appearance"->"Внешний вид";"subscription-options"->"Ping";"about"->"О приложении";"updates"->"Обновления";"diagnostics"->"Диагностика";"logs"->"Журнал подключения";"account"->"Аккаунт";else->"Настройки"}
-    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)20.dp else 14.dp),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)16.dp else 10.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)20.dp else 14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
             IconButton(onClick={if(section=="main")close()else{section=parentSection()}}){Icon(Icons.Outlined.ArrowBack,"Назад",tint=Ink)}
-            Text(title,Modifier.weight(1f),fontSize=24.sp,fontWeight=FontWeight.SemiBold,color=Ink)
+            Text(title,Modifier.weight(1f),fontSize=20.sp,fontWeight=FontWeight.SemiBold,color=Ink)
         }
         when(section){
             "main"->{
@@ -145,15 +145,15 @@ private val Accent:Color @Composable get()=AppColors.accent
                 }
                 SettingsCard {
                     SettingsHeading("Проверка подключения")
-                    OutlinedTextField(health,{health=it},label={Text("HTTPS адрес")},singleLine=true,modifier=Modifier.fillMaxWidth().padding(12.dp))
-                    GlassButton(onClick={if(SubscriptionMetadata.safeLink(health)!=null)model.save(s.copy(connectionCheckUrl=health))else model.repository.notify("Укажите корректный HTTPS адрес")},modifier=Modifier.fillMaxWidth().padding(12.dp)){Text("Сохранить адрес проверки")}
+                    OutlinedTextField(health,{health=it},label={Text("HTTPS адрес")},singleLine=true,modifier=Modifier.fillMaxWidth().padding(6.dp))
+                    GlassButton(onClick={if(SubscriptionMetadata.safeLink(health)!=null)model.save(s.copy(connectionCheckUrl=health))else model.repository.notify("Укажите корректный HTTPS адрес")},modifier=Modifier.fillMaxWidth().padding(6.dp)){Text("Сохранить адрес проверки")}
                 }
             }
             "routing"->{
                 SettingsCard {
                     SettingsHeading("DNS")
-                    OutlinedTextField(dns,{dns=it},label={Text("Резервный DNS · IP")},singleLine=true,modifier=Modifier.fillMaxWidth().padding(12.dp))
-                    GlassButton(onClick={if(com.signet.core.TemplateCompatibility.numericAddress(dns))model.save(s.copy(dns=dns))else model.repository.notify("Укажите IPv4 или IPv6 адрес")},modifier=Modifier.fillMaxWidth().padding(12.dp)){Text("Сохранить DNS")}
+                    OutlinedTextField(dns,{dns=it},label={Text("Резервный DNS · IP")},singleLine=true,modifier=Modifier.fillMaxWidth().padding(6.dp))
+                    GlassButton(onClick={if(com.signet.core.TemplateCompatibility.numericAddress(dns))model.save(s.copy(dns=dns))else model.repository.notify("Укажите IPv4 или IPv6 адрес")},modifier=Modifier.fillMaxWidth().padding(6.dp)){Text("Сохранить DNS")}
                 }
                 SettingsCard {
                     SettingsHeading("Приложения через VPN")
@@ -170,7 +170,7 @@ private val Accent:Color @Composable get()=AppColors.accent
                 if(!BuildConfig.SIGNET_ACCOUNT)SettingsCard {
                     SettingsHeading("Тема приложения")
                     listOf("light" to "Светлая","dark" to "Тёмная","system" to "Как на устройстве").forEach{(mode,label)->
-                        Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(theme=mode))}.padding(12.dp),verticalAlignment=Alignment.CenterVertically){
+                        Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(theme=mode))}.padding(6.dp),verticalAlignment=Alignment.CenterVertically){
                             RadioButton(s.theme==mode,{model.save(s.copy(theme=mode))})
                             Text(label,Modifier.padding(start=8.dp),fontSize=17.sp,color=Ink)
                         }
@@ -178,7 +178,7 @@ private val Accent:Color @Composable get()=AppColors.accent
                 }
                 SettingsCard {
                     listOf(Triple("High","Высокое качество","До 60 кадров/с"),Triple("Balanced","Баланс","До 30 кадров/с"),Triple("Battery Saver","Экономия энергии","До 10 кадров/с")).forEach{(mode,label,detail)->
-                        Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(graphics=mode))}.padding(12.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(s.graphics==mode,{model.save(s.copy(graphics=mode))});Column(Modifier.padding(start=8.dp)){Text(label,fontSize=17.sp,color=Ink)}}
+                        Row(Modifier.fillMaxWidth().clickable{model.save(s.copy(graphics=mode))}.padding(6.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(s.graphics==mode,{model.save(s.copy(graphics=mode))});Column(Modifier.padding(start=8.dp)){Text(label,fontSize=17.sp,color=Ink)}}
                     }
                     SettingsToggle("Уменьшить движение","Спокойная анимация планеты",s.reduceMotion){model.save(s.copy(reduceMotion=it))}
                     if(!BuildConfig.SIGNET_ACCOUNT)SettingsToggle("Показывать отправку и получение","Скорость и объём трафика на главной странице",s.showTrafficRates){model.save(s.copy(showTrafficRates=it))}
@@ -187,8 +187,8 @@ private val Accent:Color @Composable get()=AppColors.accent
             "updates"->{
                 SettingsCard {
                     if(BuildConfig.SIGNET_ACCOUNT)SettingsToggle("Проверять автоматически","Сообщать о новой версии в приложении",s.automaticUpdates){model.save(s.copy(automaticUpdates=it))}
-                    GlassButton(onClick={model.checkUpdates()},enabled=!update.checking,modifier=Modifier.fillMaxWidth().padding(12.dp)){if(update.checking)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp);Text("Проверить обновление",Modifier.padding(start=8.dp))}
-                    if(update.message.isNotBlank())Text(update.message,fontSize=15.sp,lineHeight=22.sp,color=SecondaryInk,modifier=Modifier.padding(12.dp))
+                    GlassButton(onClick={model.checkUpdates()},enabled=!update.checking,modifier=Modifier.fillMaxWidth().padding(6.dp)){if(update.checking)CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp);Text("Проверить обновление",Modifier.padding(start=8.dp))}
+                    if(update.message.isNotBlank())Text(update.message,fontSize=15.sp,lineHeight=22.sp,color=SecondaryInk,modifier=Modifier.padding(6.dp))
                 }
             }
             "logs"->{
@@ -241,16 +241,16 @@ private val Accent:Color @Composable get()=AppColors.accent
         Column(Modifier.padding(if(BuildConfig.SIGNET_ACCOUNT)6.dp else 3.dp),content=content)
     }
 }
-@Composable private fun SettingsHeading(text:String){Text(text,fontSize=18.sp,fontWeight=FontWeight.SemiBold,color=Ink,modifier=Modifier.padding(12.dp))}
+@Composable private fun SettingsHeading(text:String){Text(text,fontSize=16.sp,fontWeight=FontWeight.SemiBold,color=Ink,modifier=Modifier.padding(6.dp))}
 @Composable private fun MenuItem(icon:ImageVector,title:String,subtitle:String,onClick:()->Unit,enabled:Boolean=true){
-    Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable(enabled=enabled,onClick=onClick).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp,vertical=if(BuildConfig.SIGNET_ACCOUNT)14.dp else 7.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)14.dp else 9.dp)){
+    Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable(enabled=enabled,onClick=onClick).padding(horizontal=if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)14.dp else 9.dp)){
         Box(Modifier.size(if(BuildConfig.SIGNET_ACCOUNT)42.dp else 34.dp).background(AppColors.tint,RoundedCornerShape(if(BuildConfig.SIGNET_ACCOUNT)14.dp else 10.dp)),contentAlignment=Alignment.Center){Icon(icon,null,tint=Accent,modifier=Modifier.size(if(BuildConfig.SIGNET_ACCOUNT)23.dp else 19.dp))}
         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)4.dp else 2.dp)){Text(title,fontSize=if(BuildConfig.SIGNET_ACCOUNT)17.sp else 15.sp,lineHeight=if(BuildConfig.SIGNET_ACCOUNT)23.sp else 20.sp,fontWeight=FontWeight.Medium,color=Ink)}
         if(enabled)Icon(Icons.Outlined.ChevronRight,null,tint=SecondaryInk,modifier=Modifier.size(20.dp))
     }
 }
 @Composable private fun SettingsToggle(title:String,subtitle:String,value:Boolean,onChange:(Boolean)->Unit){
-    Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable{onChange(!value)}.padding(if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp)){
+    Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable{onChange(!value)}.padding(horizontal=8.dp,vertical=2.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)12.dp else 8.dp)){
         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(if(BuildConfig.SIGNET_ACCOUNT)4.dp else 2.dp)){Text(title,fontSize=if(BuildConfig.SIGNET_ACCOUNT)17.sp else 15.sp,lineHeight=if(BuildConfig.SIGNET_ACCOUNT)23.sp else 20.sp,fontWeight=FontWeight.Medium,color=Ink)}
         Switch(value,onChange)
     }
