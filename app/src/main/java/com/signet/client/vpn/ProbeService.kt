@@ -21,6 +21,18 @@ import kotlin.coroutines.resume
 data class ProbeMeasurement(val delay:Long?,val status:String,val stage:String="",val dnsMs:Long=-1,val tcpMs:Long=-1,val coreMs:Long=-1,val tlsMs:Long=-1,val proxyMs:Long=-1)
 object Probes {
     private val serviceFailure get()=if(com.signet.client.BuildConfig.SIGNET_ACCOUNT)"FAILED"else"SERVICE_ERROR"
+    // Hold a second binding during a worker's rolling queue. Individual requests
+    // still have their own cancellation and timeout; the native process survives between them.
+    suspend fun <T> withWorker(context:Context,worker:Int,block:suspend ()->T):T {
+        require(worker in 1..8)
+        val intent=Intent().setClassName(context.packageName,"com.signet.client.vpn.ProbeWorker$worker")
+        val lease=object:ServiceConnection {
+            override fun onServiceConnected(name:ComponentName?,binder:IBinder?)=Unit
+            override fun onServiceDisconnected(name:ComponentName?)=Unit
+        }
+        val bound=context.bindService(intent,lease,Context.BIND_AUTO_CREATE)
+        try { return block() } finally { if(bound)runCatching{context.unbindService(lease)} }
+    }
     suspend fun measure(context:Context,servers:List<Server>):Map<String,Long?> = measureDetailed(context,servers,ProbeSettings()).mapValues{it.value.delay}
     suspend fun validate(context:Context,server:Server):Boolean=measureDetailed(context,listOf(server),ProbeSettings(mode=ProbeMode.XRAY,timeoutMs=15000),validateOnly=true)[server.id]?.status=="VALID"
     suspend fun measureDetailed(context:Context,servers:List<Server>,options:ProbeSettings,validateOnly:Boolean=false,worker:Int=0):Map<String,ProbeMeasurement> = withTimeout((options.timeoutMs.toLong()*(if(options.mode==ProbeMode.TCP&&!validateOnly)2 else 1)+5000)*servers.size.coerceAtLeast(1)+5000) {
